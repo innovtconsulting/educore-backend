@@ -6,6 +6,8 @@ import { Matiere } from "./matiere/entities/matiere.entity";
 import { Enseignant } from "./enseignant/entities/enseignant.entity";
 import { Affectation } from "./enseignant/entities/affectation.entity";
 import { EmploiDuTemp } from "./emploi-du-temps/entities/emploi-du-temp.entity";
+import { Etudiant } from "./etudiant/entities/etudiant.entity";
+import { Parent } from "./parent/entities/parent.entity";
 import * as dotenv from "dotenv";
 
 dotenv.config();
@@ -19,7 +21,7 @@ export const AppDataSource = new DataSource({
     database: process.env.DB_NAME || "postgres",
     synchronize: true,
     logging: false,
-    entities: [Etablissement, Niveau, Classe, Matiere, Enseignant, Affectation, EmploiDuTemp],
+    entities: [Etablissement, Niveau, Classe, Matiere, Enseignant, Affectation, EmploiDuTemp, Etudiant, Parent],
     subscribers: [],
     migrations: [],
 })

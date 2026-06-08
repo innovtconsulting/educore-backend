@@ -17,6 +17,9 @@ import { Affectation } from './enseignant/entities/affectation.entity';
 import { EmploiDuTempsModule } from './emploi-du-temps/emploi-du-temps.module';
 import { EmploiDuTemp } from './emploi-du-temps/entities/emploi-du-temp.entity';
 import { EtudiantModule } from './etudiant/etudiant.module';
+import { Etudiant } from './etudiant/entities/etudiant.entity';
+import { ParentModule } from './parent/parent.module';
+import { Parent } from './parent/entities/parent.entity';
 
 @Module({
   imports: [
@@ -30,7 +33,17 @@ import { EtudiantModule } from './etudiant/etudiant.module';
       username: process.env.DB_USER || 'postgres',
       password: process.env.DB_PASSWORD || 'postgres',
       database: process.env.DB_NAME || 'postgres',
-      entities: [Etablissement, Niveau, Classe, Matiere, Enseignant, Affectation, EmploiDuTemp],
+      entities: [
+        Etablissement,
+        Niveau,
+        Classe,
+        Matiere,
+        Enseignant,
+        Affectation,
+        EmploiDuTemp,
+        Etudiant,
+        Parent,
+      ],
       synchronize: true,
     }),
     EtablissementModule,
@@ -40,6 +53,7 @@ import { EtudiantModule } from './etudiant/etudiant.module';
     EnseignantModule,
     EmploiDuTempsModule,
     EtudiantModule,
+    ParentModule,
   ],
   controllers: [AppController],
   providers: [AppService],

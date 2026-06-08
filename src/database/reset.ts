@@ -6,6 +6,8 @@ import { Matiere } from '../matiere/entities/matiere.entity';
 import { Enseignant } from '../enseignant/entities/enseignant.entity';
 import { Affectation } from '../enseignant/entities/affectation.entity';
 import { EmploiDuTemp } from '../emploi-du-temps/entities/emploi-du-temp.entity';
+import { Etudiant } from '../etudiant/entities/etudiant.entity';
+import { Parent } from '../parent/entities/parent.entity';
 import * as dotenv from 'dotenv';
 
 dotenv.config();
@@ -17,7 +19,7 @@ const dataSource = new DataSource({
   username: process.env.DB_USER || 'postgres',
   password: process.env.DB_PASSWORD || 'postgres',
   database: process.env.DB_NAME || 'postgres',
-  entities: [Etablissement, Niveau, Classe, Matiere, Enseignant, Affectation, EmploiDuTemp],
+  entities: [Etablissement, Niveau, Classe, Matiere, Enseignant, Affectation, EmploiDuTemp, Etudiant, Parent],
   synchronize: false,
 });
 
