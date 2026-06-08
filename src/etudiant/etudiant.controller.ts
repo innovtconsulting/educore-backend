@@ -11,6 +11,7 @@ import {
   Delete,
   UseInterceptors,
   UploadedFile,
+  BadRequestException,
 } from '@nestjs/common';
 import { EtudiantService } from './etudiant.service';
 import { CreateEtudiantDto } from './dto/create-etudiant.dto';
@@ -103,6 +104,15 @@ export class EtudiantController {
           cb(null, `${randomName}${extname(file.originalname)}`);
         },
       }),
+      fileFilter: (req, file, cb) => {
+        if (!file.originalname.match(/\.(jpg|jpeg|png|gif)$/)) {
+          return cb(new BadRequestException('Seuls les fichiers images sont autorisés (jpg, jpeg, png, gif)'), false);
+        }
+        cb(null, true);
+      },
+      limits: {
+        fileSize: 2 * 1024 * 1024, // 2MB
+      },
     }),
   )
   async uploadFile(

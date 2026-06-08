@@ -8,6 +8,7 @@ import { Affectation } from '../enseignant/entities/affectation.entity';
 import { EmploiDuTemp } from '../emploi-du-temps/entities/emploi-du-temp.entity';
 import { Etudiant } from '../etudiant/entities/etudiant.entity';
 import { Parent } from '../parent/entities/parent.entity';
+import { Presence } from '../presence/entities/presence.entity';
 import * as dotenv from 'dotenv';
 
 dotenv.config();
@@ -19,7 +20,7 @@ const dataSource = new DataSource({
   username: process.env.DB_USER || 'postgres',
   password: process.env.DB_PASSWORD || 'postgres',
   database: process.env.DB_NAME || 'postgres',
-  entities: [Etablissement, Niveau, Classe, Matiere, Enseignant, Affectation, EmploiDuTemp, Etudiant, Parent],
+  entities: [Etablissement, Niveau, Classe, Matiere, Enseignant, Affectation, EmploiDuTemp, Etudiant, Parent, Presence],
   synchronize: false,
 });
 
@@ -34,6 +35,10 @@ async function seed() {
     const matiereRepo = dataSource.getRepository(Matiere);
     const enseignantRepo = dataSource.getRepository(Enseignant);
     const affectationRepo = dataSource.getRepository(Affectation);
+    const parentRepo = dataSource.getRepository(Parent);
+    const etudiantRepo = dataSource.getRepository(Etudiant);
+    const emploiRepo = dataSource.getRepository(EmploiDuTemp);
+    const presenceRepo = dataSource.getRepository(Presence);
 
     // 1. Établissements
     const fst = etablissementRepo.create({
@@ -134,6 +139,56 @@ async function seed() {
       niveau: l1,
     });
     await affectationRepo.save([aff1, aff2, aff3]);
+
+    // 7. Parents
+    const parent1 = parentRepo.create({
+      firstName: 'Modou',
+      lastName: 'Sow',
+      gender: 'Père' as any,
+      phoneNumber: '+221 77 111 22 33',
+      email: 'modou.sow@email.sn',
+    });
+    const parent2 = parentRepo.create({
+      firstName: 'Awa',
+      lastName: 'Sow',
+      gender: 'Mère' as any,
+      phoneNumber: '+221 77 444 55 66',
+    });
+    await parentRepo.save([parent1, parent2]);
+
+    // 8. Étudiants
+    const etudiant1 = etudiantRepo.create({
+      firstName: 'Ousmane',
+      lastName: 'Sow',
+      email: 'ousmane.sow@email.sn',
+      matricule: 'ETU-2026-001',
+      etablissement: fst,
+      classe: informatique,
+      niveau: l1,
+      parents: [parent1, parent2],
+    });
+    await etudiantRepo.save(etudiant1);
+
+    // 9. Emploi du Temps
+    const cours1 = emploiRepo.create({
+      startTime: new Date('2026-06-08T08:00:00Z'),
+      endTime: new Date('2026-06-08T10:00:00Z'),
+      matiere: algo,
+      enseignant: profDiallo,
+      etablissement: fst,
+      classe: informatique,
+      niveau: l1,
+    });
+    await emploiRepo.save(cours1);
+
+    // 10. Présence
+    const pres1 = presenceRepo.create({
+      etudiant: etudiant1,
+      emploiDuTemp: cours1,
+      status: 'Présent' as any,
+      remark: 'À l\'heure',
+    });
+    await presenceRepo.save(pres1);
 
     console.log('Seeding terminé avec succès !');
   } catch (error) {

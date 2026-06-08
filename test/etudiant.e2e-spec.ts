@@ -1,12 +1,14 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { INestApplication, ValidationPipe } from '@nestjs/common';
+import { ValidationPipe } from '@nestjs/common';
+import { NestExpressApplication } from '@nestjs/platform-express';
 import request from 'supertest';
 import { AppModule } from './../src/app.module';
 import { DataSource } from 'typeorm';
 import { TransformInterceptor } from './../src/common/interceptors/transform.interceptor';
+import { join } from 'path';
 
 describe('Student Module (e2e)', () => {
-  let app: INestApplication;
+  let app: NestExpressApplication;
   let dataSource: DataSource;
 
   let etablissementId: number;
@@ -19,8 +21,11 @@ describe('Student Module (e2e)', () => {
       imports: [AppModule],
     }).compile();
 
-    app = moduleFixture.createNestApplication();
+    app = moduleFixture.createNestApplication<NestExpressApplication>();
     app.setGlobalPrefix('api');
+    app.useStaticAssets(join(__dirname, '..', 'uploads'), {
+      prefix: '/uploads',
+    });
     app.useGlobalPipes(new ValidationPipe());
     app.useGlobalInterceptors(new TransformInterceptor());
     await app.init();
@@ -129,5 +134,29 @@ describe('Student Module (e2e)', () => {
     expect(res.body.data.etablissement).toBeDefined();
     expect(res.body.data.classe).toBeDefined();
     expect(res.body.data.niveau).toBeDefined();
+  });
+
+  it('5. Upload de photo de profil', async () => {
+    const res = await request(app.getHttpServer())
+      .post(`/api/etudiants/${etudiantId}/profile-picture`)
+      .attach('file', Buffer.from('fake-image-content'), 'test.jpg')
+      .expect(201);
+    
+    expect(res.body.data.photoPath).toContain('.jpg');
+    
+    // Vérifier l'accessibilité statique (optionnel mais recommandé)
+    const photoUrl = res.body.data.photoPath.replace(/\\/g, '/');
+    await request(app.getHttpServer())
+      .get(`/${photoUrl}`)
+      .expect(200);
+  });
+
+  it('6. Rejet de fichier non-image', async () => {
+    const res = await request(app.getHttpServer())
+      .post(`/api/etudiants/${etudiantId}/profile-picture`)
+      .attach('file', Buffer.from('fake-text-content'), 'test.txt')
+      .expect(400);
+    
+    expect(res.body.message).toContain('Seuls les fichiers images sont autorisés');
   });
 });

@@ -20,6 +20,8 @@ import { EtudiantModule } from './etudiant/etudiant.module';
 import { Etudiant } from './etudiant/entities/etudiant.entity';
 import { ParentModule } from './parent/parent.module';
 import { Parent } from './parent/entities/parent.entity';
+import { PresenceModule } from './presence/presence.module';
+import { Presence } from './presence/entities/presence.entity';
 
 @Module({
   imports: [
@@ -43,6 +45,7 @@ import { Parent } from './parent/entities/parent.entity';
         EmploiDuTemp,
         Etudiant,
         Parent,
+        Presence,
       ],
       synchronize: true,
     }),
@@ -54,6 +57,7 @@ import { Parent } from './parent/entities/parent.entity';
     EmploiDuTempsModule,
     EtudiantModule,
     ParentModule,
+    PresenceModule,
   ],
   controllers: [AppController],
   providers: [AppService],

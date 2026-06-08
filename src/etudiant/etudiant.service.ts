@@ -13,6 +13,9 @@ import { Classe } from '../classe/entities/classe.entity';
 import { Niveau } from '../niveau/entities/niveau.entity';
 import { Parent, ParentGender } from '../parent/entities/parent.entity';
 import { In } from 'typeorm';
+import { unlink } from 'fs/promises';
+import { existsSync } from 'fs';
+import { join } from 'path';
 
 @Injectable()
 export class EtudiantService {
@@ -161,12 +164,31 @@ export class EtudiantService {
 
   async remove(id: number): Promise<void> {
     const etudiant = await this.findOne(id);
+    
+    // Supprimer la photo si elle existe
+    if (etudiant.photoPath) {
+      const fullPath = join(process.cwd(), etudiant.photoPath);
+      if (existsSync(fullPath)) {
+        await unlink(fullPath);
+      }
+    }
+
     await this.etudiantRepository.remove(etudiant);
   }
 
   async updateProfilePicture(id: number, filePath: string): Promise<Etudiant> {
     const etudiant = await this.findOne(id);
-    etudiant.photoPath = filePath;
+    
+    // Supprimer l'ancienne photo si elle existe
+    if (etudiant.photoPath) {
+      const oldPath = join(process.cwd(), etudiant.photoPath);
+      if (existsSync(oldPath)) {
+        await unlink(oldPath);
+      }
+    }
+
+    // Normaliser le chemin (remplacer \ par / pour compatibilité web)
+    etudiant.photoPath = filePath.replace(/\\/g, '/');
     return await this.etudiantRepository.save(etudiant);
   }
 }
