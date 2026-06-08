@@ -56,14 +56,14 @@ export class MatiereService {
 
   async findAll(): Promise<Matiere[]> {
     return await this.matiereRepository.find({
-      relations: ['classes', 'niveaux'],
+      relations: { classes: true, niveaux: true },
     });
   }
 
   async findOne(id: number): Promise<Matiere> {
     const matiere = await this.matiereRepository.findOne({
       where: { id },
-      relations: ['classes', 'niveaux'],
+      relations: { classes: true, niveaux: true },
     });
     if (!matiere) {
       throw new NotFoundException(`La matière avec l'ID ${id} n'a pas été trouvée`);

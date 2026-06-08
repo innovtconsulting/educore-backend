@@ -11,6 +11,12 @@ import { NiveauModule } from './niveau/niveau.module';
 import { Niveau } from './niveau/entities/niveau.entity';
 import { MatiereModule } from './matiere/matiere.module';
 import { Matiere } from './matiere/entities/matiere.entity';
+import { EnseignantModule } from './enseignant/enseignant.module';
+import { Enseignant } from './enseignant/entities/enseignant.entity';
+import { Affectation } from './enseignant/entities/affectation.entity';
+import { EmploiDuTempsModule } from './emploi-du-temps/emploi-du-temps.module';
+import { EmploiDuTemp } from './emploi-du-temps/entities/emploi-du-temp.entity';
+import { EtudiantModule } from './etudiant/etudiant.module';
 
 @Module({
   imports: [
@@ -24,13 +30,16 @@ import { Matiere } from './matiere/entities/matiere.entity';
       username: process.env.DB_USER || 'postgres',
       password: process.env.DB_PASSWORD || 'postgres',
       database: process.env.DB_NAME || 'postgres',
-      entities: [Etablissement, Niveau, Classe, Matiere],
+      entities: [Etablissement, Niveau, Classe, Matiere, Enseignant, Affectation, EmploiDuTemp],
       synchronize: true,
     }),
     EtablissementModule,
     ClasseModule,
     NiveauModule,
     MatiereModule,
+    EnseignantModule,
+    EmploiDuTempsModule,
+    EtudiantModule,
   ],
   controllers: [AppController],
   providers: [AppService],

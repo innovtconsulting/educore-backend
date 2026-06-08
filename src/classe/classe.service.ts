@@ -65,14 +65,14 @@ export class ClasseService {
 
   async findAll(): Promise<Classe[]> {
     return await this.classeRepository.find({
-      relations: ['etablissements', 'niveaux'],
+      relations: { etablissements: true, niveaux: true },
     });
   }
 
   async findOne(id: number): Promise<Classe> {
     const classe = await this.classeRepository.findOne({
       where: { id },
-      relations: ['etablissements', 'niveaux'],
+      relations: { etablissements: true, niveaux: true },
     });
     if (!classe) {
       throw new NotFoundException(`La classe avec l'ID ${id} n'a pas été trouvée`);
