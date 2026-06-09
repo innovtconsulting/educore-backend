@@ -9,6 +9,7 @@ import { EmploiDuTemp } from '../emploi-du-temps/entities/emploi-du-temp.entity'
 import { Etudiant } from '../etudiant/entities/etudiant.entity';
 import { Parent } from '../parent/entities/parent.entity';
 import { Presence } from '../presence/entities/presence.entity';
+import { Sanction, SanctionType } from '../sanction/entities/sanction.entity';
 import * as dotenv from 'dotenv';
 
 dotenv.config();
@@ -20,7 +21,7 @@ const dataSource = new DataSource({
   username: process.env.DB_USER || 'postgres',
   password: process.env.DB_PASSWORD || 'postgres',
   database: process.env.DB_NAME || 'postgres',
-  entities: [Etablissement, Niveau, Classe, Matiere, Enseignant, Affectation, EmploiDuTemp, Etudiant, Parent, Presence],
+  entities: [Etablissement, Niveau, Classe, Matiere, Enseignant, Affectation, EmploiDuTemp, Etudiant, Parent, Presence, Sanction],
   synchronize: false,
 });
 
@@ -39,6 +40,7 @@ async function seed() {
     const etudiantRepo = dataSource.getRepository(Etudiant);
     const emploiRepo = dataSource.getRepository(EmploiDuTemp);
     const presenceRepo = dataSource.getRepository(Presence);
+    const sanctionRepo = dataSource.getRepository(Sanction);
 
     // 1. Établissements
     const fst = etablissementRepo.create({
@@ -189,6 +191,16 @@ async function seed() {
       remark: 'À l\'heure',
     });
     await presenceRepo.save(pres1);
+
+    // 11. Sanctions
+    const sanc1 = sanctionRepo.create({
+      etudiant: etudiant1,
+      type: SanctionType.AVERTISSEMENT,
+      motif: 'Retards répétés au cours d\'Algorithmique',
+      dateDecision: new Date('2026-06-09'),
+      isApplied: true,
+    });
+    await sanctionRepo.save(sanc1);
 
     console.log('Seeding terminé avec succès !');
   } catch (error) {

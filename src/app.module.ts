@@ -22,6 +22,8 @@ import { ParentModule } from './parent/parent.module';
 import { Parent } from './parent/entities/parent.entity';
 import { PresenceModule } from './presence/presence.module';
 import { Presence } from './presence/entities/presence.entity';
+import { SanctionModule } from './sanction/sanction.module';
+import { Sanction } from './sanction/entities/sanction.entity';
 
 @Module({
   imports: [
@@ -46,6 +48,7 @@ import { Presence } from './presence/entities/presence.entity';
         Etudiant,
         Parent,
         Presence,
+        Sanction,
       ],
       synchronize: true,
     }),
@@ -58,6 +61,7 @@ import { Presence } from './presence/entities/presence.entity';
     EtudiantModule,
     ParentModule,
     PresenceModule,
+    SanctionModule,
   ],
   controllers: [AppController],
   providers: [AppService],

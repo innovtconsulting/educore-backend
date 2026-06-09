@@ -5,6 +5,7 @@ import {
   JoinTable,
   ManyToMany,
   ManyToOne,
+  OneToMany,
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
@@ -12,6 +13,7 @@ import { Etablissement } from '../../etablissement/entities/etablissement.entity
 import { Classe } from '../../classe/entities/classe.entity';
 import { Niveau } from '../../niveau/entities/niveau.entity';
 import { Parent } from '../../parent/entities/parent.entity';
+import { Sanction } from '../../sanction/entities/sanction.entity';
 
 export enum EnrollmentStatus {
   ACTIF = 'Actif',
@@ -125,4 +127,7 @@ export class Etudiant {
 
   @UpdateDateColumn()
   updatedAt!: Date;
+
+  @OneToMany(() => Sanction, (sanction) => sanction.etudiant)
+  sanctions!: Sanction[];
 }
