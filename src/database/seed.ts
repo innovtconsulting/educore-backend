@@ -10,6 +10,10 @@ import { Etudiant } from '../etudiant/entities/etudiant.entity';
 import { Parent } from '../parent/entities/parent.entity';
 import { Presence } from '../presence/entities/presence.entity';
 import { Sanction, SanctionType } from '../sanction/entities/sanction.entity';
+import { Frais, FeeType } from '../finance/entities/frais.entity';
+import { Facture, InvoiceStatus } from '../finance/entities/facture.entity';
+import { Paiement, PaymentMethod } from '../finance/entities/paiement.entity';
+import { generateReceiptPdf } from '../finance/utils/pdf-generator';
 import * as dotenv from 'dotenv';
 
 dotenv.config();
@@ -21,7 +25,7 @@ const dataSource = new DataSource({
   username: process.env.DB_USER || 'postgres',
   password: process.env.DB_PASSWORD || 'postgres',
   database: process.env.DB_NAME || 'postgres',
-  entities: [Etablissement, Niveau, Classe, Matiere, Enseignant, Affectation, EmploiDuTemp, Etudiant, Parent, Presence, Sanction],
+  entities: [Etablissement, Niveau, Classe, Matiere, Enseignant, Affectation, EmploiDuTemp, Etudiant, Parent, Presence, Sanction, Frais, Facture, Paiement],
   synchronize: false,
 });
 
@@ -41,6 +45,9 @@ async function seed() {
     const emploiRepo = dataSource.getRepository(EmploiDuTemp);
     const presenceRepo = dataSource.getRepository(Presence);
     const sanctionRepo = dataSource.getRepository(Sanction);
+    const fraisRepo = dataSource.getRepository(Frais);
+    const factureRepo = dataSource.getRepository(Facture);
+    const paiementRepo = dataSource.getRepository(Paiement);
 
     // 1. Établissements
     const fst = etablissementRepo.create({
@@ -201,6 +208,52 @@ async function seed() {
       isApplied: true,
     });
     await sanctionRepo.save(sanc1);
+
+    // 12. Finance
+    const fraisL1 = fraisRepo.create({
+      name: 'Scolarité Licence 1 Informatique',
+      amount: 500000,
+      type: FeeType.SCOLARITE,
+      classe: informatique,
+      niveau: l1,
+    });
+    const fraisInscr = fraisRepo.create({
+      name: 'Frais d\'inscription L1',
+      amount: 50000,
+      type: FeeType.INSCRIPTION,
+      classe: informatique,
+      niveau: l1,
+    });
+    await fraisRepo.save([fraisL1, fraisInscr]);
+
+    const fac1 = factureRepo.create({
+      numero: 'FAC-2026-0001',
+      etudiant: etudiant1,
+      dateEmission: new Date('2026-06-01'),
+      dateEcheance: new Date('2026-07-01'),
+      montantTotal: 550000,
+      status: InvoiceStatus.PARTIEL,
+    });
+    await factureRepo.save(fac1);
+
+    const pay1 = paiementRepo.create({
+      reference: 'PAY-2026-0001',
+      etudiant: etudiant1,
+      facture: fac1,
+      montant: 250000,
+      datePaiement: new Date('2026-06-05'),
+      modePaiement: PaymentMethod.WAVE,
+    });
+    const savedPay1 = await paiementRepo.save(pay1);
+    
+    // Générer le reçu PDF pour le seed
+    try {
+      const recuPath = await generateReceiptPdf(savedPay1);
+      savedPay1.recuPath = recuPath;
+      await paiementRepo.save(savedPay1);
+    } catch (e) {
+      console.warn('Échec génération PDF dans le seed');
+    }
 
     console.log('Seeding terminé avec succès !');
   } catch (error) {

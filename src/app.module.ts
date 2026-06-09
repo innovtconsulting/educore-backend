@@ -24,6 +24,10 @@ import { PresenceModule } from './presence/presence.module';
 import { Presence } from './presence/entities/presence.entity';
 import { SanctionModule } from './sanction/sanction.module';
 import { Sanction } from './sanction/entities/sanction.entity';
+import { FinanceModule } from './finance/finance.module';
+import { Frais } from './finance/entities/frais.entity';
+import { Facture } from './finance/entities/facture.entity';
+import { Paiement } from './finance/entities/paiement.entity';
 
 @Module({
   imports: [
@@ -49,6 +53,9 @@ import { Sanction } from './sanction/entities/sanction.entity';
         Parent,
         Presence,
         Sanction,
+        Frais,
+        Facture,
+        Paiement,
       ],
       synchronize: true,
     }),
@@ -62,6 +69,7 @@ import { Sanction } from './sanction/entities/sanction.entity';
     ParentModule,
     PresenceModule,
     SanctionModule,
+    FinanceModule,
   ],
   controllers: [AppController],
   providers: [AppService],

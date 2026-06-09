@@ -10,6 +10,9 @@ import { Etudiant } from '../etudiant/entities/etudiant.entity';
 import { Parent } from '../parent/entities/parent.entity';
 import { Presence } from '../presence/entities/presence.entity';
 import { Sanction } from '../sanction/entities/sanction.entity';
+import { Frais } from '../finance/entities/frais.entity';
+import { Facture } from '../finance/entities/facture.entity';
+import { Paiement } from '../finance/entities/paiement.entity';
 import * as dotenv from 'dotenv';
 
 dotenv.config();
@@ -21,7 +24,7 @@ const dataSource = new DataSource({
   username: process.env.DB_USER || 'postgres',
   password: process.env.DB_PASSWORD || 'postgres',
   database: process.env.DB_NAME || 'postgres',
-  entities: [Etablissement, Niveau, Classe, Matiere, Enseignant, Affectation, EmploiDuTemp, Etudiant, Parent, Presence, Sanction],
+  entities: [Etablissement, Niveau, Classe, Matiere, Enseignant, Affectation, EmploiDuTemp, Etudiant, Parent, Presence, Sanction, Frais, Facture, Paiement],
   synchronize: false,
 });
 
