@@ -10,6 +10,8 @@ import { Etudiant } from '../etudiant/entities/etudiant.entity';
 import { Parent } from '../parent/entities/parent.entity';
 import { Presence } from '../presence/entities/presence.entity';
 import { Sanction, SanctionType } from '../sanction/entities/sanction.entity';
+import { DailyReport } from '../reporting/entities/daily-report.entity';
+import { Document, DocumentCategory } from '../document/entities/document.entity';
 import { Frais, FeeType } from '../finance/entities/frais.entity';
 import { Facture, InvoiceStatus } from '../finance/entities/facture.entity';
 import { Paiement, PaymentMethod } from '../finance/entities/paiement.entity';
@@ -25,7 +27,7 @@ const dataSource = new DataSource({
   username: process.env.DB_USER || 'postgres',
   password: process.env.DB_PASSWORD || 'postgres',
   database: process.env.DB_NAME || 'postgres',
-  entities: [Etablissement, Niveau, Classe, Matiere, Enseignant, Affectation, EmploiDuTemp, Etudiant, Parent, Presence, Sanction, Frais, Facture, Paiement],
+  entities: [Etablissement, Niveau, Classe, Matiere, Enseignant, Affectation, EmploiDuTemp, Etudiant, Parent, Presence, Sanction, DailyReport, Document, Frais, Facture, Paiement],
   synchronize: false,
 });
 
@@ -45,6 +47,8 @@ async function seed() {
     const emploiRepo = dataSource.getRepository(EmploiDuTemp);
     const presenceRepo = dataSource.getRepository(Presence);
     const sanctionRepo = dataSource.getRepository(Sanction);
+    const dailyReportRepo = dataSource.getRepository(DailyReport);
+    const documentRepo = dataSource.getRepository(Document);
     const fraisRepo = dataSource.getRepository(Frais);
     const factureRepo = dataSource.getRepository(Facture);
     const paiementRepo = dataSource.getRepository(Paiement);
@@ -254,6 +258,30 @@ async function seed() {
     } catch (e) {
       console.warn('Échec génération PDF dans le seed');
     }
+
+    // 13. Rapport Quotidien
+    const dailyReport = dailyReportRepo.create({
+      date: '2026-06-09',
+      supervisorName: 'M. Faye',
+      observations: 'Journée calme, quelques retards signalés en début de matinée.',
+      totalAbsences: 0,
+      totalRetards: 0,
+      totalSanctions: 1,
+      isSubmitted: true,
+    });
+    await dailyReportRepo.save(dailyReport);
+
+    // 14. Document
+    const doc1 = documentRepo.create({
+      title: 'Calendrier Académique 2026-2027',
+      description: 'Calendrier officiel des cours et examens',
+      category: DocumentCategory.ADMINISTRATIF,
+      filePath: 'uploads/documents/calendrier_2026.pdf',
+      originalName: 'calendrier_2026.pdf',
+      mimeType: 'application/pdf',
+      fileSize: 1024 * 500, // 500 KB
+    });
+    await documentRepo.save(doc1);
 
     console.log('Seeding terminé avec succès !');
   } catch (error) {

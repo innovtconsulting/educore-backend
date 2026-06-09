@@ -1,4 +1,12 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Patch,
+  Param,
+  Delete,
+} from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
 import { MatiereService } from './matiere.service';
 import { CreateMatiereDto } from './dto/create-matiere.dto';
@@ -37,7 +45,10 @@ export class MatiereController {
   }
 
   @Patch(':id')
-  async update(@Param('id') id: string, @Body() updateMatiereDto: UpdateMatiereDto) {
+  async update(
+    @Param('id') id: string,
+    @Body() updateMatiereDto: UpdateMatiereDto,
+  ) {
     const data = await this.matiereService.update(+id, updateMatiereDto);
     return {
       message: `Matière #${id} mise à jour avec succès`,

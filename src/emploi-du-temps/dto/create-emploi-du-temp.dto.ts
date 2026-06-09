@@ -2,38 +2,41 @@ import { ApiProperty } from '@nestjs/swagger';
 import { IsDateString, IsNotEmpty, IsNumber } from 'class-validator';
 
 export class CreateEmploiDuTempDto {
-  @ApiProperty({ example: '2026-06-08T08:00:00Z', description: 'Heure de début' })
+  @ApiProperty({
+    example: '2026-06-08T08:00:00Z',
+    description: 'Heure de début',
+  })
   @IsDateString()
   @IsNotEmpty()
-  startTime: string;
+  startTime!: string;
 
   @ApiProperty({ example: '2026-06-08T10:00:00Z', description: 'Heure de fin' })
   @IsDateString()
   @IsNotEmpty()
-  endTime: string;
+  endTime!: string;
 
   @ApiProperty({ example: 1 })
   @IsNumber()
   @IsNotEmpty()
-  matiereId: number;
+  matiereId!: number;
 
   @ApiProperty({ example: 1 })
   @IsNumber()
   @IsNotEmpty()
-  enseignantId: number;
+  enseignantId!: number;
 
   @ApiProperty({ example: 1 })
   @IsNumber()
   @IsNotEmpty()
-  etablissementId: number;
+  etablissementId!: number;
 
   @ApiProperty({ example: 1 })
   @IsNumber()
   @IsNotEmpty()
-  classeId: number;
+  classeId!: number;
 
   @ApiProperty({ example: 1 })
   @IsNumber()
   @IsNotEmpty()
-  niveauId: number;
+  niveauId!: number;
 }

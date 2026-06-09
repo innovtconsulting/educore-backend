@@ -41,13 +41,15 @@ export class FinanceService {
 
     if (classeId) {
       const classe = await this.classeRepository.findOneBy({ id: classeId });
-      if (!classe) throw new NotFoundException(`Classe #${classeId} introuvable`);
+      if (!classe)
+        throw new NotFoundException(`Classe #${classeId} introuvable`);
       frais.classe = classe;
     }
 
     if (niveauId) {
       const niveau = await this.niveauRepository.findOneBy({ id: niveauId });
-      if (!niveau) throw new NotFoundException(`Niveau #${niveauId} introuvable`);
+      if (!niveau)
+        throw new NotFoundException(`Niveau #${niveauId} introuvable`);
       frais.niveau = niveau;
     }
 
@@ -72,7 +74,8 @@ export class FinanceService {
     const existing = await this.factureRepository.findOneBy({
       numero: dto.numero,
     });
-    if (existing) throw new BadRequestException(`Facture ${dto.numero} déjà existante`);
+    if (existing)
+      throw new BadRequestException(`Facture ${dto.numero} déjà existante`);
 
     const facture = this.factureRepository.create({
       ...dto,
@@ -118,7 +121,9 @@ export class FinanceService {
       reference: dto.reference,
     });
     if (existing)
-      throw new BadRequestException(`Référence paiement ${dto.reference} déjà utilisée`);
+      throw new BadRequestException(
+        `Référence paiement ${dto.reference} déjà utilisée`,
+      );
 
     const paiement = this.paiementRepository.create({
       ...dto,

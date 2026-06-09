@@ -1,4 +1,8 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { In, Repository } from 'typeorm';
 import { CreateMatiereDto } from './dto/create-matiere.dto';
@@ -24,7 +28,9 @@ export class MatiereService {
     // Vérifier l'unicité du code
     const existingMatiere = await this.matiereRepository.findOneBy({ code });
     if (existingMatiere) {
-      throw new BadRequestException(`La matière avec le code "${code}" existe déjà`);
+      throw new BadRequestException(
+        `La matière avec le code "${code}" existe déjà`,
+      );
     }
 
     // Vérifier l'existence des classes
@@ -66,19 +72,26 @@ export class MatiereService {
       relations: { classes: true, niveaux: true },
     });
     if (!matiere) {
-      throw new NotFoundException(`La matière avec l'ID ${id} n'a pas été trouvée`);
+      throw new NotFoundException(
+        `La matière avec l'ID ${id} n'a pas été trouvée`,
+      );
     }
     return matiere;
   }
 
-  async update(id: number, updateMatiereDto: UpdateMatiereDto): Promise<Matiere> {
+  async update(
+    id: number,
+    updateMatiereDto: UpdateMatiereDto,
+  ): Promise<Matiere> {
     const { code, name, coefficient, classeIds, niveauIds } = updateMatiereDto;
     const matiere = await this.findOne(id);
 
     if (code) {
       const existingMatiere = await this.matiereRepository.findOneBy({ code });
       if (existingMatiere && existingMatiere.id !== id) {
-        throw new BadRequestException(`La matière avec le code "${code}" existe déjà`);
+        throw new BadRequestException(
+          `La matière avec le code "${code}" existe déjà`,
+        );
       }
       matiere.code = code;
     }
@@ -96,7 +109,9 @@ export class MatiereService {
         id: In(classeIds),
       });
       if (classes.length !== classeIds.length) {
-        throw new NotFoundException('Une ou plusieurs classes sont introuvables');
+        throw new NotFoundException(
+          'Une ou plusieurs classes sont introuvables',
+        );
       }
       matiere.classes = classes;
     }
@@ -106,7 +121,9 @@ export class MatiereService {
         id: In(niveauIds),
       });
       if (niveaux.length !== niveauIds.length) {
-        throw new NotFoundException('Un ou plusieurs niveaux sont introuvables');
+        throw new NotFoundException(
+          'Un ou plusieurs niveaux sont introuvables',
+        );
       }
       matiere.niveaux = niveaux;
     }

@@ -43,7 +43,7 @@ export class ParentController {
   }
 
   @Get(':id')
-  @ApiOperation({ summary: 'Détails d\'un parent' })
+  @ApiOperation({ summary: "Détails d'un parent" })
   findOne(@Param('id', ParseIntPipe) id: number) {
     return this.parentService.findOne(id);
   }

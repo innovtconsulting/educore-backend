@@ -1,30 +1,38 @@
-import { Column, CreateDateColumn, Entity, JoinTable, ManyToMany, PrimaryGeneratedColumn, UpdateDateColumn } from 'typeorm';
+import {
+  Column,
+  CreateDateColumn,
+  Entity,
+  JoinTable,
+  ManyToMany,
+  PrimaryGeneratedColumn,
+  UpdateDateColumn,
+} from 'typeorm';
 import { Etablissement } from '../../etablissement/entities/etablissement.entity';
 import { Niveau } from '../../niveau/entities/niveau.entity';
 import { Matiere } from '../../matiere/entities/matiere.entity';
 
 @Entity()
 export class Classe {
-    @PrimaryGeneratedColumn()
-    id!: number;
+  @PrimaryGeneratedColumn()
+  id!: number;
 
-    @Column({ nullable: false })
-    name!: string;
+  @Column({ nullable: false })
+  name!: string;
 
-    @ManyToMany(() => Niveau, (niveau) => niveau.classes)
-    @JoinTable()
-    niveaux!: Niveau[];
+  @ManyToMany(() => Niveau, (niveau) => niveau.classes)
+  @JoinTable()
+  niveaux!: Niveau[];
 
-    @ManyToMany(() => Etablissement, (etablissement) => etablissement.classes)
-    @JoinTable()
-    etablissements!: Etablissement[];
+  @ManyToMany(() => Etablissement, (etablissement) => etablissement.classes)
+  @JoinTable()
+  etablissements!: Etablissement[];
 
-    @ManyToMany(() => Matiere, (matiere) => matiere.classes)
-    matieres!: Matiere[];
+  @ManyToMany(() => Matiere, (matiere) => matiere.classes)
+  matieres!: Matiere[];
 
-    @CreateDateColumn()
-    createdAt!: Date;
+  @CreateDateColumn()
+  createdAt!: Date;
 
-    @UpdateDateColumn()
-    updatedAt!: Date;
+  @UpdateDateColumn()
+  updatedAt!: Date;
 }

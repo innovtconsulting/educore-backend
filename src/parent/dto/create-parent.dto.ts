@@ -12,16 +12,16 @@ export class CreateParentDto {
   @ApiProperty({ example: 'Jean' })
   @IsString()
   @IsNotEmpty()
-  firstName: string;
+  firstName!: string;
 
   @ApiProperty({ example: 'Dupont' })
   @IsString()
   @IsNotEmpty()
-  lastName: string;
+  lastName!: string;
 
   @ApiProperty({ example: 'Père', enum: ParentGender })
   @IsEnum(ParentGender)
-  gender: ParentGender;
+  gender!: ParentGender;
 
   @ApiProperty({ example: 'jean.dupont@email.com', required: false })
   @IsEmail()
@@ -31,7 +31,7 @@ export class CreateParentDto {
   @ApiProperty({ example: '+221 77 123 45 67' })
   @IsString()
   @IsNotEmpty()
-  phoneNumber: string;
+  phoneNumber!: string;
 
   @ApiProperty({ example: 'Dakar, Plateau', required: false })
   @IsString()

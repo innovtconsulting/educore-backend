@@ -24,7 +24,9 @@ export class NiveauService {
   async findOne(id: number): Promise<Niveau> {
     const niveau = await this.niveauRepository.findOneBy({ id });
     if (!niveau) {
-      throw new NotFoundException(`Le niveau avec l'ID ${id} n'a pas été trouvé`);
+      throw new NotFoundException(
+        `Le niveau avec l'ID ${id} n'a pas été trouvé`,
+      );
     }
     return niveau;
   }

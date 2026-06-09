@@ -150,7 +150,7 @@ export class CreateEtudiantDto {
   @ApiProperty({ example: 1, description: 'ID du niveau' })
   @IsNumber()
   @IsNotEmpty()
-  niveauId: number;
+  niveauId!: number;
 
   @ApiProperty({
     example: [1, 2],
@@ -160,4 +160,4 @@ export class CreateEtudiantDto {
   @IsNumber({}, { each: true })
   @IsOptional()
   parentIds?: number[];
-  }
+}

@@ -1,4 +1,12 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Patch,
+  Param,
+  Delete,
+} from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
 import { NiveauService } from './niveau.service';
 import { CreateNiveauDto } from './dto/create-niveau.dto';
@@ -37,7 +45,10 @@ export class NiveauController {
   }
 
   @Patch(':id')
-  async update(@Param('id') id: string, @Body() updateNiveauDto: UpdateNiveauDto) {
+  async update(
+    @Param('id') id: string,
+    @Body() updateNiveauDto: UpdateNiveauDto,
+  ) {
     const data = await this.niveauService.update(+id, updateNiveauDto);
     return {
       message: `Niveau #${id} mis à jour avec succès`,

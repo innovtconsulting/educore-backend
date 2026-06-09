@@ -24,10 +24,14 @@ import { PresenceModule } from './presence/presence.module';
 import { Presence } from './presence/entities/presence.entity';
 import { SanctionModule } from './sanction/sanction.module';
 import { Sanction } from './sanction/entities/sanction.entity';
+import { DailyReport } from './reporting/entities/daily-report.entity';
+import { Document } from './document/entities/document.entity';
 import { FinanceModule } from './finance/finance.module';
 import { Frais } from './finance/entities/frais.entity';
 import { Facture } from './finance/entities/facture.entity';
 import { Paiement } from './finance/entities/paiement.entity';
+import { ReportingModule } from './reporting/reporting.module';
+import { DocumentModule } from './document/document.module';
 
 @Module({
   imports: [
@@ -53,6 +57,8 @@ import { Paiement } from './finance/entities/paiement.entity';
         Parent,
         Presence,
         Sanction,
+        DailyReport,
+        Document,
         Frais,
         Facture,
         Paiement,
@@ -70,6 +76,8 @@ import { Paiement } from './finance/entities/paiement.entity';
     PresenceModule,
     SanctionModule,
     FinanceModule,
+    ReportingModule,
+    DocumentModule,
   ],
   controllers: [AppController],
   providers: [AppService],

@@ -1,4 +1,13 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, Query } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Patch,
+  Param,
+  Delete,
+  Query,
+} from '@nestjs/common';
 import { EmploiDuTempsService } from './emploi-du-temps.service';
 import { CreateEmploiDuTempDto } from './dto/create-emploi-du-temp.dto';
 import { UpdateEmploiDuTempDto } from './dto/update-emploi-du-temp.dto';
@@ -16,11 +25,23 @@ export class EmploiDuTempsController {
   }
 
   @Get()
-  @ApiOperation({ summary: "Récupérer l'emploi du temps (avec filtres optionnels)" })
+  @ApiOperation({
+    summary: "Récupérer l'emploi du temps (avec filtres optionnels)",
+  })
   @ApiQuery({ name: 'classeId', required: false, type: Number })
   @ApiQuery({ name: 'niveauId', required: false, type: Number })
-  @ApiQuery({ name: 'start', required: false, type: String, description: "Format ISO" })
-  @ApiQuery({ name: 'end', required: false, type: String, description: "Format ISO" })
+  @ApiQuery({
+    name: 'start',
+    required: false,
+    type: String,
+    description: 'Format ISO',
+  })
+  @ApiQuery({
+    name: 'end',
+    required: false,
+    type: String,
+    description: 'Format ISO',
+  })
   findAll(
     @Query('classeId') classeId?: string,
     @Query('niveauId') niveauId?: string,
@@ -31,24 +52,27 @@ export class EmploiDuTempsController {
       classeId ? +classeId : undefined,
       niveauId ? +niveauId : undefined,
       start,
-      end
+      end,
     );
   }
 
   @Get(':id')
-  @ApiOperation({ summary: "Récupérer un créneau par son ID" })
+  @ApiOperation({ summary: 'Récupérer un créneau par son ID' })
   findOne(@Param('id') id: string) {
     return this.emploiDuTempsService.findOne(+id);
   }
 
   @Patch(':id')
-  @ApiOperation({ summary: "Modifier un créneau" })
-  update(@Param('id') id: string, @Body() updateEmploiDuTempDto: UpdateEmploiDuTempDto) {
+  @ApiOperation({ summary: 'Modifier un créneau' })
+  update(
+    @Param('id') id: string,
+    @Body() updateEmploiDuTempDto: UpdateEmploiDuTempDto,
+  ) {
     return this.emploiDuTempsService.update(+id, updateEmploiDuTempDto);
   }
 
   @Delete(':id')
-  @ApiOperation({ summary: "Supprimer un créneau" })
+  @ApiOperation({ summary: 'Supprimer un créneau' })
   remove(@Param('id') id: string) {
     return this.emploiDuTempsService.remove(+id);
   }
