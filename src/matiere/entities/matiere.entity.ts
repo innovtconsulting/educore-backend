@@ -1,32 +1,40 @@
-import { Column, CreateDateColumn, Entity, JoinTable, ManyToMany, PrimaryGeneratedColumn, UpdateDateColumn } from "typeorm";
-import { Classe } from "../../classe/entities/classe.entity";
-import { Niveau } from "../../niveau/entities/niveau.entity";
+import {
+  Column,
+  CreateDateColumn,
+  Entity,
+  JoinTable,
+  ManyToMany,
+  PrimaryGeneratedColumn,
+  UpdateDateColumn,
+} from 'typeorm';
+import { Classe } from '../../classe/entities/classe.entity';
+import { Niveau } from '../../niveau/entities/niveau.entity';
 
 @Entity()
 export class Matiere {
-    @PrimaryGeneratedColumn()
-    id!: number;
-    
-    @Column({ nullable: false, unique: true })
-    code!: string;
+  @PrimaryGeneratedColumn()
+  id!: number;
 
-    @Column({ nullable: false })
-    name!: string;
+  @Column({ nullable: false, unique: true })
+  code!: string;
 
-    @Column({ type: 'decimal', precision: 5, scale: 2, default: 1.0 })
-    coefficient!: number;
+  @Column({ nullable: false })
+  name!: string;
 
-    @ManyToMany(() => Classe, (classe) => classe.matieres)
-    @JoinTable()
-    classes!: Classe[];
+  @Column({ type: 'decimal', precision: 5, scale: 2, default: 1.0 })
+  coefficient!: number;
 
-    @ManyToMany(() => Niveau, (niveau) => niveau.matieres)
-    @JoinTable()
-    niveaux!: Niveau[];
+  @ManyToMany(() => Classe, (classe) => classe.matieres)
+  @JoinTable()
+  classes!: Classe[];
 
-    @CreateDateColumn()
-    createdAt!: Date;
+  @ManyToMany(() => Niveau, (niveau) => niveau.matieres)
+  @JoinTable()
+  niveaux!: Niveau[];
 
-    @UpdateDateColumn()
-    updatedAt!: Date;
+  @CreateDateColumn()
+  createdAt!: Date;
+
+  @UpdateDateColumn()
+  updatedAt!: Date;
 }

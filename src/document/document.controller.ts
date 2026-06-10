@@ -24,7 +24,10 @@ export class DocumentController {
   constructor(private readonly documentService: DocumentService) {}
 
   @Post('upload')
-  @ApiOperation({ summary: 'Uploader un nouveau document' })
+  @ApiOperation({ 
+    summary: 'Uploader un nouveau document',
+    description: 'Permet de stocker un fichier physique (PDF, Image, etc.) et d\'y associer des métadonnées (titre, catégorie).'
+  })
   @ApiConsumes('multipart/form-data')
   @ApiBody({
     schema: {
@@ -33,10 +36,11 @@ export class DocumentController {
         file: {
           type: 'string',
           format: 'binary',
+          description: 'Fichier à uploader (max 10MB)'
         },
-        title: { type: 'string' },
-        description: { type: 'string' },
-        category: { type: 'string', enum: ['Administratif', 'Pédagogique', 'Règlement', 'Autre'] },
+        title: { type: 'string', description: 'Titre du document' },
+        description: { type: 'string', description: 'Description optionnelle' },
+        category: { type: 'string', enum: ['Administratif', 'Pédagogique', 'Règlement', 'Autre'], description: 'Catégorie du document' },
       },
     },
   })
@@ -72,7 +76,10 @@ export class DocumentController {
   }
 
   @Get()
-  @ApiOperation({ summary: 'Récupérer tous les documents' })
+  @ApiOperation({ 
+    summary: 'Récupérer tous les documents',
+    description: 'Liste tous les documents enregistrés dans la GED (Gestion Électronique de Documents).'
+  })
   async findAll() {
     const data = await this.documentService.findAll();
     return {
@@ -82,7 +89,10 @@ export class DocumentController {
   }
 
   @Get(':id')
-  @ApiOperation({ summary: 'Récupérer un document par son ID' })
+  @ApiOperation({ 
+    summary: 'Récupérer un document par son ID',
+    description: 'Affiche les informations détaillées d\'un document et son lien de téléchargement.'
+  })
   async findOne(@Param('id') id: string) {
     const data = await this.documentService.findOne(+id);
     return {
@@ -92,7 +102,10 @@ export class DocumentController {
   }
 
   @Patch(':id')
-  @ApiOperation({ summary: 'Modifier les métadonnées d\'un document' })
+  @ApiOperation({ 
+    summary: 'Modifier les métadonnées d\'un document',
+    description: 'Permet de changer le titre, la description ou la catégorie sans modifier le fichier physique.'
+  })
   async update(
     @Param('id') id: string,
     @Body() updateDocumentDto: UpdateDocumentDto,
@@ -105,7 +118,10 @@ export class DocumentController {
   }
 
   @Delete(':id')
-  @ApiOperation({ summary: 'Supprimer un document et son fichier physique' })
+  @ApiOperation({ 
+    summary: 'Supprimer un document',
+    description: 'Supprime l\'entrée en base de données ET le fichier physique sur le serveur.'
+  })
   async remove(@Param('id') id: string) {
     await this.documentService.remove(+id);
     return {

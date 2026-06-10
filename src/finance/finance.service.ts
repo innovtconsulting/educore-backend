@@ -203,12 +203,36 @@ export class FinanceService {
       0,
     );
 
-    const allFactures = await this.factureRepository.find();
+    const allFactures = await this.factureRepository.find({ relations: { etudiant: { niveau: true } } });
     const totalInvoiced = allFactures.reduce(
       (sum, f) => sum + Number(f.montantTotal),
       0,
     );
     const totalPending = totalInvoiced - totalCollected;
+
+    // Calcul par niveau
+    const statsByNiveau: any = {};
+    allFactures.forEach(f => {
+      const niveauName = f.etudiant.niveau.name;
+      if (!statsByNiveau[niveauName]) {
+        statsByNiveau[niveauName] = { invoiced: 0, collected: 0, pending: 0 };
+      }
+      statsByNiveau[niveauName].invoiced += Number(f.montantTotal);
+    });
+
+    allPaiements.forEach(p => {
+      if (p.facture) {
+        // Si le paiement est lié à une facture, on peut retrouver le niveau via la facture
+        const niveauName = p.etudiant.niveau.name;
+        if (statsByNiveau[niveauName]) {
+          statsByNiveau[niveauName].collected += Number(p.montant);
+        }
+      }
+    });
+
+    for (const niveau in statsByNiveau) {
+      statsByNiveau[niveau].pending = statsByNiveau[niveau].invoiced - statsByNiveau[niveau].collected;
+    }
 
     return {
       totalCollected,
@@ -217,6 +241,7 @@ export class FinanceService {
       monthCollected,
       countFactures: allFactures.length,
       countPaiements: allPaiements.length,
+      statsByNiveau,
     };
   }
 
@@ -238,5 +263,24 @@ export class FinanceService {
       count: paiements.length,
       data: paiements,
     };
+  }
+
+  async getUnpaidFactures(classeId?: number, niveauId?: number) {
+    const query = this.factureRepository.createQueryBuilder('facture')
+      .leftJoinAndSelect('facture.etudiant', 'etudiant')
+      .leftJoinAndSelect('etudiant.classe', 'classe')
+      .leftJoinAndSelect('etudiant.niveau', 'niveau')
+      .leftJoinAndSelect('facture.paiements', 'paiements')
+      .where('facture.status IN (:...statuses)', { statuses: [InvoiceStatus.VALIDE, InvoiceStatus.PARTIEL] });
+
+    if (classeId) {
+      query.andWhere('classe.id = :classeId', { classeId });
+    }
+
+    if (niveauId) {
+      query.andWhere('niveau.id = :niveauId', { niveauId });
+    }
+
+    return await query.orderBy('facture.dateEcheance', 'ASC').getMany();
   }
 }

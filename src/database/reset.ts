@@ -10,6 +10,12 @@ import { Etudiant } from '../etudiant/entities/etudiant.entity';
 import { Parent } from '../parent/entities/parent.entity';
 import { Presence } from '../presence/entities/presence.entity';
 import { Sanction } from '../sanction/entities/sanction.entity';
+import { DailyReport } from '../reporting/entities/daily-report.entity';
+import { Document } from '../document/entities/document.entity';
+import { AnneeUniversitaire } from '../annee-universitaire/entities/annee-universitaire.entity';
+import { Semestre } from '../semestre/entities/semestre.entity';
+import { Evaluation } from '../evaluation/entities/evaluation.entity';
+import { Note } from '../note/entities/note.entity';
 import { Frais } from '../finance/entities/frais.entity';
 import { Facture } from '../finance/entities/facture.entity';
 import { Paiement } from '../finance/entities/paiement.entity';
@@ -24,7 +30,28 @@ const dataSource = new DataSource({
   username: process.env.DB_USER || 'postgres',
   password: process.env.DB_PASSWORD || 'postgres',
   database: process.env.DB_NAME || 'postgres',
-  entities: [Etablissement, Niveau, Classe, Matiere, Enseignant, Affectation, EmploiDuTemp, Etudiant, Parent, Presence, Sanction, Frais, Facture, Paiement],
+  entities: [
+    Etablissement,
+    Niveau,
+    Classe,
+    Matiere,
+    Enseignant,
+    Affectation,
+    EmploiDuTemp,
+    Etudiant,
+    Parent,
+    Presence,
+    Sanction,
+    DailyReport,
+    Document,
+    AnneeUniversitaire,
+    Semestre,
+    Evaluation,
+    Note,
+    Frais,
+    Facture,
+    Paiement,
+  ],
   synchronize: false,
 });
 

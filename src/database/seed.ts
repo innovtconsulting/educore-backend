@@ -12,6 +12,10 @@ import { Presence } from '../presence/entities/presence.entity';
 import { Sanction, SanctionType } from '../sanction/entities/sanction.entity';
 import { DailyReport } from '../reporting/entities/daily-report.entity';
 import { Document, DocumentCategory } from '../document/entities/document.entity';
+import { AnneeUniversitaire } from '../annee-universitaire/entities/annee-universitaire.entity';
+import { Semestre } from '../semestre/entities/semestre.entity';
+import { Evaluation, EvaluationSession, EvaluationType } from '../evaluation/entities/evaluation.entity';
+import { Note } from '../note/entities/note.entity';
 import { Frais, FeeType } from '../finance/entities/frais.entity';
 import { Facture, InvoiceStatus } from '../finance/entities/facture.entity';
 import { Paiement, PaymentMethod } from '../finance/entities/paiement.entity';
@@ -27,7 +31,28 @@ const dataSource = new DataSource({
   username: process.env.DB_USER || 'postgres',
   password: process.env.DB_PASSWORD || 'postgres',
   database: process.env.DB_NAME || 'postgres',
-  entities: [Etablissement, Niveau, Classe, Matiere, Enseignant, Affectation, EmploiDuTemp, Etudiant, Parent, Presence, Sanction, DailyReport, Document, Frais, Facture, Paiement],
+  entities: [
+    Etablissement,
+    Niveau,
+    Classe,
+    Matiere,
+    Enseignant,
+    Affectation,
+    EmploiDuTemp,
+    Etudiant,
+    Parent,
+    Presence,
+    Sanction,
+    DailyReport,
+    Document,
+    AnneeUniversitaire,
+    Semestre,
+    Evaluation,
+    Note,
+    Frais,
+    Facture,
+    Paiement,
+  ],
   synchronize: false,
 });
 
@@ -49,9 +74,22 @@ async function seed() {
     const sanctionRepo = dataSource.getRepository(Sanction);
     const dailyReportRepo = dataSource.getRepository(DailyReport);
     const documentRepo = dataSource.getRepository(Document);
+    const anneeRepo = dataSource.getRepository(AnneeUniversitaire);
+    const semestreRepo = dataSource.getRepository(Semestre);
+    const evaluationRepo = dataSource.getRepository(Evaluation);
+    const noteRepo = dataSource.getRepository(Note);
     const fraisRepo = dataSource.getRepository(Frais);
     const factureRepo = dataSource.getRepository(Facture);
     const paiementRepo = dataSource.getRepository(Paiement);
+
+    // 0. Année Universitaire
+    const annee2026 = anneeRepo.create({
+      label: '2026-2027',
+      startDate: new Date('2026-10-01'),
+      endDate: new Date('2027-07-31'),
+      isActive: true,
+    });
+    await anneeRepo.save(annee2026);
 
     // 1. Établissements
     const fst = etablissementRepo.create({
@@ -180,7 +218,16 @@ async function seed() {
       niveau: l1,
       parents: [parent1, parent2],
     });
-    await etudiantRepo.save(etudiant1);
+    const etudiant2 = etudiantRepo.create({
+      firstName: 'Fatou',
+      lastName: 'Ndiaye',
+      email: 'fatou.ndiaye@email.sn',
+      matricule: 'ETU-2026-002',
+      etablissement: esp,
+      classe: informatique,
+      niveau: l2,
+    });
+    await etudiantRepo.save([etudiant1, etudiant2]);
 
     // 9. Emploi du Temps
     const cours1 = emploiRepo.create({
@@ -238,7 +285,15 @@ async function seed() {
       montantTotal: 550000,
       status: InvoiceStatus.PARTIEL,
     });
-    await factureRepo.save(fac1);
+    const fac2 = factureRepo.create({
+      numero: 'FAC-2026-0002',
+      etudiant: etudiant2,
+      dateEmission: new Date('2026-06-10'),
+      dateEcheance: new Date('2026-07-10'),
+      montantTotal: 600000,
+      status: InvoiceStatus.VALIDE,
+    });
+    await factureRepo.save([fac1, fac2]);
 
     const pay1 = paiementRepo.create({
       reference: 'PAY-2026-0001',
@@ -282,6 +337,73 @@ async function seed() {
       fileSize: 1024 * 500, // 500 KB
     });
     await documentRepo.save(doc1);
+
+    // 15. Semestre, Evaluations et Notes
+    const semestre1 = semestreRepo.create({
+      name: 'Semestre 1',
+      startDate: new Date('2026-10-01'),
+      endDate: new Date('2027-02-28'),
+      isActive: true,
+      anneeUniversitaire: annee2026,
+    });
+    await semestreRepo.save(semestre1);
+
+    const evalCC = evaluationRepo.create({
+      title: 'Contrôle Continu Algorithmique',
+      type: EvaluationType.CC,
+      session: EvaluationSession.NORMALE,
+      weight: 0.4,
+      date: new Date('2026-11-15'),
+      matiere: algo,
+      classe: informatique,
+      niveau: l1,
+      semestre: semestre1,
+    });
+    const evalExam = evaluationRepo.create({
+      title: 'Examen Final Algorithmique',
+      type: EvaluationType.EXAMEN,
+      session: EvaluationSession.NORMALE,
+      weight: 0.6,
+      date: new Date('2027-01-20'),
+      matiere: algo,
+      classe: informatique,
+      niveau: l1,
+      semestre: semestre1,
+    });
+    await evaluationRepo.save([evalCC, evalExam]);
+
+    const noteCC = noteRepo.create({
+      value: 12.5,
+      etudiant: etudiant1,
+      evaluation: evalCC,
+    });
+    const noteExam = noteRepo.create({
+      value: 8.0, // Moyenne matière (12.5*0.4 + 8*0.6) = 5+4.8 = 9.8 (<10)
+      etudiant: etudiant1,
+      evaluation: evalExam,
+    });
+    await noteRepo.save([noteCC, noteExam]);
+
+    // Ajout d'une session de rattrapage
+    const evalRattrapage = evaluationRepo.create({
+      title: 'Rattrapage Algorithmique',
+      type: EvaluationType.EXAMEN,
+      session: EvaluationSession.RATTRAPAGE,
+      weight: 0.6,
+      date: new Date('2027-02-15'),
+      matiere: algo,
+      classe: informatique,
+      niveau: l1,
+      semestre: semestre1,
+    });
+    await evaluationRepo.save(evalRattrapage);
+
+    const noteRattrapage = noteRepo.create({
+      value: 14.0, // Nouvelle moyenne (12.5*0.4 + 14*0.6) = 5+8.4 = 13.4 (>10)
+      etudiant: etudiant1,
+      evaluation: evalRattrapage,
+    });
+    await noteRepo.save(noteRattrapage);
 
     console.log('Seeding terminé avec succès !');
   } catch (error) {

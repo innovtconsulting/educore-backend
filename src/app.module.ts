@@ -26,12 +26,21 @@ import { SanctionModule } from './sanction/sanction.module';
 import { Sanction } from './sanction/entities/sanction.entity';
 import { DailyReport } from './reporting/entities/daily-report.entity';
 import { Document } from './document/entities/document.entity';
+import { AnneeUniversitaire } from './annee-universitaire/entities/annee-universitaire.entity';
+import { Semestre } from './semestre/entities/semestre.entity';
+import { Evaluation } from './evaluation/entities/evaluation.entity';
+import { Note } from './note/entities/note.entity';
 import { FinanceModule } from './finance/finance.module';
 import { Frais } from './finance/entities/frais.entity';
 import { Facture } from './finance/entities/facture.entity';
 import { Paiement } from './finance/entities/paiement.entity';
 import { ReportingModule } from './reporting/reporting.module';
 import { DocumentModule } from './document/document.module';
+import { EvaluationModule } from './evaluation/evaluation.module';
+import { SemestreModule } from './semestre/semestre.module';
+import { NoteModule } from './note/note.module';
+import { BulletinModule } from './bulletin/bulletin.module';
+import { AnneeUniversitaireModule } from './annee-universitaire/annee-universitaire.module';
 
 @Module({
   imports: [
@@ -59,6 +68,10 @@ import { DocumentModule } from './document/document.module';
         Sanction,
         DailyReport,
         Document,
+        AnneeUniversitaire,
+        Semestre,
+        Evaluation,
+        Note,
         Frais,
         Facture,
         Paiement,
@@ -78,6 +91,11 @@ import { DocumentModule } from './document/document.module';
     FinanceModule,
     ReportingModule,
     DocumentModule,
+    EvaluationModule,
+    SemestreModule,
+    NoteModule,
+    BulletinModule,
+    AnneeUniversitaireModule,
   ],
   controllers: [AppController],
   providers: [AppService],

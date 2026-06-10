@@ -72,18 +72,42 @@ export class FinanceController {
 
   // --- Dashboard & Reports ---
   @Get('dashboard')
-  @ApiOperation({ summary: 'Statistiques du tableau de bord financier' })
+  @ApiOperation({ 
+    summary: 'Statistiques du tableau de bord financier',
+    description: 'Récupère les métriques globales (encaissé, facturé, impayés) ainsi qu\'une ventilation détaillée par niveau d\'étude.'
+  })
   async getDashboard() {
     const data = await this.financeService.getDashboardStats();
     return { message: 'Dashboard récupéré avec succès', data };
   }
 
   @Get('report')
-  @ApiOperation({ summary: 'Générer un rapport financier' })
-  @ApiQuery({ name: 'start', required: false })
-  @ApiQuery({ name: 'end', required: false })
+  @ApiOperation({ 
+    summary: 'Générer un rapport financier',
+    description: 'Génère un récapitulatif des paiements sur une période donnée.'
+  })
+  @ApiQuery({ name: 'start', required: false, description: 'Date de début (YYYY-MM-DD)' })
+  @ApiQuery({ name: 'end', required: false, description: 'Date de fin (YYYY-MM-DD)' })
   async getReport(@Query('start') start?: string, @Query('end') end?: string) {
     const data = await this.financeService.getFinancialReport(start, end);
     return { message: 'Rapport financier généré avec succès', data };
+  }
+
+  @Get('unpaid')
+  @ApiOperation({ 
+    summary: 'Lister les factures impayées ou partiellement payées',
+    description: 'Récupère la liste des étudiants ayant des dettes, avec possibilité de filtrer par classe ou par niveau.'
+  })
+  @ApiQuery({ name: 'classeId', required: false, type: Number, description: 'ID de la classe' })
+  @ApiQuery({ name: 'niveauId', required: false, type: Number, description: 'ID du niveau' })
+  async getUnpaid(
+    @Query('classeId') classeId?: string,
+    @Query('niveauId') niveauId?: string,
+  ) {
+    const data = await this.financeService.getUnpaidFactures(
+      classeId ? +classeId : undefined,
+      niveauId ? +niveauId : undefined,
+    );
+    return { message: 'Liste des impayés récupérée avec succès', data };
   }
 }
