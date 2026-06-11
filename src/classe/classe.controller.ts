@@ -1,15 +1,22 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common';
-import { ApiTags, ApiOperation } from '@nestjs/swagger';
+import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards } from '@nestjs/common';
+import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { ClasseService } from './classe.service';
 import { CreateClasseDto } from './dto/create-classe.dto';
 import { UpdateClasseDto } from './dto/update-classe.dto';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { RolesGuard } from '../auth/guards/roles.guard';
+import { Roles } from '../auth/decorators/roles.decorator';
+import { Role } from '../user/entities/user.entity';
 
 @ApiTags('classe')
+@ApiBearerAuth()
+@UseGuards(JwtAuthGuard, RolesGuard)
 @Controller('classe')
 export class ClasseController {
   constructor(private readonly classeService: ClasseService) {}
 
   @Post()
+  @Roles(Role.SUPER_ADMIN, Role.ADMIN)
   @ApiOperation({ 
     summary: 'Créer une classe', 
     description: 'Permet de créer une nouvelle classe (ex: Informatique) et de l\'associer à des niveaux et établissements.' 
@@ -49,6 +56,7 @@ export class ClasseController {
   }
 
   @Patch(':id')
+  @Roles(Role.SUPER_ADMIN, Role.ADMIN)
   @ApiOperation({ 
     summary: 'Modifier une classe', 
     description: 'Met à jour les informations d\'une classe existante.' 
@@ -62,6 +70,7 @@ export class ClasseController {
   }
 
   @Delete(':id')
+  @Roles(Role.SUPER_ADMIN, Role.ADMIN)
   @ApiOperation({ 
     summary: 'Supprimer une classe', 
     description: 'Supprime une classe du système.' 

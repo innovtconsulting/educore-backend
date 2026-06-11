@@ -70,9 +70,19 @@ describe('Bulletin Module (e2e)', () => {
       });
     etudiantId = etudiant.body.data.id;
 
+    const annee = await request(app.getHttpServer())
+      .post('/api/annee-universitaire')
+      .send({ label: '2026-2027', startDate: '2026-10-01', endDate: '2027-07-31' });
+    const anneeId = annee.body.data.id;
+
     const semestre = await request(app.getHttpServer())
       .post('/api/semestre')
-      .send({ name: 'S1 Test', startDate: '2026-10-01', endDate: '2027-02-28' });
+      .send({ 
+        name: 'S1 Test', 
+        startDate: '2026-10-01', 
+        endDate: '2027-02-28',
+        anneeUniversitaireId: anneeId 
+      });
     semestreId = semestre.body.data.id;
   });
 

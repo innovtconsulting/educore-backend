@@ -109,8 +109,8 @@ describe('Sanction Module (e2e)', () => {
       .get('/api/sanctions')
       .expect(200);
     
-    expect(Array.isArray(res.body.data)).toBe(true);
-    expect(res.body.data.length).toBeGreaterThan(0);
+    expect(Array.isArray(res.body.data.items)).toBe(true);
+    expect(res.body.data.items.length).toBeGreaterThan(0);
   });
 
   it('3. Récupération des sanctions d\'un étudiant', async () => {

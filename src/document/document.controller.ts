@@ -10,22 +10,30 @@ import {
   UploadedFile,
   BadRequestException,
   Query,
+  UseGuards,
 } from '@nestjs/common';
 import { DocumentService } from './document.service';
 import { CreateDocumentDto } from './dto/create-document.dto';
 import { UpdateDocumentDto } from './dto/update-document.dto';
-import { ApiTags, ApiOperation, ApiConsumes, ApiBody } from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiConsumes, ApiBody, ApiBearerAuth } from '@nestjs/swagger';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
 import { extname } from 'path';
 import { PaginationQueryDto } from '../common/dto/pagination-query.dto';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { RolesGuard } from '../auth/guards/roles.guard';
+import { Roles } from '../auth/decorators/roles.decorator';
+import { Role } from '../user/entities/user.entity';
 
 @ApiTags('documents')
+@ApiBearerAuth()
+@UseGuards(JwtAuthGuard, RolesGuard)
 @Controller('documents')
 export class DocumentController {
   constructor(private readonly documentService: DocumentService) {}
 
   @Post('upload')
+  @Roles(Role.SUPER_ADMIN, Role.ADMIN, Role.ENSEIGNANT)
   @ApiOperation({ 
     summary: 'Uploader un nouveau document',
     description: 'Permet de stocker un fichier physique (PDF, Image, etc.) et d\'y associer des métadonnées (titre, catégorie).'
@@ -78,6 +86,7 @@ export class DocumentController {
   }
 
   @Get()
+  @Roles(Role.SUPER_ADMIN, Role.ADMIN, Role.SURVEILLANT, Role.ENSEIGNANT, Role.ETUDIANT, Role.PARENT)
   @ApiOperation({ 
     summary: 'Récupérer tous les documents',
     description: 'Liste tous les documents enregistrés dans la GED (Gestion Électronique de Documents).'
@@ -91,6 +100,7 @@ export class DocumentController {
   }
 
   @Get(':id')
+  @Roles(Role.SUPER_ADMIN, Role.ADMIN, Role.SURVEILLANT, Role.ENSEIGNANT, Role.ETUDIANT, Role.PARENT)
   @ApiOperation({ 
     summary: 'Récupérer un document par son ID',
     description: 'Affiche les informations détaillées d\'un document et son lien de téléchargement.'
@@ -104,6 +114,7 @@ export class DocumentController {
   }
 
   @Patch(':id')
+  @Roles(Role.SUPER_ADMIN, Role.ADMIN, Role.ENSEIGNANT)
   @ApiOperation({ 
     summary: 'Modifier les métadonnées d\'un document',
     description: 'Permet de changer le titre, la description ou la catégorie sans modifier le fichier physique.'
@@ -120,6 +131,7 @@ export class DocumentController {
   }
 
   @Delete(':id')
+  @Roles(Role.SUPER_ADMIN, Role.ADMIN)
   @ApiOperation({ 
     summary: 'Supprimer un document',
     description: 'Supprime l\'entrée en base de données ET le fichier physique sur le serveur.'

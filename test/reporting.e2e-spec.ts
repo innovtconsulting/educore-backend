@@ -190,14 +190,14 @@ describe('Reporting Module (e2e)', () => {
       .get('/api/reporting/daily-reports')
       .expect(200);
     
-    expect(Array.isArray(res.body.data)).toBe(true);
-    expect(res.body.data.length).toBeGreaterThanOrEqual(1);
-    expect(res.body.data[0].date).toBe(today);
+    expect(Array.isArray(res.body.data.items)).toBe(true);
+    expect(res.body.data.items.length).toBeGreaterThanOrEqual(1);
+    expect(res.body.data.items[0].date).toBe(today);
   });
 
   it('6. Récupération d\'un rapport par ID', async () => {
     const listRes = await request(app.getHttpServer()).get('/api/reporting/daily-reports');
-    const reportId = listRes.body.data[0].id;
+    const reportId = listRes.body.data.items[0].id;
 
     const res = await request(app.getHttpServer())
       .get(`/api/reporting/daily-report/${reportId}`)

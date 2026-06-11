@@ -16,6 +16,7 @@ import { AnneeUniversitaire } from '../annee-universitaire/entities/annee-univer
 import { Semestre } from '../semestre/entities/semestre.entity';
 import { Evaluation, EvaluationSession, EvaluationType } from '../evaluation/entities/evaluation.entity';
 import { Note } from '../note/entities/note.entity';
+import { Devoir } from '../devoir/entities/devoir.entity';
 import { Frais, FeeType } from '../finance/entities/frais.entity';
 import { Facture, InvoiceStatus } from '../finance/entities/facture.entity';
 import { Paiement, PaymentMethod } from '../finance/entities/paiement.entity';
@@ -59,6 +60,7 @@ const dataSource = new DataSource({
     Paiement,
     Discipline,
     User,
+    Devoir,
     ],
   synchronize: true,
 });
@@ -88,6 +90,7 @@ async function seed() {
     const fraisRepo = dataSource.getRepository(Frais);
     const factureRepo = dataSource.getRepository(Facture);
     const paiementRepo = dataSource.getRepository(Paiement);
+    const devoirRepo = dataSource.getRepository(Devoir);
 
     // 0. Année Universitaire
     const annee2026 = anneeRepo.create({
@@ -300,7 +303,18 @@ async function seed() {
       montantTotal: 600000,
       status: InvoiceStatus.VALIDE,
     });
-    await factureRepo.save([fac1, fac2]);
+    
+    // Facture directement payée (Formulaire manuel)
+    const facManual = factureRepo.create({
+      numero: 'FAC-MANUAL-001',
+      etudiant: etudiant1,
+      dateEmission: new Date('2026-06-11'),
+      montantTotal: 100000,
+      status: InvoiceStatus.PAYE,
+      notes: 'Règlement immédiat lors de la saisie manuelle'
+    });
+    
+    await factureRepo.save([fac1, fac2, facManual]);
 
     const pay1 = paiementRepo.create({
       reference: 'PAY-2026-0001',
@@ -496,6 +510,27 @@ async function seed() {
       }),
     ];
     await userRepo.save(users);
+
+    // 18. Devoirs
+    const devoir1 = devoirRepo.create({
+      title: 'TP Liste Chaînée',
+      description: 'Implémenter une liste simplement chaînée en C.',
+      deadline: new Date('2026-06-25T23:59:59Z'),
+      matiere: algo,
+      classe: informatique,
+      niveau: l1,
+      enseignant: profDiallo,
+    });
+    const devoir2 = devoirRepo.create({
+      title: 'Projet Base de Données',
+      description: 'Concevoir le schéma MCD/MLD d\'une gestion de stock.',
+      deadline: new Date('2026-06-30T23:59:59Z'),
+      matiere: baseDonnees,
+      classe: informatique,
+      niveau: l2,
+      enseignant: profDiallo,
+    });
+    await devoirRepo.save([devoir1, devoir2]);
 
     console.log('Seeding terminé avec succès !');
   } catch (error) {

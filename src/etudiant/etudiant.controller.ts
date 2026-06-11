@@ -13,22 +13,30 @@ import {
   UploadedFile,
   BadRequestException,
   Query,
+  UseGuards,
 } from '@nestjs/common';
 import { EtudiantService } from './etudiant.service';
 import { CreateEtudiantDto } from './dto/create-etudiant.dto';
 import { UpdateEtudiantDto } from './dto/update-etudiant.dto';
-import { ApiTags, ApiOperation, ApiConsumes, ApiBody } from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiConsumes, ApiBody, ApiBearerAuth } from '@nestjs/swagger';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
 import { extname } from 'path';
 import { PaginationQueryDto } from '../common/dto/pagination-query.dto';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { RolesGuard } from '../auth/guards/roles.guard';
+import { Roles } from '../auth/decorators/roles.decorator';
+import { Role } from '../user/entities/user.entity';
 
 @ApiTags('etudiants')
+@ApiBearerAuth()
+@UseGuards(JwtAuthGuard, RolesGuard)
 @Controller('etudiants')
 export class EtudiantController {
   constructor(private readonly etudiantService: EtudiantService) {}
 
   @Post()
+  @Roles(Role.SUPER_ADMIN, Role.ADMIN)
   @ApiOperation({ summary: 'Créer un nouvel étudiant' })
   async create(@Body() createEtudiantDto: CreateEtudiantDto) {
     const data = await this.etudiantService.create(createEtudiantDto);
@@ -39,6 +47,7 @@ export class EtudiantController {
   }
 
   @Get()
+  @Roles(Role.SUPER_ADMIN, Role.ADMIN, Role.SURVEILLANT)
   @ApiOperation({ summary: 'Récupérer tous les étudiants' })
   async findAll(@Query() paginationQuery: PaginationQueryDto) {
     const data = await this.etudiantService.findAll(paginationQuery);
@@ -49,6 +58,7 @@ export class EtudiantController {
   }
 
   @Get(':id')
+  @Roles(Role.SUPER_ADMIN, Role.ADMIN, Role.SURVEILLANT)
   @ApiOperation({ summary: 'Récupérer un étudiant par son ID' })
   async findOne(@Param('id') id: string) {
     const data = await this.etudiantService.findOne(+id);
@@ -59,7 +69,8 @@ export class EtudiantController {
   }
 
   @Patch(':id')
-  @ApiOperation({ summary: 'Modifier un étudiant' })
+  @Roles(Role.SUPER_ADMIN, Role.ADMIN)
+  @ApiOperation({ summary: 'Modifier un étudiant (Validation d\'inscription inclus)' })
   async update(
     @Param('id') id: string,
     @Body() updateEtudiantDto: UpdateEtudiantDto,
@@ -72,6 +83,7 @@ export class EtudiantController {
   }
 
   @Delete(':id')
+  @Roles(Role.SUPER_ADMIN, Role.ADMIN)
   @ApiOperation({ summary: 'Supprimer un étudiant' })
   async remove(@Param('id') id: string) {
     await this.etudiantService.remove(+id);
@@ -81,6 +93,7 @@ export class EtudiantController {
   }
 
   @Post(':id/profile-picture')
+  @Roles(Role.SUPER_ADMIN, Role.ADMIN)
   @ApiOperation({ summary: "Mettre à jour la photo de profil de l'étudiant" })
   @ApiConsumes('multipart/form-data')
   @ApiBody({

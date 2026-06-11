@@ -36,6 +36,7 @@ import { Facture } from './finance/entities/facture.entity';
 import { Paiement } from './finance/entities/paiement.entity';
 import { Discipline } from './discipline/entities/discipline.entity';
 import { User } from './user/entities/user.entity';
+import { Devoir } from './devoir/entities/devoir.entity';
 import { ReportingModule } from './reporting/reporting.module';
 import { DocumentModule } from './document/document.module';
 import { EvaluationModule } from './evaluation/evaluation.module';
@@ -46,6 +47,9 @@ import { AnneeUniversitaireModule } from './annee-universitaire/annee-universita
 import { DisciplineModule } from './discipline/discipline.module';
 import { UserModule } from './user/user.module';
 import { AuthModule } from './auth/auth.module';
+import { DevoirModule } from './devoir/devoir.module';
+import { StudentDashboardModule } from './student-dashboard/student-dashboard.module';
+import { LifeDashboardModule } from './life-dashboard/life-dashboard.module';
 
 @Module({
   imports: [
@@ -82,6 +86,7 @@ import { AuthModule } from './auth/auth.module';
         Paiement,
         Discipline,
         User,
+        Devoir,
       ],
       synchronize: true,
     }),
@@ -106,6 +111,9 @@ import { AuthModule } from './auth/auth.module';
     DisciplineModule,
     UserModule,
     AuthModule,
+    DevoirModule,
+    StudentDashboardModule,
+    LifeDashboardModule,
   ],
   controllers: [AppController],
   providers: [AppService],

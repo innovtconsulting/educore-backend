@@ -34,6 +34,12 @@ export class UserService {
     });
   }
 
+  async findAll(): Promise<User[]> {
+    return await this.userRepository.find({
+      relations: { enseignant: true, etudiant: true, parent: true },
+    });
+  }
+
   async findOne(id: number): Promise<User> {
     const user = await this.userRepository.findOne({
       where: { id },
@@ -54,5 +60,10 @@ export class UserService {
 
     Object.assign(user, updateData);
     return await this.userRepository.save(user);
+  }
+
+  async remove(id: number): Promise<void> {
+    const user = await this.findOne(id);
+    await this.userRepository.remove(user);
   }
 }

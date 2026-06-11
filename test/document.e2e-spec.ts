@@ -64,14 +64,14 @@ describe('Document Module (e2e)', () => {
       .get('/api/documents')
       .expect(200);
     
-    expect(res.body.data).toHaveLength(1);
-    expect(res.body.data[0].title).toBe('Document de Test');
+    expect(res.body.data.items).toHaveLength(1);
+    expect(res.body.data.items[0].title).toBe('Document de Test');
   });
 
   it('3. Supprimer un document', async () => {
     const listRes = await request(app.getHttpServer()).get('/api/documents');
-    const docId = listRes.body.data[0].id;
-    const filePath = listRes.body.data[0].filePath;
+    const docId = listRes.body.data.items[0].id;
+    const filePath = listRes.body.data.items[0].filePath;
 
     await request(app.getHttpServer())
       .delete(`/api/documents/${docId}`)
@@ -81,6 +81,6 @@ describe('Document Module (e2e)', () => {
     expect(fs.existsSync(filePath)).toBe(false);
 
     const finalRes = await request(app.getHttpServer()).get('/api/documents');
-    expect(finalRes.body.data).toHaveLength(0);
+    expect(finalRes.body.data.items).toHaveLength(0);
   });
 });

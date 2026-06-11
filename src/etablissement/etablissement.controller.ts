@@ -1,15 +1,22 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common';
-import { ApiTags, ApiOperation } from '@nestjs/swagger';
+import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards } from '@nestjs/common';
+import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { EtablissementService } from './etablissement.service';
 import { CreateEtablissementDto } from './dto/create-etablissement.dto';
 import { UpdateEtablissementDto } from './dto/update-etablissement.dto';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { RolesGuard } from '../auth/guards/roles.guard';
+import { Roles } from '../auth/decorators/roles.decorator';
+import { Role } from '../user/entities/user.entity';
 
 @ApiTags('etablissement')
+@ApiBearerAuth()
+@UseGuards(JwtAuthGuard, RolesGuard)
 @Controller('etablissement')
 export class EtablissementController {
   constructor(private readonly etablissementService: EtablissementService) {}
 
   @Post()
+  @Roles(Role.SUPER_ADMIN)
   @ApiOperation({ 
     summary: 'Créer un établissement', 
     description: 'Permet d\'enregistrer un nouvel établissement (FST, ESP, etc.) dans le système.' 
@@ -46,6 +53,7 @@ export class EtablissementController {
   }
 
   @Patch(':id')
+  @Roles(Role.SUPER_ADMIN)
   @ApiOperation({ 
     summary: 'Modifier un établissement', 
     description: 'Met à jour les coordonnées ou le nom d\'un établissement.' 
@@ -59,6 +67,7 @@ export class EtablissementController {
   }
 
   @Delete(':id')
+  @Roles(Role.SUPER_ADMIN)
   @ApiOperation({ 
     summary: 'Supprimer un établissement', 
     description: 'Supprime un établissement du système.' 
@@ -66,7 +75,7 @@ export class EtablissementController {
   async remove(@Param('id') id: string) {
     await this.etablissementService.remove(+id);
     return {
-      message: `Etablissement #${id} supprimé avec succès`,
+      message: `Etablissement #${id} supprimée avec succès`,
     };
   }
 }

@@ -283,7 +283,7 @@ describe('University Workflow (e2e)', () => {
     const resAll = await request(app.getHttpServer())
       .get('/api/emploi-du-temps')
       .expect(200);
-    const firstId = resAll.body.data[0].id;
+    const firstId = resAll.body.data.items[0].id;
 
     const newStartTime = '2026-06-08T14:00:00.000Z';
     const newEndTime = '2026-06-08T16:00:00.000Z';

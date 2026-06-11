@@ -7,19 +7,27 @@ import {
   Param,
   Delete,
   Query,
+  UseGuards,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation } from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { MatiereService } from './matiere.service';
 import { CreateMatiereDto } from './dto/create-matiere.dto';
 import { UpdateMatiereDto } from './dto/update-matiere.dto';
 import { PaginationQueryDto } from '../common/dto/pagination-query.dto';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { RolesGuard } from '../auth/guards/roles.guard';
+import { Roles } from '../auth/decorators/roles.decorator';
+import { Role } from '../user/entities/user.entity';
 
 @ApiTags('matiere')
+@ApiBearerAuth()
+@UseGuards(JwtAuthGuard, RolesGuard)
 @Controller('matiere')
 export class MatiereController {
   constructor(private readonly matiereService: MatiereService) {}
 
   @Post()
+  @Roles(Role.SUPER_ADMIN, Role.ADMIN)
   @ApiOperation({ 
     summary: 'Créer une matière', 
     description: 'Enregistre une nouvelle unité d\'enseignement avec son code unique et son coefficient.' 
@@ -59,6 +67,7 @@ export class MatiereController {
   }
 
   @Patch(':id')
+  @Roles(Role.SUPER_ADMIN, Role.ADMIN)
   @ApiOperation({ 
     summary: 'Modifier une matière', 
     description: 'Permet de mettre à jour le nom, le code ou le coefficient d\'une matière.' 
@@ -75,6 +84,7 @@ export class MatiereController {
   }
 
   @Delete(':id')
+  @Roles(Role.SUPER_ADMIN, Role.ADMIN)
   @ApiOperation({ 
     summary: 'Supprimer une matière', 
     description: 'Supprime définitivement une matière du système.' 

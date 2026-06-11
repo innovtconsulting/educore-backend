@@ -24,5 +24,6 @@ import { Affectation } from '../enseignant/entities/affectation.entity';
   ],
   controllers: [EmploiDuTempsController],
   providers: [EmploiDuTempsService],
+  exports: [EmploiDuTempsService],
 })
 export class EmploiDuTempsModule {}

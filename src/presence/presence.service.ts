@@ -2,6 +2,7 @@ import {
   Injectable,
   NotFoundException,
   BadRequestException,
+  ForbiddenException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
@@ -10,6 +11,7 @@ import { BulkRecordPresenceDto } from './dto/record-presence.dto';
 import { EmploiDuTemp } from '../emploi-du-temps/entities/emploi-du-temp.entity';
 import { Etudiant } from '../etudiant/entities/etudiant.entity';
 import { PaginationQueryDto } from '../common/dto/pagination-query.dto';
+import { Role } from '../user/entities/user.entity';
 
 @Injectable()
 export class PresenceService {
@@ -108,7 +110,11 @@ export class PresenceService {
     });
   }
 
-  async getStudentStats(etudiantId: number) {
+  async getStudentStats(etudiantId: number, user?: any) {
+    if (user && user.role === Role.ETUDIANT && user.etudiantId !== etudiantId) {
+      throw new ForbiddenException("Vous ne pouvez consulter que vos propres statistiques de présence");
+    }
+
     const presences = await this.presenceRepository.find({
       where: { etudiant: { id: etudiantId } },
       relations: { emploiDuTemp: { matiere: true } },

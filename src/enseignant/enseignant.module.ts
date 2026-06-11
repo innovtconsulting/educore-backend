@@ -20,5 +20,6 @@ import { Niveau } from '../niveau/entities/niveau.entity';
   ],
   controllers: [EnseignantController],
   providers: [EnseignantService],
+  exports: [EnseignantService],
 })
 export class EnseignantModule {}

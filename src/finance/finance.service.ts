@@ -21,17 +21,17 @@ import { PaginationQueryDto } from '../common/dto/pagination-query.dto';
 export class FinanceService {
   constructor(
     @InjectRepository(Frais)
-    private readonly fraisRepository: Repository<Frais>,
+    public readonly fraisRepository: Repository<Frais>,
     @InjectRepository(Facture)
-    private readonly factureRepository: Repository<Facture>,
+    public readonly factureRepository: Repository<Facture>,
     @InjectRepository(Paiement)
-    private readonly paiementRepository: Repository<Paiement>,
+    public readonly paiementRepository: Repository<Paiement>,
     @InjectRepository(Etudiant)
-    private readonly etudiantRepository: Repository<Etudiant>,
+    public readonly etudiantRepository: Repository<Etudiant>,
     @InjectRepository(Classe)
-    private readonly classeRepository: Repository<Classe>,
+    public readonly classeRepository: Repository<Classe>,
     @InjectRepository(Niveau)
-    private readonly niveauRepository: Repository<Niveau>,
+    public readonly niveauRepository: Repository<Niveau>,
   ) {}
 
   // --- Gestion des Frais (Configuration) ---
@@ -85,7 +85,20 @@ export class FinanceService {
       dateEcheance: dto.dateEcheance ? new Date(dto.dateEcheance) : undefined,
     });
 
-    return await this.factureRepository.save(facture);
+    const savedFacture = await this.factureRepository.save(facture);
+
+    // Si la facture est créée directement comme payée, on génère la quittance
+    if (savedFacture.status === InvoiceStatus.PAYE) {
+      try {
+        const quittancePath = await generateQuittancePdf(savedFacture);
+        savedFacture.quittancePath = quittancePath;
+        await this.factureRepository.save(savedFacture);
+      } catch (error) {
+        console.error('Erreur génération quittance à la création:', error);
+      }
+    }
+
+    return savedFacture;
   }
 
   async findAllFactures(paginationQuery: PaginationQueryDto) {
@@ -295,6 +308,38 @@ export class FinanceService {
       count: paiements.length,
       data: paiements,
     };
+  }
+
+  async generateManualReceipt(paiementId: number) {
+    const paiement = await this.paiementRepository.findOne({
+      where: { id: paiementId },
+      relations: { etudiant: true, facture: true },
+    });
+    if (!paiement) throw new NotFoundException(`Paiement #${paiementId} introuvable`);
+
+    try {
+      const recuPath = await generateReceiptPdf(paiement);
+      paiement.recuPath = recuPath;
+      return await this.paiementRepository.save(paiement);
+    } catch (error) {
+      throw new BadRequestException('Erreur lors de la génération manuelle du reçu');
+    }
+  }
+
+  async generateManualQuittance(factureId: number) {
+    const facture = await this.factureRepository.findOne({
+      where: { id: factureId },
+      relations: { etudiant: true },
+    });
+    if (!facture) throw new NotFoundException(`Facture #${factureId} introuvable`);
+
+    try {
+      const quittancePath = await generateQuittancePdf(facture);
+      facture.quittancePath = quittancePath;
+      return await this.factureRepository.save(facture);
+    } catch (error) {
+      throw new BadRequestException('Erreur lors de la génération manuelle de la quittance');
+    }
   }
 
   async getUnpaidFactures(classeId?: number, niveauId?: number) {

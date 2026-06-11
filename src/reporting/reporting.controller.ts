@@ -6,18 +6,37 @@ import {
   Query,
   Param,
   ParseIntPipe,
+  UseGuards,
 } from '@nestjs/common';
 import { ReportingService } from './reporting.service';
-import { ApiTags, ApiOperation, ApiQuery, ApiResponse } from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiQuery, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
 import { SubmitDailyReportDto } from './dto/submit-daily-report.dto';
 import { PaginationQueryDto } from '../common/dto/pagination-query.dto';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { RolesGuard } from '../auth/guards/roles.guard';
+import { Roles } from '../auth/decorators/roles.decorator';
+import { Role } from '../user/entities/user.entity';
 
 @ApiTags('reporting')
+@ApiBearerAuth()
+@UseGuards(JwtAuthGuard, RolesGuard)
 @Controller('reporting')
 export class ReportingController {
   constructor(private readonly reportingService: ReportingService) {}
 
+  @Get('global-stats')
+  @Roles(Role.SUPER_ADMIN, Role.ADMIN)
+  @ApiOperation({ summary: 'Consulter les statistiques globales du système' })
+  async getGlobalStats() {
+    const data = await this.reportingService.getGlobalStats();
+    return {
+      message: 'Statistiques globales récupérées avec succès',
+      data,
+    };
+  }
+
   @Get('supervisor-daily')
+  @Roles(Role.SUPER_ADMIN, Role.ADMIN, Role.SURVEILLANT)
   @ApiOperation({
     summary:
       'Aperçu du rapport quotidien (absences, retards, sanctions) pour une date donnée',
@@ -38,6 +57,7 @@ export class ReportingController {
   }
 
   @Post('submit-daily')
+  @Roles(Role.SURVEILLANT, Role.SUPER_ADMIN)
   @ApiOperation({ summary: 'Soumettre le rapport quotidien du surveillant' })
   @ApiResponse({ status: 201, description: 'Rapport soumis avec succès' })
   async submitDailyReport(@Body() dto: SubmitDailyReportDto) {
@@ -49,6 +69,7 @@ export class ReportingController {
   }
 
   @Get('daily-reports')
+  @Roles(Role.SUPER_ADMIN, Role.ADMIN)
   @ApiOperation({
     summary: "Récupérer tous les rapports quotidiens soumis (pour l'admin)",
   })
@@ -61,6 +82,7 @@ export class ReportingController {
   }
 
   @Get('daily-report/:id')
+  @Roles(Role.SUPER_ADMIN, Role.ADMIN)
   @ApiOperation({
     summary: 'Récupérer un rapport quotidien spécifique par son ID',
   })

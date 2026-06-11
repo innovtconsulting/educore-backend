@@ -15,5 +15,6 @@ import { ParentModule } from '../parent/parent.module';
   ],
   controllers: [EtudiantController],
   providers: [EtudiantService],
+  exports: [EtudiantService, TypeOrmModule],
 })
 export class EtudiantModule {}

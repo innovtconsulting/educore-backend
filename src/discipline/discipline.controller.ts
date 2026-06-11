@@ -8,19 +8,27 @@ import {
   Delete,
   ParseIntPipe,
   Query,
+  UseGuards,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
 import { DisciplineService } from './discipline.service';
 import { CreateDisciplineDto } from './dto/create-discipline.dto';
 import { UpdateDisciplineDto } from './dto/update-discipline.dto';
 import { Discipline, DisciplineCategory } from './entities/discipline.entity';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { RolesGuard } from '../auth/guards/roles.guard';
+import { Roles } from '../auth/decorators/roles.decorator';
+import { Role } from '../user/entities/user.entity';
 
 @ApiTags('discipline')
+@ApiBearerAuth()
+@UseGuards(JwtAuthGuard, RolesGuard)
 @Controller('discipline')
 export class DisciplineController {
   constructor(private readonly disciplineService: DisciplineService) {}
 
   @Post()
+  @Roles(Role.SUPER_ADMIN, Role.ADMIN, Role.SURVEILLANT)
   @ApiOperation({ 
     summary: 'Créer une règle de discipline ou règlement intérieur',
     description: 'Enregistre une nouvelle règle dans le système.'
@@ -31,6 +39,7 @@ export class DisciplineController {
   }
 
   @Get()
+  @Roles(Role.SUPER_ADMIN, Role.ADMIN, Role.SURVEILLANT, Role.ENSEIGNANT, Role.ETUDIANT, Role.PARENT)
   @ApiOperation({ 
     summary: 'Lister toutes les règles de discipline',
     description: 'Récupère la liste complète des disciplines et règlements intérieurs. Peut être filtré par catégorie.'
@@ -41,6 +50,7 @@ export class DisciplineController {
   }
 
   @Get(':id')
+  @Roles(Role.SUPER_ADMIN, Role.ADMIN, Role.SURVEILLANT, Role.ENSEIGNANT, Role.ETUDIANT, Role.PARENT)
   @ApiOperation({ 
     summary: 'Récupérer une règle par ID',
     description: 'Affiche les détails d\'une règle spécifique.'
@@ -51,6 +61,7 @@ export class DisciplineController {
   }
 
   @Patch(':id')
+  @Roles(Role.SUPER_ADMIN, Role.ADMIN, Role.SURVEILLANT)
   @ApiOperation({ 
     summary: 'Modifier une règle de discipline',
     description: 'Met à jour le contenu ou le titre d\'une règle.'
@@ -64,6 +75,7 @@ export class DisciplineController {
   }
 
   @Delete(':id')
+  @Roles(Role.SUPER_ADMIN, Role.ADMIN, Role.SURVEILLANT)
   @ApiOperation({ 
     summary: 'Supprimer une règle de discipline',
     description: 'Supprime définitivement une règle du système.'

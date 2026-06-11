@@ -6,18 +6,26 @@ import {
   Patch,
   Param,
   Delete,
+  UseGuards,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation } from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { NiveauService } from './niveau.service';
 import { CreateNiveauDto } from './dto/create-niveau.dto';
 import { UpdateNiveauDto } from './dto/update-niveau.dto';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { RolesGuard } from '../auth/guards/roles.guard';
+import { Roles } from '../auth/decorators/roles.decorator';
+import { Role } from '../user/entities/user.entity';
 
 @ApiTags('niveau')
+@ApiBearerAuth()
+@UseGuards(JwtAuthGuard, RolesGuard)
 @Controller('niveau')
 export class NiveauController {
   constructor(private readonly niveauService: NiveauService) {}
 
   @Post()
+  @Roles(Role.SUPER_ADMIN, Role.ADMIN)
   @ApiOperation({ 
     summary: 'Créer un niveau', 
     description: 'Ajoute un nouveau niveau d\'étude (Licence 1, Master 2, etc.) dans le système.' 
@@ -57,6 +65,7 @@ export class NiveauController {
   }
 
   @Patch(':id')
+  @Roles(Role.SUPER_ADMIN, Role.ADMIN)
   @ApiOperation({ 
     summary: 'Modifier un niveau', 
     description: 'Permet de mettre à jour le libellé d\'un niveau d\'étude.' 
@@ -73,6 +82,7 @@ export class NiveauController {
   }
 
   @Delete(':id')
+  @Roles(Role.SUPER_ADMIN, Role.ADMIN)
   @ApiOperation({ 
     summary: 'Supprimer un niveau', 
     description: 'Supprime un niveau d\'étude du système.' 

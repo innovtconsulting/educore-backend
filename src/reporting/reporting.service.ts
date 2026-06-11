@@ -6,6 +6,11 @@ import { Sanction } from '../sanction/entities/sanction.entity';
 import { DailyReport } from './entities/daily-report.entity';
 import { SubmitDailyReportDto } from './dto/submit-daily-report.dto';
 import { PaginationQueryDto } from '../common/dto/pagination-query.dto';
+import { Etudiant } from '../etudiant/entities/etudiant.entity';
+import { Enseignant } from '../enseignant/entities/enseignant.entity';
+import { Classe } from '../classe/entities/classe.entity';
+import { Facture } from '../finance/entities/facture.entity';
+import { Paiement } from '../finance/entities/paiement.entity';
 
 @Injectable()
 export class ReportingService {
@@ -16,7 +21,48 @@ export class ReportingService {
     private readonly sanctionRepository: Repository<Sanction>,
     @InjectRepository(DailyReport)
     private readonly dailyReportRepository: Repository<DailyReport>,
+    @InjectRepository(Etudiant)
+    private readonly etudiantRepository: Repository<Etudiant>,
+    @InjectRepository(Enseignant)
+    private readonly enseignantRepository: Repository<Enseignant>,
+    @InjectRepository(Classe)
+    private readonly classeRepository: Repository<Classe>,
+    @InjectRepository(Facture)
+    private readonly factureRepository: Repository<Facture>,
+    @InjectRepository(Paiement)
+    private readonly paiementRepository: Repository<Paiement>,
   ) {}
+
+  async getGlobalStats() {
+    const [totalEtudiants, totalEnseignants, totalClasses] = await Promise.all([
+      this.etudiantRepository.count(),
+      this.enseignantRepository.count(),
+      this.classeRepository.count(),
+    ]);
+
+    const financialStats = await this.factureRepository
+      .createQueryBuilder('f')
+      .select('SUM(f.montantTotal)', 'totalInvoiced')
+      .getRawOne();
+
+    const paymentStats = await this.paiementRepository
+      .createQueryBuilder('p')
+      .select('SUM(p.montant)', 'totalCollected')
+      .getRawOne();
+
+    return {
+      overview: {
+        students: totalEtudiants,
+        teachers: totalEnseignants,
+        classes: totalClasses,
+      },
+      finance: {
+        totalInvoiced: parseFloat(financialStats.totalInvoiced || 0),
+        totalCollected: parseFloat(paymentStats.totalCollected || 0),
+        pending: parseFloat(financialStats.totalInvoiced || 0) - parseFloat(paymentStats.totalCollected || 0),
+      },
+    };
+  }
 
   async getDailySupervisorReport(date: string) {
     const targetDate = new Date(date);

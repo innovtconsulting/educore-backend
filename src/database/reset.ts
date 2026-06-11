@@ -16,6 +16,8 @@ import { AnneeUniversitaire } from '../annee-universitaire/entities/annee-univer
 import { Semestre } from '../semestre/entities/semestre.entity';
 import { Evaluation } from '../evaluation/entities/evaluation.entity';
 import { Note } from '../note/entities/note.entity';
+import { Devoir } from '../devoir/entities/devoir.entity';
+import { User } from '../user/entities/user.entity';
 import { Frais } from '../finance/entities/frais.entity';
 import { Facture } from '../finance/entities/facture.entity';
 import { Paiement } from '../finance/entities/paiement.entity';
@@ -53,6 +55,8 @@ const dataSource = new DataSource({
     Facture,
     Paiement,
     Discipline,
+    Devoir,
+    User,
   ],
   synchronize: false,
 });

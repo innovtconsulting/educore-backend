@@ -169,4 +169,35 @@ export class EnseignantService {
     }
     await this.affectationRepository.remove(affectation);
   }
+
+  async isResponsibleFor(
+    enseignantId: number,
+    matiereId: number,
+    niveauId: number,
+    etablissementIds?: number[],
+  ): Promise<boolean> {
+    const where: any = {
+      enseignant: { id: enseignantId },
+      matiere: { id: matiereId },
+      niveau: { id: niveauId },
+    };
+
+    if (etablissementIds && etablissementIds.length > 0) {
+      const affectations = await this.affectationRepository.find({
+        where: {
+          enseignant: { id: enseignantId },
+          matiere: { id: matiereId },
+          niveau: { id: niveauId },
+        },
+        relations: { etablissement: true },
+      });
+
+      return affectations.some((a) => etablissementIds.includes(a.etablissement.id));
+    }
+
+    const affectation = await this.affectationRepository.findOne({
+      where,
+    });
+    return !!affectation;
+  }
 }
