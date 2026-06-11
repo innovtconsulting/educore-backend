@@ -13,6 +13,8 @@ async function bootstrap() {
   // Préfixe global
   app.setGlobalPrefix('api');
 
+  app.enableCors();
+
   // Servir les fichiers statiques (photos de profil, etc.)
   app.useStaticAssets(join(__dirname, '..', 'uploads'), {
     prefix: '/uploads',
