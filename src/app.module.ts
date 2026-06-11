@@ -34,6 +34,7 @@ import { FinanceModule } from './finance/finance.module';
 import { Frais } from './finance/entities/frais.entity';
 import { Facture } from './finance/entities/facture.entity';
 import { Paiement } from './finance/entities/paiement.entity';
+import { Discipline } from './discipline/entities/discipline.entity';
 import { ReportingModule } from './reporting/reporting.module';
 import { DocumentModule } from './document/document.module';
 import { EvaluationModule } from './evaluation/evaluation.module';
@@ -41,6 +42,7 @@ import { SemestreModule } from './semestre/semestre.module';
 import { NoteModule } from './note/note.module';
 import { BulletinModule } from './bulletin/bulletin.module';
 import { AnneeUniversitaireModule } from './annee-universitaire/annee-universitaire.module';
+import { DisciplineModule } from './discipline/discipline.module';
 
 @Module({
   imports: [
@@ -75,6 +77,7 @@ import { AnneeUniversitaireModule } from './annee-universitaire/annee-universita
         Frais,
         Facture,
         Paiement,
+        Discipline,
       ],
       synchronize: true,
     }),
@@ -96,6 +99,7 @@ import { AnneeUniversitaireModule } from './annee-universitaire/annee-universita
     NoteModule,
     BulletinModule,
     AnneeUniversitaireModule,
+    DisciplineModule,
   ],
   controllers: [AppController],
   providers: [AppService],

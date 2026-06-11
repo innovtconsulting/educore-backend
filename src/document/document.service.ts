@@ -13,7 +13,10 @@ export class DocumentService {
     private readonly documentRepository: Repository<Document>,
   ) {}
 
-  async create(createDocumentDto: CreateDocumentDto, file: Express.Multer.File) {
+  async create(
+    createDocumentDto: CreateDocumentDto,
+    file: Express.Multer.File,
+  ) {
     const document = this.documentRepository.create({
       ...createDocumentDto,
       filePath: file.path,

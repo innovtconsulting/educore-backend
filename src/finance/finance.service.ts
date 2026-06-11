@@ -14,7 +14,7 @@ import { CreateFactureDto } from './dto/create-facture.dto';
 import { CreatePaiementDto } from './dto/create-paiement.dto';
 import { Classe } from '../classe/entities/classe.entity';
 import { Niveau } from '../niveau/entities/niveau.entity';
-import { generateReceiptPdf } from './utils/pdf-generator';
+import { generateQuittancePdf, generateReceiptPdf } from './utils/pdf-generator';
 
 @Injectable()
 export class FinanceService {
@@ -154,7 +154,7 @@ export class FinanceService {
   async updateFactureStatus(factureId: number) {
     const facture = await this.factureRepository.findOne({
       where: { id: factureId },
-      relations: { paiements: true },
+      relations: { paiements: true, etudiant: true },
     });
 
     if (!facture) return;
@@ -167,6 +167,13 @@ export class FinanceService {
 
     if (totalPaye >= totalAuteur) {
       facture.status = InvoiceStatus.PAYE;
+      // Générer la quittance finale
+      try {
+        const quittancePath = await generateQuittancePdf(facture);
+        facture.quittancePath = quittancePath;
+      } catch (error) {
+        console.error('Erreur lors de la génération de la quittance:', error);
+      }
     } else if (totalPaye > 0) {
       facture.status = InvoiceStatus.PARTIEL;
     } else {

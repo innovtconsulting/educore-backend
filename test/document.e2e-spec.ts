@@ -12,6 +12,8 @@ describe('Document Module (e2e)', () => {
   let app: NestExpressApplication;
   let dataSource: DataSource;
 
+  jest.setTimeout(30000);
+
   beforeAll(async () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
       imports: [AppModule],

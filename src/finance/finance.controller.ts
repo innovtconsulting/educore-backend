@@ -57,7 +57,10 @@ export class FinanceController {
 
   // --- Paiements ---
   @Post('paiements')
-  @ApiOperation({ summary: 'Enregistrer un paiement' })
+  @ApiOperation({ 
+    summary: 'Enregistrer un paiement',
+    description: 'Enregistre un règlement pour un étudiant. Cette action génère automatiquement un reçu PDF stocké sur le serveur et met à jour le statut de la facture associée.'
+  })
   async createPaiement(@Body() dto: CreatePaiementDto) {
     const data = await this.financeService.createPaiement(dto);
     return { message: 'Paiement enregistré avec succès', data };

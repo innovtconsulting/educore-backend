@@ -19,6 +19,7 @@ import { Note } from '../note/entities/note.entity';
 import { Frais } from '../finance/entities/frais.entity';
 import { Facture } from '../finance/entities/facture.entity';
 import { Paiement } from '../finance/entities/paiement.entity';
+import { Discipline } from '../discipline/entities/discipline.entity';
 import * as dotenv from 'dotenv';
 
 dotenv.config();
@@ -51,6 +52,7 @@ const dataSource = new DataSource({
     Frais,
     Facture,
     Paiement,
+    Discipline,
   ],
   synchronize: false,
 });

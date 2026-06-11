@@ -60,6 +60,10 @@ export class Facture {
   @ApiProperty({ required: false })
   notes?: string;
 
+  @Column({ nullable: true })
+  @ApiProperty({ description: 'Chemin vers le PDF de la quittance finale' })
+  quittancePath?: string;
+
   @CreateDateColumn()
   createdAt!: Date;
 
