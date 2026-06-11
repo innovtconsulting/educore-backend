@@ -6,11 +6,13 @@ import {
   Patch,
   Param,
   Delete,
+  Query,
 } from '@nestjs/common';
 import { NoteService } from './note.service';
 import { CreateNoteDto } from './dto/create-note.dto';
 import { UpdateNoteDto } from './dto/update-note.dto';
 import { ApiTags, ApiOperation } from '@nestjs/swagger';
+import { PaginationQueryDto } from '../common/dto/pagination-query.dto';
 
 @ApiTags('note')
 @Controller('note')
@@ -31,8 +33,12 @@ export class NoteController {
     summary: 'Lister toutes les notes', 
     description: 'Récupère la liste de toutes les notes saisies dans le système.' 
   })
-  findAll() {
-    return this.noteService.findAll();
+  async findAll(@Query() paginationQuery: PaginationQueryDto) {
+    const data = await this.noteService.findAll(paginationQuery);
+    return {
+      message: 'Liste des notes récupérée avec succès',
+      data,
+    };
   }
 
   @Get(':id')

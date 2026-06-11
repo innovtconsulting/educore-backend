@@ -20,6 +20,8 @@ import { Frais, FeeType } from '../finance/entities/frais.entity';
 import { Facture, InvoiceStatus } from '../finance/entities/facture.entity';
 import { Paiement, PaymentMethod } from '../finance/entities/paiement.entity';
 import { Discipline, DisciplineCategory } from '../discipline/entities/discipline.entity';
+import { User, Role } from '../user/entities/user.entity';
+import * as bcrypt from 'bcrypt';
 import { generateReceiptPdf } from '../finance/utils/pdf-generator';
 import * as dotenv from 'dotenv';
 import * as fs from 'fs';
@@ -56,8 +58,9 @@ const dataSource = new DataSource({
     Facture,
     Paiement,
     Discipline,
-  ],
-  synchronize: false,
+    User,
+    ],
+  synchronize: true,
 });
 
 async function seed() {
@@ -447,6 +450,52 @@ async function seed() {
       category: DisciplineCategory.DISCIPLINE,
     });
     await disciplineRepo.save([reglement1, reglement2]);
+
+    // 17. Utilisateurs
+    const userRepo = dataSource.getRepository(User);
+    const passwordHash = await bcrypt.hash('password123', 10);
+
+    const users = [
+      userRepo.create({
+        email: 'superadmin@espm.sn',
+        password: passwordHash,
+        role: Role.SUPER_ADMIN,
+      }),
+      userRepo.create({
+        email: 'admin@espm.sn',
+        password: passwordHash,
+        role: Role.ADMIN,
+      }),
+      userRepo.create({
+        email: 'comptable@espm.sn',
+        password: passwordHash,
+        role: Role.COMPTABLE,
+      }),
+      userRepo.create({
+        email: 'surveillant@espm.sn',
+        password: passwordHash,
+        role: Role.SURVEILLANT,
+      }),
+      userRepo.create({
+        email: 'prof.diallo@espm.sn',
+        password: passwordHash,
+        role: Role.ENSEIGNANT,
+        enseignant: profDiallo,
+      }),
+      userRepo.create({
+        email: 'ousmane.sow@espm.sn',
+        password: passwordHash,
+        role: Role.ETUDIANT,
+        etudiant: etudiant1,
+      }),
+      userRepo.create({
+        email: 'modou.sow@espm.sn',
+        password: passwordHash,
+        role: Role.PARENT,
+        parent: parent1,
+      }),
+    ];
+    await userRepo.save(users);
 
     console.log('Seeding terminé avec succès !');
   } catch (error) {

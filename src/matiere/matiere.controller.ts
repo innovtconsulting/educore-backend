@@ -6,11 +6,13 @@ import {
   Patch,
   Param,
   Delete,
+  Query,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation } from '@nestjs/swagger';
 import { MatiereService } from './matiere.service';
 import { CreateMatiereDto } from './dto/create-matiere.dto';
 import { UpdateMatiereDto } from './dto/update-matiere.dto';
+import { PaginationQueryDto } from '../common/dto/pagination-query.dto';
 
 @ApiTags('matiere')
 @Controller('matiere')
@@ -35,8 +37,8 @@ export class MatiereController {
     summary: 'Lister toutes les matières', 
     description: 'Récupère la liste complète des matières enregistrées dans le système.' 
   })
-  async findAll() {
-    const data = await this.matiereService.findAll();
+  async findAll(@Query() paginationQuery: PaginationQueryDto) {
+    const data = await this.matiereService.findAll(paginationQuery);
     return {
       message: 'Liste des matières récupérée avec succès',
       data,

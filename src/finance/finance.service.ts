@@ -15,6 +15,7 @@ import { CreatePaiementDto } from './dto/create-paiement.dto';
 import { Classe } from '../classe/entities/classe.entity';
 import { Niveau } from '../niveau/entities/niveau.entity';
 import { generateQuittancePdf, generateReceiptPdf } from './utils/pdf-generator';
+import { PaginationQueryDto } from '../common/dto/pagination-query.dto';
 
 @Injectable()
 export class FinanceService {
@@ -87,11 +88,23 @@ export class FinanceService {
     return await this.factureRepository.save(facture);
   }
 
-  async findAllFactures() {
-    return await this.factureRepository.find({
+  async findAllFactures(paginationQuery: PaginationQueryDto) {
+    const { page = 1, limit = 15 } = paginationQuery;
+    const skip = (page - 1) * limit;
+
+    const [items, total] = await this.factureRepository.findAndCount({
       relations: { etudiant: true, paiements: true },
       order: { dateEmission: 'DESC' },
+      skip,
+      take: limit,
     });
+
+    return {
+      items,
+      total,
+      page,
+      limit,
+    };
   }
 
   async findOneFacture(id: number) {
@@ -183,11 +196,23 @@ export class FinanceService {
     await this.factureRepository.save(facture);
   }
 
-  async findAllPaiements() {
-    return await this.paiementRepository.find({
+  async findAllPaiements(paginationQuery: PaginationQueryDto) {
+    const { page = 1, limit = 15 } = paginationQuery;
+    const skip = (page - 1) * limit;
+
+    const [items, total] = await this.paiementRepository.findAndCount({
       relations: { etudiant: true, facture: true },
       order: { datePaiement: 'DESC' },
+      skip,
+      take: limit,
     });
+
+    return {
+      items,
+      total,
+      page,
+      limit,
+    };
   }
 
   // --- Tableau de Bord & Rapports ---

@@ -4,6 +4,7 @@ import { Repository } from 'typeorm';
 import { CreateNoteDto } from './dto/create-note.dto';
 import { UpdateNoteDto } from './dto/update-note.dto';
 import { Note } from './entities/note.entity';
+import { PaginationQueryDto } from '../common/dto/pagination-query.dto';
 
 @Injectable()
 export class NoteService {
@@ -22,13 +23,26 @@ export class NoteService {
     return await this.noteRepository.save(note);
   }
 
-  async findAll() {
-    return await this.noteRepository.find({
+  async findAll(paginationQuery: PaginationQueryDto) {
+    const { page = 1, limit = 15 } = paginationQuery;
+    const skip = (page - 1) * limit;
+
+    const [items, total] = await this.noteRepository.findAndCount({
       relations: {
         etudiant: true,
         evaluation: { matiere: true, semestre: true },
       },
+      skip,
+      take: limit,
+      order: { id: 'DESC' },
     });
+
+    return {
+      items,
+      total,
+      page,
+      limit,
+    };
   }
 
   async findOne(id: number) {

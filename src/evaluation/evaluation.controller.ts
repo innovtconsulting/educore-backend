@@ -6,11 +6,13 @@ import {
   Patch,
   Param,
   Delete,
+  Query,
 } from '@nestjs/common';
 import { EvaluationService } from './evaluation.service';
 import { CreateEvaluationDto } from './dto/create-evaluation.dto';
 import { UpdateEvaluationDto } from './dto/update-evaluation.dto';
 import { ApiTags, ApiOperation } from '@nestjs/swagger';
+import { PaginationQueryDto } from '../common/dto/pagination-query.dto';
 
 @ApiTags('evaluation')
 @Controller('evaluation')
@@ -31,8 +33,12 @@ export class EvaluationController {
     summary: 'Lister toutes les évaluations', 
     description: 'Récupère la liste complète des évaluations avec leurs relations (matière, classe, niveau, semestre).' 
   })
-  findAll() {
-    return this.evaluationService.findAll();
+  async findAll(@Query() paginationQuery: PaginationQueryDto) {
+    const data = await this.evaluationService.findAll(paginationQuery);
+    return {
+      message: 'Liste des évaluations récupérée avec succès',
+      data,
+    };
   }
 
   @Get(':id')

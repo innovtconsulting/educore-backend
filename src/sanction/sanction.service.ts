@@ -5,6 +5,7 @@ import { CreateSanctionDto } from './dto/create-sanction.dto';
 import { UpdateSanctionDto } from './dto/update-sanction.dto';
 import { Sanction } from './entities/sanction.entity';
 import { Etudiant } from '../etudiant/entities/etudiant.entity';
+import { PaginationQueryDto } from '../common/dto/pagination-query.dto';
 
 @Injectable()
 export class SanctionService {
@@ -34,11 +35,23 @@ export class SanctionService {
     return await this.sanctionRepository.save(sanction);
   }
 
-  async findAll(): Promise<Sanction[]> {
-    return await this.sanctionRepository.find({
+  async findAll(paginationQuery: PaginationQueryDto) {
+    const { page = 1, limit = 15 } = paginationQuery;
+    const skip = (page - 1) * limit;
+
+    const [items, total] = await this.sanctionRepository.findAndCount({
       relations: { etudiant: true },
       order: { dateDecision: 'DESC' },
+      skip,
+      take: limit,
     });
+
+    return {
+      items,
+      total,
+      page,
+      limit,
+    };
   }
 
   async findByEtudiant(etudiantId: number): Promise<Sanction[]> {

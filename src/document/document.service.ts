@@ -5,6 +5,7 @@ import { CreateDocumentDto } from './dto/create-document.dto';
 import { UpdateDocumentDto } from './dto/update-document.dto';
 import { Document } from './entities/document.entity';
 import * as fs from 'fs';
+import { PaginationQueryDto } from '../common/dto/pagination-query.dto';
 
 @Injectable()
 export class DocumentService {
@@ -27,10 +28,22 @@ export class DocumentService {
     return await this.documentRepository.save(document);
   }
 
-  async findAll() {
-    return await this.documentRepository.find({
+  async findAll(paginationQuery: PaginationQueryDto) {
+    const { page = 1, limit = 15 } = paginationQuery;
+    const skip = (page - 1) * limit;
+
+    const [items, total] = await this.documentRepository.findAndCount({
+      skip,
+      take: limit,
       order: { createdAt: 'DESC' },
     });
+
+    return {
+      items,
+      total,
+      page,
+      limit,
+    };
   }
 
   async findOne(id: number) {

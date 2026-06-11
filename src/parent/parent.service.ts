@@ -4,6 +4,7 @@ import { Repository } from 'typeorm';
 import { CreateParentDto } from './dto/create-parent.dto';
 import { UpdateParentDto } from './dto/update-parent.dto';
 import { Parent } from './entities/parent.entity';
+import { PaginationQueryDto } from '../common/dto/pagination-query.dto';
 
 @Injectable()
 export class ParentService {
@@ -17,10 +18,23 @@ export class ParentService {
     return await this.parentRepository.save(parent);
   }
 
-  async findAll(): Promise<Parent[]> {
-    return await this.parentRepository.find({
+  async findAll(paginationQuery: PaginationQueryDto) {
+    const { page = 1, limit = 15 } = paginationQuery;
+    const skip = (page - 1) * limit;
+
+    const [items, total] = await this.parentRepository.findAndCount({
       relations: { etudiants: true },
+      skip,
+      take: limit,
+      order: { id: 'DESC' },
     });
+
+    return {
+      items,
+      total,
+      page,
+      limit,
+    };
   }
 
   async findOne(id: number): Promise<Parent> {

@@ -5,6 +5,7 @@ import { Presence, PresenceStatus } from '../presence/entities/presence.entity';
 import { Sanction } from '../sanction/entities/sanction.entity';
 import { DailyReport } from './entities/daily-report.entity';
 import { SubmitDailyReportDto } from './dto/submit-daily-report.dto';
+import { PaginationQueryDto } from '../common/dto/pagination-query.dto';
 
 @Injectable()
 export class ReportingService {
@@ -118,10 +119,22 @@ export class ReportingService {
     return await this.dailyReportRepository.save(report);
   }
 
-  async getAllDailyReports() {
-    return await this.dailyReportRepository.find({
+  async getAllDailyReports(paginationQuery: PaginationQueryDto) {
+    const { page = 1, limit = 15 } = paginationQuery;
+    const skip = (page - 1) * limit;
+
+    const [items, total] = await this.dailyReportRepository.findAndCount({
+      skip,
+      take: limit,
       order: { date: 'DESC' },
     });
+
+    return {
+      items,
+      total,
+      page,
+      limit,
+    };
   }
 
   async getDailyReportById(id: number) {

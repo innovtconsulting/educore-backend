@@ -16,6 +16,7 @@ import { In } from 'typeorm';
 import { unlink } from 'fs/promises';
 import { existsSync } from 'fs';
 import { join } from 'path';
+import { PaginationQueryDto } from '../common/dto/pagination-query.dto';
 
 @Injectable()
 export class EtudiantService {
@@ -100,15 +101,30 @@ export class EtudiantService {
     return await this.etudiantRepository.save(etudiant);
   }
 
-  async findAll(): Promise<Etudiant[]> {
-    return await this.etudiantRepository.find({
+  async findAll(
+    paginationQuery: PaginationQueryDto,
+  ): Promise<{ items: Etudiant[]; total: number; page: number; limit: number }> {
+    const { page = 1, limit = 15 } = paginationQuery;
+    const skip = (page - 1) * limit;
+
+    const [items, total] = await this.etudiantRepository.findAndCount({
       relations: {
         etablissement: true,
         classe: true,
         niveau: true,
         parents: true,
       },
+      skip,
+      take: limit,
+      order: { id: 'DESC' },
     });
+
+    return {
+      items,
+      total,
+      page,
+      limit,
+    };
   }
 
   async findOne(id: number): Promise<Etudiant> {
