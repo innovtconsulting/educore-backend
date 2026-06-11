@@ -7,7 +7,8 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { CreateEtudiantDto } from './dto/create-etudiant.dto';
 import { UpdateEtudiantDto } from './dto/update-etudiant.dto';
-import { Etudiant } from './entities/etudiant.entity';
+import { ValidateEtudiantDto } from './dto/validate-etudiant.dto';
+import { Etudiant, EnrollmentStatus } from './entities/etudiant.entity';
 import { Etablissement } from '../etablissement/entities/etablissement.entity';
 import { Classe } from '../classe/entities/classe.entity';
 import { Niveau } from '../niveau/entities/niveau.entity';
@@ -34,14 +35,17 @@ export class EtudiantService {
   ) {}
 
   async create(createEtudiantDto: CreateEtudiantDto): Promise<Etudiant> {
-    const { etablissementId, classeId, niveauId, parentIds, ...rest } = createEtudiantDto;
+    const { etablissementId, classeId, niveauId, parentIds, ...rest } =
+      createEtudiantDto;
 
     // Vérifier l'existence des relations
     const etablissement = await this.etablissementRepository.findOneBy({
       id: etablissementId,
     });
     if (!etablissement)
-      throw new NotFoundException(`Établissement #${etablissementId} introuvable`);
+      throw new NotFoundException(
+        `Établissement #${etablissementId} introuvable`,
+      );
 
     const classe = await this.classeRepository.findOneBy({ id: classeId });
     if (!classe) throw new NotFoundException(`Classe #${classeId} introuvable`);
@@ -58,7 +62,9 @@ export class EtudiantService {
 
       // Validation des règles métier pour les parents
       if (parents.length > 2) {
-        throw new BadRequestException('Un étudiant ne peut pas avoir plus de 2 parents');
+        throw new BadRequestException(
+          'Un étudiant ne peut pas avoir plus de 2 parents',
+        );
       }
 
       const hasPere = parents.some((p) => p.gender === ParentGender.PERE);
@@ -68,7 +74,7 @@ export class EtudiantService {
       if (parents.length === 2) {
         if (!hasPere || !hasMere) {
           throw new BadRequestException(
-            'Si l\'étudiant a 2 parents, ce doit être un père et une mère',
+            "Si l'étudiant a 2 parents, ce doit être un père et une mère",
           );
         }
       }
@@ -79,19 +85,32 @@ export class EtudiantService {
         );
       }
     } else {
-      throw new BadRequestException('Un étudiant doit avoir au moins un parent ou tuteur');
+      throw new BadRequestException(
+        'Un étudiant doit avoir au moins un parent ou tuteur',
+      );
     }
 
-    // Vérifier l'unicité du matricule et de l'email
-    const existing = await this.etudiantRepository.findOne({
-      where: [{ email: rest.email }, { matricule: rest.matricule }],
+    // Vérifier l'unicité du matricule (si fourni) et de l'email
+    const matricule = rest.matricule;
+    if (matricule) {
+      const existingMatricule = await this.etudiantRepository.findOne({
+        where: { matricule },
+      });
+      if (existingMatricule) {
+        throw new BadRequestException('Le matricule existe déjà');
+      }
+    }
+
+    const existingEmail = await this.etudiantRepository.findOne({
+      where: { email: rest.email },
     });
-    if (existing) {
-      throw new BadRequestException('L\'email ou le matricule existe déjà');
+    if (existingEmail) {
+      throw new BadRequestException("L'email existe déjà");
     }
 
     const etudiant = this.etudiantRepository.create({
       ...rest,
+      status: rest.status || EnrollmentStatus.ACTIF,
       etablissement,
       classe,
       niveau,
@@ -102,23 +121,31 @@ export class EtudiantService {
   }
 
   async findAll(
-    paginationQuery: PaginationQueryDto,
-  ): Promise<{ items: Etudiant[]; total: number; page: number; limit: number }> {
-    const { page = 1, limit = 15, search } = paginationQuery;
+    paginationQuery: PaginationQueryDto & { status?: EnrollmentStatus },
+  ): Promise<{
+    items: Etudiant[];
+    total: number;
+    page: number;
+    limit: number;
+  }> {
+    const { page = 1, limit = 15, search, status } = paginationQuery;
     const skip = (page - 1) * limit;
 
-    let where: FindOptionsWhere<Etudiant> | FindOptionsWhere<Etudiant>[] = {};
+    const where: FindOptionsWhere<Etudiant> | FindOptionsWhere<Etudiant>[] = [];
+
     if (search) {
-      where = [
-        { lastName: ILike(`%${search}%`) },
-        { firstName: ILike(`%${search}%`) },
-        { matricule: ILike(`%${search}%`) },
-        { email: ILike(`%${search}%`) },
-      ];
+      where.push(
+        { lastName: ILike(`%${search}%`), ...(status ? { status } : {}) },
+        { firstName: ILike(`%${search}%`), ...(status ? { status } : {}) },
+        { matricule: ILike(`%${search}%`), ...(status ? { status } : {}) },
+        { email: ILike(`%${search}%`), ...(status ? { status } : {}) },
+      );
+    } else if (status) {
+      where.push({ status });
     }
 
     const [items, total] = await this.etudiantRepository.findAndCount({
-      where,
+      where: where.length > 0 ? where : {},
       relations: {
         etablissement: true,
         classe: true,
@@ -152,28 +179,47 @@ export class EtudiantService {
     return etudiant;
   }
 
-  async update(id: number, updateEtudiantDto: UpdateEtudiantDto): Promise<Etudiant> {
+  async update(
+    id: number,
+    updateEtudiantDto: UpdateEtudiantDto,
+  ): Promise<Etudiant> {
     const etudiant = await this.findOne(id);
-    const { etablissementId, classeId, niveauId, parentIds, ...rest } = updateEtudiantDto;
+    const { etablissementId, classeId, niveauId, parentIds, ...rest } =
+      updateEtudiantDto;
+
+    // Règle métier : Pour passer à l'état ACTIF, le matricule est OBLIGATOIRE
+    if (
+      rest.status === EnrollmentStatus.ACTIF &&
+      !etudiant.matricule &&
+      !rest.matricule
+    ) {
+      throw new BadRequestException(
+        "Un matricule doit être attribué pour activer l'inscription de l'étudiant",
+      );
+    }
 
     if (etablissementId) {
       const etablissement = await this.etablissementRepository.findOneBy({
         id: etablissementId,
       });
       if (!etablissement)
-        throw new NotFoundException(`Établissement #${etablissementId} introuvable`);
+        throw new NotFoundException(
+          `Établissement #${etablissementId} introuvable`,
+        );
       etudiant.etablissement = etablissement;
     }
 
     if (classeId) {
       const classe = await this.classeRepository.findOneBy({ id: classeId });
-      if (!classe) throw new NotFoundException(`Classe #${classeId} introuvable`);
+      if (!classe)
+        throw new NotFoundException(`Classe #${classeId} introuvable`);
       etudiant.classe = classe;
     }
 
     if (niveauId) {
       const niveau = await this.niveauRepository.findOneBy({ id: niveauId });
-      if (!niveau) throw new NotFoundException(`Niveau #${niveauId} introuvable`);
+      if (!niveau)
+        throw new NotFoundException(`Niveau #${niveauId} introuvable`);
       etudiant.niveau = niveau;
     }
 
@@ -185,13 +231,45 @@ export class EtudiantService {
       etudiant.parents = parents;
     }
 
+    if (rest.matricule && rest.matricule !== etudiant.matricule) {
+      const existing = await this.etudiantRepository.findOne({
+        where: { matricule: rest.matricule },
+      });
+      if (existing) {
+        throw new BadRequestException('Ce matricule est déjà utilisé');
+      }
+    }
+
     Object.assign(etudiant, rest);
+    return await this.etudiantRepository.save(etudiant);
+  }
+
+  async validateEnrollment(
+    id: number,
+    validateDto: ValidateEtudiantDto,
+  ): Promise<Etudiant> {
+    const etudiant = await this.findOne(id);
+
+    // Vérifier si le matricule est déjà pris
+    const existing = await this.etudiantRepository.findOne({
+      where: { matricule: validateDto.matricule },
+    });
+    if (existing && existing.id !== id) {
+      throw new BadRequestException(
+        'Ce matricule est déjà attribué à un autre étudiant',
+      );
+    }
+
+    // Mettre à jour les informations et le statut
+    Object.assign(etudiant, validateDto);
+    etudiant.status = EnrollmentStatus.ACTIF;
+
     return await this.etudiantRepository.save(etudiant);
   }
 
   async remove(id: number): Promise<void> {
     const etudiant = await this.findOne(id);
-    
+
     // Supprimer la photo si elle existe
     if (etudiant.photoPath) {
       const fullPath = join(process.cwd(), etudiant.photoPath);
@@ -205,7 +283,7 @@ export class EtudiantService {
 
   async updateProfilePicture(id: number, filePath: string): Promise<Etudiant> {
     const etudiant = await this.findOne(id);
-    
+
     // Supprimer l'ancienne photo si elle existe
     if (etudiant.photoPath) {
       const oldPath = join(process.cwd(), etudiant.photoPath);

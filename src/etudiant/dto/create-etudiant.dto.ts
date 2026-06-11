@@ -12,10 +12,10 @@ import {
 import { EnrollmentStatus } from '../entities/etudiant.entity';
 
 export class CreateEtudiantDto {
-  @ApiProperty({ example: 'ETU-2026-001' })
+  @ApiProperty({ example: 'ETU-2026-001', required: false })
   @IsString()
-  @IsNotEmpty()
-  matricule!: string;
+  @IsOptional()
+  matricule?: string;
 
   @ApiProperty({ example: 'Sow' })
   @IsString()

@@ -29,8 +29,8 @@ export class Etudiant {
   @PrimaryGeneratedColumn()
   id!: number;
 
-  @Column({ unique: true })
-  matricule!: string;
+  @Column({ unique: true, nullable: true })
+  matricule?: string;
 
   @Column()
   lastName!: string;

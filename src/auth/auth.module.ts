@@ -5,11 +5,17 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { AuthService } from './auth.service';
 import { AuthController } from './auth.controller';
 import { UserModule } from '../user/user.module';
+import { EtudiantModule } from '../etudiant/etudiant.module';
+import { EnseignantModule } from '../enseignant/enseignant.module';
+import { ParentModule } from '../parent/parent.module';
 import { JwtStrategy } from './strategies/jwt.strategy';
 
 @Module({
   imports: [
     UserModule,
+    EtudiantModule,
+    EnseignantModule,
+    ParentModule,
     PassportModule,
     JwtModule.registerAsync({
       imports: [ConfigModule],

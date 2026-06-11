@@ -1,4 +1,8 @@
-import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { CreateEvaluationDto } from './dto/create-evaluation.dto';
@@ -23,7 +27,8 @@ export class EvaluationService {
 
     // Vérifier la responsabilité si c'est un enseignant
     if (user.role === Role.ENSEIGNANT) {
-      const queryRunner = this.evaluationRepository.manager.connection.createQueryRunner();
+      const queryRunner =
+        this.evaluationRepository.manager.connection.createQueryRunner();
       const classe = await queryRunner.manager.getRepository(Classe).findOne({
         where: { id: classeId },
         relations: { etablissements: true },
@@ -97,11 +102,17 @@ export class EvaluationService {
     return evaluation;
   }
 
-  async update(id: number, updateEvaluationDto: UpdateEvaluationDto, user: any) {
+  async update(
+    id: number,
+    updateEvaluationDto: UpdateEvaluationDto,
+    user: any,
+  ) {
     const evaluation = await this.findOne(id);
 
     if (user.role === Role.ENSEIGNANT) {
-      const etablissementIds = evaluation.classe.etablissements.map(e => e.id);
+      const etablissementIds = evaluation.classe.etablissements.map(
+        (e) => e.id,
+      );
       const isResponsible = await this.enseignantService.isResponsibleFor(
         user.enseignantId,
         evaluation.matiere.id,
@@ -123,7 +134,9 @@ export class EvaluationService {
     const evaluation = await this.findOne(id);
 
     if (user.role === Role.ENSEIGNANT) {
-      const etablissementIds = evaluation.classe.etablissements.map(e => e.id);
+      const etablissementIds = evaluation.classe.etablissements.map(
+        (e) => e.id,
+      );
       const isResponsible = await this.enseignantService.isResponsibleFor(
         user.enseignantId,
         evaluation.matiere.id,
