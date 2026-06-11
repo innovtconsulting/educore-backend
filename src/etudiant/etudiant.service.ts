@@ -12,7 +12,7 @@ import { Etablissement } from '../etablissement/entities/etablissement.entity';
 import { Classe } from '../classe/entities/classe.entity';
 import { Niveau } from '../niveau/entities/niveau.entity';
 import { Parent, ParentGender } from '../parent/entities/parent.entity';
-import { In } from 'typeorm';
+import { In, ILike, FindOptionsWhere } from 'typeorm';
 import { unlink } from 'fs/promises';
 import { existsSync } from 'fs';
 import { join } from 'path';
@@ -104,10 +104,21 @@ export class EtudiantService {
   async findAll(
     paginationQuery: PaginationQueryDto,
   ): Promise<{ items: Etudiant[]; total: number; page: number; limit: number }> {
-    const { page = 1, limit = 15 } = paginationQuery;
+    const { page = 1, limit = 15, search } = paginationQuery;
     const skip = (page - 1) * limit;
 
+    let where: FindOptionsWhere<Etudiant> | FindOptionsWhere<Etudiant>[] = {};
+    if (search) {
+      where = [
+        { lastName: ILike(`%${search}%`) },
+        { firstName: ILike(`%${search}%`) },
+        { matricule: ILike(`%${search}%`) },
+        { email: ILike(`%${search}%`) },
+      ];
+    }
+
     const [items, total] = await this.etudiantRepository.findAndCount({
+      where,
       relations: {
         etablissement: true,
         classe: true,

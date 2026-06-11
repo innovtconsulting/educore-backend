@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, ILike, FindOptionsWhere } from 'typeorm';
 import { CreateDocumentDto } from './dto/create-document.dto';
 import { UpdateDocumentDto } from './dto/update-document.dto';
 import { Document } from './entities/document.entity';
@@ -29,10 +29,19 @@ export class DocumentService {
   }
 
   async findAll(paginationQuery: PaginationQueryDto) {
-    const { page = 1, limit = 15 } = paginationQuery;
+    const { page = 1, limit = 15, search } = paginationQuery;
     const skip = (page - 1) * limit;
 
+    let where: FindOptionsWhere<Document> | FindOptionsWhere<Document>[] = {};
+    if (search) {
+      where = [
+        { title: ILike(`%${search}%`) },
+        { description: ILike(`%${search}%`) },
+      ];
+    }
+
     const [items, total] = await this.documentRepository.findAndCount({
+      where,
       skip,
       take: limit,
       order: { createdAt: 'DESC' },

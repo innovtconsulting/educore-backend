@@ -1,6 +1,6 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, ILike, FindOptionsWhere } from 'typeorm';
 import { CreateEnseignantDto } from './dto/create-enseignant.dto';
 import { UpdateEnseignantDto } from './dto/update-enseignant.dto';
 import { Enseignant } from './entities/enseignant.entity';
@@ -44,10 +44,21 @@ export class EnseignantService {
   }
 
   async findAll(paginationQuery: PaginationQueryDto) {
-    const { page = 1, limit = 15 } = paginationQuery;
+    const { page = 1, limit = 15, search } = paginationQuery;
     const skip = (page - 1) * limit;
 
+    let where: FindOptionsWhere<Enseignant> | FindOptionsWhere<Enseignant>[] = {};
+    if (search) {
+      where = [
+        { lastName: ILike(`%${search}%`) },
+        { firstName: ILike(`%${search}%`) },
+        { matricule: ILike(`%${search}%`) },
+        { email: ILike(`%${search}%`) },
+      ];
+    }
+
     const [items, total] = await this.enseignantRepository.findAndCount({
+      where,
       relations: {
         affectations: {
           matiere: true,

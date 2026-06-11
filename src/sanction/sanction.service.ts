@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, ILike, FindOptionsWhere } from 'typeorm';
 import { CreateSanctionDto } from './dto/create-sanction.dto';
 import { UpdateSanctionDto } from './dto/update-sanction.dto';
 import { Sanction } from './entities/sanction.entity';
@@ -36,10 +36,18 @@ export class SanctionService {
   }
 
   async findAll(paginationQuery: PaginationQueryDto) {
-    const { page = 1, limit = 15 } = paginationQuery;
+    const { page = 1, limit = 15, search } = paginationQuery;
     const skip = (page - 1) * limit;
 
+    let where: FindOptionsWhere<Sanction> | FindOptionsWhere<Sanction>[] = {};
+    if (search) {
+      where = [
+        { motif: ILike(`%${search}%`) },
+      ];
+    }
+
     const [items, total] = await this.sanctionRepository.findAndCount({
+      where,
       relations: { etudiant: true },
       order: { dateDecision: 'DESC' },
       skip,

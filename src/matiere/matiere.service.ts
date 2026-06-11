@@ -4,7 +4,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { In, Repository } from 'typeorm';
+import { In, Repository, ILike, FindOptionsWhere } from 'typeorm';
 import { CreateMatiereDto } from './dto/create-matiere.dto';
 import { UpdateMatiereDto } from './dto/update-matiere.dto';
 import { Matiere } from './entities/matiere.entity';
@@ -62,10 +62,19 @@ export class MatiereService {
   }
 
   async findAll(paginationQuery: PaginationQueryDto) {
-    const { page = 1, limit = 15 } = paginationQuery;
+    const { page = 1, limit = 15, search } = paginationQuery;
     const skip = (page - 1) * limit;
 
+    let where: FindOptionsWhere<Matiere> | FindOptionsWhere<Matiere>[] = {};
+    if (search) {
+      where = [
+        { name: ILike(`%${search}%`) },
+        { code: ILike(`%${search}%`) },
+      ];
+    }
+
     const [items, total] = await this.matiereRepository.findAndCount({
+      where,
       relations: { classes: true, niveaux: true },
       skip,
       take: limit,
