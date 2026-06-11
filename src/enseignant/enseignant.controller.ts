@@ -6,12 +6,14 @@ import {
   Patch,
   Param,
   Delete,
+  Query,
 } from '@nestjs/common';
 import { EnseignantService } from './enseignant.service';
 import { CreateEnseignantDto } from './dto/create-enseignant.dto';
 import { UpdateEnseignantDto } from './dto/update-enseignant.dto';
 import { ApiTags, ApiOperation } from '@nestjs/swagger';
 import { CreateAffectationDto } from './dto/create-affectation.dto';
+import { PaginationQueryDto } from '../common/dto/pagination-query.dto';
 
 @ApiTags('enseignants')
 @Controller('enseignants')
@@ -28,8 +30,8 @@ export class EnseignantController {
   @ApiOperation({
     summary: 'Récupérer tous les enseignants avec leurs affectations',
   })
-  findAll() {
-    return this.enseignantService.findAll();
+  findAll(@Query() paginationQuery: PaginationQueryDto) {
+    return this.enseignantService.findAll(paginationQuery);
   }
 
   @Get(':id')

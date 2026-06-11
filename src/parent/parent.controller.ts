@@ -13,6 +13,7 @@ import { ParentService } from './parent.service';
 import { CreateParentDto } from './dto/create-parent.dto';
 import { UpdateParentDto } from './dto/update-parent.dto';
 import { ApiTags, ApiOperation, ApiQuery } from '@nestjs/swagger';
+import { PaginationQueryDto } from '../common/dto/pagination-query.dto';
 
 @ApiTags('parents')
 @Controller('parents')
@@ -38,8 +39,8 @@ export class ParentController {
 
   @Get()
   @ApiOperation({ summary: 'Liste de tous les parents' })
-  findAll() {
-    return this.parentService.findAll();
+  findAll(@Query() paginationQuery: PaginationQueryDto) {
+    return this.parentService.findAll(paginationQuery);
   }
 
   @Get(':id')

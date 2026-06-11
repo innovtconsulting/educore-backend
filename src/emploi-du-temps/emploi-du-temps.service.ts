@@ -14,6 +14,7 @@ import { Etablissement } from '../etablissement/entities/etablissement.entity';
 import { Classe } from '../classe/entities/classe.entity';
 import { Niveau } from '../niveau/entities/niveau.entity';
 import { Affectation } from '../enseignant/entities/affectation.entity';
+import { PaginationQueryDto } from '../common/dto/pagination-query.dto';
 
 @Injectable()
 export class EmploiDuTempsService {
@@ -148,11 +149,15 @@ export class EmploiDuTempsService {
   }
 
   async findAll(
+    paginationQuery: PaginationQueryDto,
     classeId?: number,
     niveauId?: number,
     start?: string,
     end?: string,
-  ): Promise<EmploiDuTemp[]> {
+  ) {
+    const { page = 1, limit = 15 } = paginationQuery;
+    const skip = (page - 1) * limit;
+
     const query = this.emploiDuTempRepository
       .createQueryBuilder('e')
       .leftJoinAndSelect('e.matiere', 'matiere')
@@ -170,7 +175,18 @@ export class EmploiDuTempsService {
       });
     }
 
-    return await query.orderBy('e.startTime', 'ASC').getMany();
+    const [items, total] = await query
+      .orderBy('e.startTime', 'ASC')
+      .skip(skip)
+      .take(limit)
+      .getManyAndCount();
+
+    return {
+      items,
+      total,
+      page,
+      limit,
+    };
   }
 
   async findOne(id: number): Promise<EmploiDuTemp> {

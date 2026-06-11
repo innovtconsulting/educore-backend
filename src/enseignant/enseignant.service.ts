@@ -9,6 +9,7 @@ import { CreateAffectationDto } from './dto/create-affectation.dto';
 import { Matiere } from '../matiere/entities/matiere.entity';
 import { Etablissement } from '../etablissement/entities/etablissement.entity';
 import { Niveau } from '../niveau/entities/niveau.entity';
+import { PaginationQueryDto } from '../common/dto/pagination-query.dto';
 
 @Injectable()
 export class EnseignantService {
@@ -42,8 +43,11 @@ export class EnseignantService {
     return await this.enseignantRepository.save(enseignant);
   }
 
-  async findAll(): Promise<Enseignant[]> {
-    return await this.enseignantRepository.find({
+  async findAll(paginationQuery: PaginationQueryDto) {
+    const { page = 1, limit = 15 } = paginationQuery;
+    const skip = (page - 1) * limit;
+
+    const [items, total] = await this.enseignantRepository.findAndCount({
       relations: {
         affectations: {
           matiere: true,
@@ -51,7 +55,17 @@ export class EnseignantService {
           niveau: true,
         },
       },
+      skip,
+      take: limit,
+      order: { id: 'DESC' },
     });
+
+    return {
+      items,
+      total,
+      page,
+      limit,
+    };
   }
 
   async findOne(id: number): Promise<Enseignant> {

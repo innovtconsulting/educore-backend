@@ -12,6 +12,7 @@ import { CreateFraisDto } from './dto/create-frais.dto';
 import { CreateFactureDto } from './dto/create-facture.dto';
 import { CreatePaiementDto } from './dto/create-paiement.dto';
 import { ApiTags, ApiOperation, ApiQuery } from '@nestjs/swagger';
+import { PaginationQueryDto } from '../common/dto/pagination-query.dto';
 
 @ApiTags('finance')
 @Controller('finance')
@@ -43,8 +44,8 @@ export class FinanceController {
 
   @Get('factures')
   @ApiOperation({ summary: 'Récupérer toutes les factures' })
-  async findAllFactures() {
-    const data = await this.financeService.findAllFactures();
+  async findAllFactures(@Query() paginationQuery: PaginationQueryDto) {
+    const data = await this.financeService.findAllFactures(paginationQuery);
     return { message: 'Liste des factures récupérée avec succès', data };
   }
 
@@ -68,8 +69,8 @@ export class FinanceController {
 
   @Get('paiements')
   @ApiOperation({ summary: 'Récupérer tous les paiements' })
-  async findAllPaiements() {
-    const data = await this.financeService.findAllPaiements();
+  async findAllPaiements(@Query() paginationQuery: PaginationQueryDto) {
+    const data = await this.financeService.findAllPaiements(paginationQuery);
     return { message: 'Liste des paiements récupérée avec succès', data };
   }
 

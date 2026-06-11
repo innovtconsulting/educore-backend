@@ -9,6 +9,7 @@ import { Presence, PresenceStatus } from './entities/presence.entity';
 import { BulkRecordPresenceDto } from './dto/record-presence.dto';
 import { EmploiDuTemp } from '../emploi-du-temps/entities/emploi-du-temp.entity';
 import { Etudiant } from '../etudiant/entities/etudiant.entity';
+import { PaginationQueryDto } from '../common/dto/pagination-query.dto';
 
 @Injectable()
 export class PresenceService {
@@ -76,6 +77,28 @@ export class PresenceService {
     }
 
     return results;
+  }
+
+  async findAll(paginationQuery: PaginationQueryDto) {
+    const { page = 1, limit = 15 } = paginationQuery;
+    const skip = (page - 1) * limit;
+
+    const [items, total] = await this.presenceRepository.findAndCount({
+      relations: {
+        etudiant: true,
+        emploiDuTemp: { matiere: true, classe: true, niveau: true },
+      },
+      skip,
+      take: limit,
+      order: { id: 'DESC' },
+    });
+
+    return {
+      items,
+      total,
+      page,
+      limit,
+    };
   }
 
   async findBySession(emploiDuTempId: number): Promise<Presence[]> {

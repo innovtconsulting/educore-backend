@@ -10,6 +10,7 @@ import {
 import { ReportingService } from './reporting.service';
 import { ApiTags, ApiOperation, ApiQuery, ApiResponse } from '@nestjs/swagger';
 import { SubmitDailyReportDto } from './dto/submit-daily-report.dto';
+import { PaginationQueryDto } from '../common/dto/pagination-query.dto';
 
 @ApiTags('reporting')
 @Controller('reporting')
@@ -51,8 +52,8 @@ export class ReportingController {
   @ApiOperation({
     summary: "Récupérer tous les rapports quotidiens soumis (pour l'admin)",
   })
-  async getAllDailyReports() {
-    const reports = await this.reportingService.getAllDailyReports();
+  async getAllDailyReports(@Query() paginationQuery: PaginationQueryDto) {
+    const reports = await this.reportingService.getAllDailyReports(paginationQuery);
     return {
       message: 'Liste des rapports quotidiens récupérée avec succès',
       data: reports,

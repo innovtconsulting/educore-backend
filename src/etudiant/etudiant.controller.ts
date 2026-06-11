@@ -12,6 +12,7 @@ import {
   UseInterceptors,
   UploadedFile,
   BadRequestException,
+  Query,
 } from '@nestjs/common';
 import { EtudiantService } from './etudiant.service';
 import { CreateEtudiantDto } from './dto/create-etudiant.dto';
@@ -20,6 +21,7 @@ import { ApiTags, ApiOperation, ApiConsumes, ApiBody } from '@nestjs/swagger';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
 import { extname } from 'path';
+import { PaginationQueryDto } from '../common/dto/pagination-query.dto';
 
 @ApiTags('etudiants')
 @Controller('etudiants')
@@ -38,8 +40,8 @@ export class EtudiantController {
 
   @Get()
   @ApiOperation({ summary: 'Récupérer tous les étudiants' })
-  async findAll() {
-    const data = await this.etudiantService.findAll();
+  async findAll(@Query() paginationQuery: PaginationQueryDto) {
+    const data = await this.etudiantService.findAll(paginationQuery);
     return {
       message: 'Liste des étudiants récupérée avec succès',
       data,

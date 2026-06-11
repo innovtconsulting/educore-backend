@@ -1,7 +1,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { Discipline } from './entities/discipline.entity';
+import { Discipline, DisciplineCategory } from './entities/discipline.entity';
 import { CreateDisciplineDto } from './dto/create-discipline.dto';
 import { UpdateDisciplineDto } from './dto/update-discipline.dto';
 
@@ -17,8 +17,10 @@ export class DisciplineService {
     return await this.disciplineRepository.save(discipline);
   }
 
-  async findAll(): Promise<Discipline[]> {
+  async findAll(category?: DisciplineCategory): Promise<Discipline[]> {
+    const where = category ? { category } : {};
     return await this.disciplineRepository.find({
+      where,
       order: { category: 'ASC', title: 'ASC' },
     });
   }

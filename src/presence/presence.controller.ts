@@ -5,10 +5,12 @@ import {
   Body,
   Param,
   ParseIntPipe,
+  Query,
 } from '@nestjs/common';
 import { PresenceService } from './presence.service';
 import { BulkRecordPresenceDto } from './dto/record-presence.dto';
 import { ApiTags, ApiOperation } from '@nestjs/swagger';
+import { PaginationQueryDto } from '../common/dto/pagination-query.dto';
 
 @ApiTags('presence')
 @Controller('presence')
@@ -21,6 +23,16 @@ export class PresenceController {
   })
   bulkRecord(@Body() bulkRecordPresenceDto: BulkRecordPresenceDto) {
     return this.presenceService.bulkRecord(bulkRecordPresenceDto);
+  }
+
+  @Get()
+  @ApiOperation({ summary: 'Liste de toutes les présences' })
+  async findAll(@Query() paginationQuery: PaginationQueryDto) {
+    const data = await this.presenceService.findAll(paginationQuery);
+    return {
+      message: 'Liste des présences récupérée avec succès',
+      data,
+    };
   }
 
   @Get('session/:id')

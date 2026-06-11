@@ -9,6 +9,7 @@ import {
   UseInterceptors,
   UploadedFile,
   BadRequestException,
+  Query,
 } from '@nestjs/common';
 import { DocumentService } from './document.service';
 import { CreateDocumentDto } from './dto/create-document.dto';
@@ -17,6 +18,7 @@ import { ApiTags, ApiOperation, ApiConsumes, ApiBody } from '@nestjs/swagger';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
 import { extname } from 'path';
+import { PaginationQueryDto } from '../common/dto/pagination-query.dto';
 
 @ApiTags('documents')
 @Controller('documents')
@@ -80,8 +82,8 @@ export class DocumentController {
     summary: 'Récupérer tous les documents',
     description: 'Liste tous les documents enregistrés dans la GED (Gestion Électronique de Documents).'
   })
-  async findAll() {
-    const data = await this.documentService.findAll();
+  async findAll(@Query() paginationQuery: PaginationQueryDto) {
+    const data = await this.documentService.findAll(paginationQuery);
     return {
       message: 'Liste des documents récupérée avec succès',
       data,

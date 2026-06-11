@@ -7,11 +7,13 @@ import {
   Param,
   Delete,
   ParseIntPipe,
+  Query,
 } from '@nestjs/common';
 import { SanctionService } from './sanction.service';
 import { CreateSanctionDto } from './dto/create-sanction.dto';
 import { UpdateSanctionDto } from './dto/update-sanction.dto';
 import { ApiTags, ApiOperation } from '@nestjs/swagger';
+import { PaginationQueryDto } from '../common/dto/pagination-query.dto';
 
 @ApiTags('sanctions')
 @Controller('sanctions')
@@ -30,8 +32,8 @@ export class SanctionController {
 
   @Get()
   @ApiOperation({ summary: 'Récupérer toutes les sanctions' })
-  async findAll() {
-    const data = await this.sanctionService.findAll();
+  async findAll(@Query() paginationQuery: PaginationQueryDto) {
+    const data = await this.sanctionService.findAll(paginationQuery);
     return {
       message: 'Liste des sanctions récupérée avec succès',
       data,

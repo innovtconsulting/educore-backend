@@ -7,12 +7,13 @@ import {
   Param,
   Delete,
   ParseIntPipe,
+  Query,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { DisciplineService } from './discipline.service';
 import { CreateDisciplineDto } from './dto/create-discipline.dto';
 import { UpdateDisciplineDto } from './dto/update-discipline.dto';
-import { Discipline } from './entities/discipline.entity';
+import { Discipline, DisciplineCategory } from './entities/discipline.entity';
 
 @ApiTags('discipline')
 @Controller('discipline')
@@ -32,11 +33,11 @@ export class DisciplineController {
   @Get()
   @ApiOperation({ 
     summary: 'Lister toutes les règles de discipline',
-    description: 'Récupère la liste complète des disciplines et règlements intérieurs.'
+    description: 'Récupère la liste complète des disciplines et règlements intérieurs. Peut être filtré par catégorie.'
   })
   @ApiResponse({ status: 200, type: [Discipline] })
-  findAll() {
-    return this.disciplineService.findAll();
+  findAll(@Query('category') category?: DisciplineCategory) {
+    return this.disciplineService.findAll(category);
   }
 
   @Get(':id')

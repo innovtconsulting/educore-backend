@@ -4,6 +4,7 @@ import { Repository } from 'typeorm';
 import { CreateEvaluationDto } from './dto/create-evaluation.dto';
 import { UpdateEvaluationDto } from './dto/update-evaluation.dto';
 import { Evaluation } from './entities/evaluation.entity';
+import { PaginationQueryDto } from '../common/dto/pagination-query.dto';
 
 @Injectable()
 export class EvaluationService {
@@ -25,15 +26,28 @@ export class EvaluationService {
     return await this.evaluationRepository.save(evaluation);
   }
 
-  async findAll() {
-    return await this.evaluationRepository.find({
+  async findAll(paginationQuery: PaginationQueryDto) {
+    const { page = 1, limit = 15 } = paginationQuery;
+    const skip = (page - 1) * limit;
+
+    const [items, total] = await this.evaluationRepository.findAndCount({
       relations: {
         matiere: true,
         classe: true,
         niveau: true,
         semestre: true,
       },
+      skip,
+      take: limit,
+      order: { id: 'DESC' },
     });
+
+    return {
+      items,
+      total,
+      page,
+      limit,
+    };
   }
 
   async findOne(id: number) {

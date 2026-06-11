@@ -12,6 +12,7 @@ import { EmploiDuTempsService } from './emploi-du-temps.service';
 import { CreateEmploiDuTempDto } from './dto/create-emploi-du-temp.dto';
 import { UpdateEmploiDuTempDto } from './dto/update-emploi-du-temp.dto';
 import { ApiTags, ApiOperation, ApiQuery } from '@nestjs/swagger';
+import { PaginationQueryDto } from '../common/dto/pagination-query.dto';
 
 @ApiTags('emploi-du-temps')
 @Controller('emploi-du-temps')
@@ -43,12 +44,14 @@ export class EmploiDuTempsController {
     description: 'Format ISO',
   })
   findAll(
+    @Query() paginationQuery: PaginationQueryDto,
     @Query('classeId') classeId?: string,
     @Query('niveauId') niveauId?: string,
     @Query('start') start?: string,
     @Query('end') end?: string,
   ) {
     return this.emploiDuTempsService.findAll(
+      paginationQuery,
       classeId ? +classeId : undefined,
       niveauId ? +niveauId : undefined,
       start,

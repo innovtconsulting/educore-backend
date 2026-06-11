@@ -10,6 +10,7 @@ import { UpdateMatiereDto } from './dto/update-matiere.dto';
 import { Matiere } from './entities/matiere.entity';
 import { Classe } from '../classe/entities/classe.entity';
 import { Niveau } from '../niveau/entities/niveau.entity';
+import { PaginationQueryDto } from '../common/dto/pagination-query.dto';
 
 @Injectable()
 export class MatiereService {
@@ -60,10 +61,23 @@ export class MatiereService {
     return await this.matiereRepository.save(matiere);
   }
 
-  async findAll(): Promise<Matiere[]> {
-    return await this.matiereRepository.find({
+  async findAll(paginationQuery: PaginationQueryDto) {
+    const { page = 1, limit = 15 } = paginationQuery;
+    const skip = (page - 1) * limit;
+
+    const [items, total] = await this.matiereRepository.findAndCount({
       relations: { classes: true, niveaux: true },
+      skip,
+      take: limit,
+      order: { id: 'DESC' },
     });
+
+    return {
+      items,
+      total,
+      page,
+      limit,
+    };
   }
 
   async findOne(id: number): Promise<Matiere> {
