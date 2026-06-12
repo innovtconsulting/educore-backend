@@ -191,6 +191,18 @@ export class EtudiantService {
     return etudiant;
   }
 
+  async findByMatricule(matricule: string): Promise<Etudiant | null> {
+    return await this.etudiantRepository.findOne({
+      where: { matricule },
+      relations: {
+        etablissement: true,
+        classe: true,
+        niveau: true,
+        parents: true,
+      },
+    });
+  }
+
   async update(
     id: number,
     updateEtudiantDto: UpdateEtudiantDto,

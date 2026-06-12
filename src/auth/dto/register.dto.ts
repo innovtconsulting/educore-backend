@@ -35,6 +35,11 @@ export class RegisterDto {
   @IsNotEmpty()
   role!: Role;
 
+  @ApiProperty({ example: 'ETU-2026-001', required: false })
+  @IsString()
+  @IsOptional()
+  matricule?: string;
+
   @ApiProperty({ type: CreateEtudiantDto, required: false })
   @IsOptional()
   @ValidateNested()

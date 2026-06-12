@@ -60,18 +60,29 @@ export class AuthService {
     let profile: any;
 
     try {
-      // 2. Créer le profil selon le rôle
+      // 2. Créer ou récupérer le profil selon le rôle
       if (role === Role.ETUDIANT) {
-        if (!registerDto.etudiantData) {
+        if (!registerDto.matricule) {
           throw new BadRequestException(
-            "Les données de l'étudiant sont manquantes",
+            'Le matricule est obligatoire pour l\'inscription d\'un étudiant',
           );
         }
-        // Force le statut "En Attente" pour les auto-inscriptions d'étudiants
-        profile = await this.etudiantService.create({
-          ...registerDto.etudiantData,
-          status: EnrollmentStatus.EN_ATTENTE,
-        });
+
+        // Chercher l'étudiant par matricule
+        profile = await this.etudiantService.findByMatricule(registerDto.matricule);
+        if (!profile) {
+          throw new BadRequestException(
+            `Aucun étudiant trouvé avec le matricule ${registerDto.matricule}. Veuillez contacter l'administration.`,
+          );
+        }
+
+        // Vérifier si cet étudiant a déjà un compte utilisateur
+        const userWithProfile = await this.userService.findByEtudiantId(profile.id);
+        if (userWithProfile) {
+          throw new BadRequestException(
+            'Un compte utilisateur existe déjà pour cet étudiant.',
+          );
+        }
       } else if (role === Role.ENSEIGNANT) {
         if (!registerDto.enseignantData) {
           throw new BadRequestException(
@@ -113,10 +124,8 @@ export class AuthService {
         },
       };
     } catch (error: any) {
-      // Nettoyage en cas d'erreur
+      // Nettoyage en cas d'erreur (uniquement pour les profils créés ici)
       if (profile && profile.id) {
-        if (role === Role.ETUDIANT)
-          await this.etudiantService.remove(profile.id);
         if (role === Role.ENSEIGNANT)
           await this.enseignantService.remove(profile.id);
         if (role === Role.PARENT) await this.parentService.remove(profile.id);
