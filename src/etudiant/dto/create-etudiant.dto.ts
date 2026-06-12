@@ -8,8 +8,11 @@ import {
   IsNumber,
   IsOptional,
   IsString,
+  ValidateNested,
 } from 'class-validator';
+import { Type } from 'class-transformer';
 import { EnrollmentStatus } from '../entities/etudiant.entity';
+import { CreateParentDto } from '../../parent/dto/create-parent.dto';
 
 export class CreateEtudiantDto {
   @ApiProperty({ example: 'ETU-2026-001', required: false })
@@ -153,11 +156,12 @@ export class CreateEtudiantDto {
   niveauId!: number;
 
   @ApiProperty({
-    example: [1, 2],
-    description: 'IDs des parents/tuteurs',
+    type: [CreateParentDto],
+    description: 'Données des parents/tuteurs',
     required: false,
   })
-  @IsNumber({}, { each: true })
   @IsOptional()
-  parentIds?: number[];
+  @ValidateNested({ each: true })
+  @Type(() => CreateParentDto)
+  parentsData?: CreateParentDto[];
 }

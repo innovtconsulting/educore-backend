@@ -138,20 +138,7 @@ describe('University Workflow (e2e)', () => {
     expect(affectationId).toBeDefined();
   });
 
-  it('6.1. Création d\'un parent', async () => {
-    const res = await request(app.getHttpServer())
-      .post('/api/parents')
-      .send({
-        firstName: 'Jean',
-        lastName: 'Diallo',
-        gender: 'Père',
-        phoneNumber: '771234567',
-      })
-      .expect(201);
-    parentId = res.body.data.id;
-  });
-
-  it('6.2. Création d\'un étudiant associé au parent', async () => {
+  it('6.2. Création d\'un étudiant avec création automatique de parent', async () => {
     const res = await request(app.getHttpServer())
       .post('/api/etudiants')
       .send({
@@ -162,10 +149,18 @@ describe('University Workflow (e2e)', () => {
         etablissementId: etablissementId,
         classeId: informatiqueId,
         niveauId: l1Id,
-        parentIds: [parentId],
+        parentsData: [
+          {
+            firstName: 'Jean',
+            lastName: 'Diallo',
+            gender: 'Père',
+            phoneNumber: '771234567',
+          },
+        ],
       })
       .expect(201);
     expect(res.body.data.parents).toHaveLength(1);
+    expect(res.body.data.parents[0].firstName).toBe('Jean');
   });
 
   it('7. Création d\'un créneau d\'emploi du temps valide', async () => {

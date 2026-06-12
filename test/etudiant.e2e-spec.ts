@@ -6,15 +6,17 @@ import { AppModule } from './../src/app.module';
 import { DataSource } from 'typeorm';
 import { TransformInterceptor } from './../src/common/interceptors/transform.interceptor';
 import { join } from 'path';
+import * as bcrypt from 'bcrypt';
+import { Role } from '../src/user/entities/user.entity';
 
 describe('Student Module (e2e)', () => {
   let app: NestExpressApplication;
   let dataSource: DataSource;
+  let authToken: string;
 
   let etablissementId: number;
   let classeId: number;
   let niveauId: number;
-  let parentId: number;
 
   beforeAll(async () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
@@ -32,9 +34,29 @@ describe('Student Module (e2e)', () => {
 
     dataSource = app.get(DataSource);
 
+    // Nettoyage et création d'un admin pour l'auth
+    const entities = dataSource.entityMetadatas;
+    for (const entity of entities) {
+      const repository = dataSource.getRepository(entity.name);
+      await repository.query(`TRUNCATE "${entity.tableName}" RESTART IDENTITY CASCADE;`);
+    }
+
+    const passwordHash = await bcrypt.hash('password123', 10);
+    await dataSource.getRepository('User').save({
+      email: 'admin@test.com',
+      password: passwordHash,
+      role: Role.SUPER_ADMIN,
+    });
+
+    const loginRes = await request(app.getHttpServer())
+      .post('/api/auth/login')
+      .send({ email: 'admin@test.com', password: 'password123' });
+    authToken = loginRes.body.data.access_token;
+
     // Créer les relations nécessaires pour les tests
     const etablissement = await request(app.getHttpServer())
       .post('/api/etablissement')
+      .set('Authorization', `Bearer ${authToken}`)
       .send({
         name: 'Etab Test Etudiant',
         address: 'Test',
@@ -45,27 +67,19 @@ describe('Student Module (e2e)', () => {
 
     const niveau = await request(app.getHttpServer())
       .post('/api/niveau')
+      .set('Authorization', `Bearer ${authToken}`)
       .send({ name: 'Niveau Test Etudiant' });
     niveauId = niveau.body.data.id;
 
     const classe = await request(app.getHttpServer())
       .post('/api/classe')
+      .set('Authorization', `Bearer ${authToken}`)
       .send({
         name: 'Classe Test Etudiant',
         etablissementIds: [etablissementId],
         niveauIds: [niveauId],
       });
     classeId = classe.body.data.id;
-
-    const parent = await request(app.getHttpServer())
-      .post('/api/parents')
-      .send({
-        firstName: 'Parent',
-        lastName: 'Test',
-        gender: 'Tuteur',
-        phoneNumber: '000',
-      });
-    parentId = parent.body.data.id;
   });
 
   afterAll(async () => {
@@ -82,6 +96,7 @@ describe('Student Module (e2e)', () => {
   it('1. Création d\'un étudiant (Succès)', async () => {
     const res = await request(app.getHttpServer())
       .post('/api/etudiants')
+      .set('Authorization', `Bearer ${authToken}`)
       .send({
         firstName: 'Test',
         lastName: 'Etudiant',
@@ -90,7 +105,14 @@ describe('Student Module (e2e)', () => {
         etablissementId,
         classeId,
         niveauId,
-        parentIds: [parentId],
+        parentsData: [
+          {
+            firstName: 'Parent',
+            lastName: 'Test',
+            gender: 'Tuteur',
+            phoneNumber: '000',
+          },
+        ],
       })
       .expect(201);
     
@@ -102,6 +124,7 @@ describe('Student Module (e2e)', () => {
   it('2. ÉCHEC : Création d\'un étudiant avec matricule existant', async () => {
     await request(app.getHttpServer())
       .post('/api/etudiants')
+      .set('Authorization', `Bearer ${authToken}`)
       .send({
         firstName: 'Autre',
         lastName: 'Etudiant',
@@ -110,7 +133,14 @@ describe('Student Module (e2e)', () => {
         etablissementId,
         classeId,
         niveauId,
-        parentIds: [parentId],
+        parentsData: [
+          {
+            firstName: 'Parent',
+            lastName: 'Test',
+            gender: 'Tuteur',
+            phoneNumber: '000',
+          },
+        ],
       })
       .expect(400);
   });
@@ -118,6 +148,7 @@ describe('Student Module (e2e)', () => {
   it('3. Mise à jour du statut (Admin)', async () => {
     const res = await request(app.getHttpServer())
       .patch(`/api/etudiants/${etudiantId}`)
+      .set('Authorization', `Bearer ${authToken}`)
       .send({
         status: 'Suspendu',
       })
@@ -129,6 +160,7 @@ describe('Student Module (e2e)', () => {
   it('4. Récupération avec relations', async () => {
     const res = await request(app.getHttpServer())
       .get(`/api/etudiants/${etudiantId}`)
+      .set('Authorization', `Bearer ${authToken}`)
       .expect(200);
     
     expect(res.body.data.etablissement).toBeDefined();
@@ -139,6 +171,7 @@ describe('Student Module (e2e)', () => {
   it('5. Upload de photo de profil', async () => {
     const res = await request(app.getHttpServer())
       .post(`/api/etudiants/${etudiantId}/profile-picture`)
+      .set('Authorization', `Bearer ${authToken}`)
       .attach('file', Buffer.from('fake-image-content'), 'test.jpg')
       .expect(201);
     
@@ -154,6 +187,7 @@ describe('Student Module (e2e)', () => {
   it('6. Rejet de fichier non-image', async () => {
     const res = await request(app.getHttpServer())
       .post(`/api/etudiants/${etudiantId}/profile-picture`)
+      .set('Authorization', `Bearer ${authToken}`)
       .attach('file', Buffer.from('fake-text-content'), 'test.txt')
       .expect(400);
     

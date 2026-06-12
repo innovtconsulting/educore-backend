@@ -35,10 +35,10 @@ export class EtudiantService {
   ) {}
 
   async create(createEtudiantDto: CreateEtudiantDto): Promise<Etudiant> {
-    const { etablissementId, classeId, niveauId, parentIds, ...rest } =
+    const { etablissementId, classeId, niveauId, parentsData, ...rest } =
       createEtudiantDto;
 
-    // Vérifier l'existence des relations
+    // Vérifier l'existence des relations de base
     const etablissement = await this.etablissementRepository.findOneBy({
       id: etablissementId,
     });
@@ -54,10 +54,22 @@ export class EtudiantService {
     if (!niveau) throw new NotFoundException(`Niveau #${niveauId} introuvable`);
 
     let parents: Parent[] = [];
-    if (parentIds && parentIds.length > 0) {
-      parents = await this.parentRepository.findBy({ id: In(parentIds) });
-      if (parents.length !== parentIds.length) {
-        throw new NotFoundException('Certains parents sont introuvables');
+    if (parentsData && parentsData.length > 0) {
+      for (const pData of parentsData) {
+        // Chercher si le parent existe déjà par téléphone ou email
+        let parent = await this.parentRepository.findOne({
+          where: [
+            { phoneNumber: pData.phoneNumber },
+            ...(pData.email ? [{ email: pData.email }] : []),
+          ],
+        });
+
+        if (!parent) {
+          // Créer le parent s'il n'existe pas
+          parent = this.parentRepository.create(pData);
+          parent = await this.parentRepository.save(parent);
+        }
+        parents.push(parent);
       }
 
       // Validation des règles métier pour les parents
@@ -184,7 +196,7 @@ export class EtudiantService {
     updateEtudiantDto: UpdateEtudiantDto,
   ): Promise<Etudiant> {
     const etudiant = await this.findOne(id);
-    const { etablissementId, classeId, niveauId, parentIds, ...rest } =
+    const { etablissementId, classeId, niveauId, parentsData, ...rest } =
       updateEtudiantDto;
 
     // Règle métier : Pour passer à l'état ACTIF, le matricule est OBLIGATOIRE
@@ -223,10 +235,21 @@ export class EtudiantService {
       etudiant.niveau = niveau;
     }
 
-    if (parentIds) {
-      const parents = await this.parentRepository.findBy({ id: In(parentIds) });
-      if (parents.length !== parentIds.length) {
-        throw new NotFoundException('Certains parents sont introuvables');
+    if (parentsData && parentsData.length > 0) {
+      const parents: Parent[] = [];
+      for (const pData of parentsData) {
+        let parent = await this.parentRepository.findOne({
+          where: [
+            { phoneNumber: pData.phoneNumber },
+            ...(pData.email ? [{ email: pData.email }] : []),
+          ],
+        });
+
+        if (!parent) {
+          parent = this.parentRepository.create(pData);
+          parent = await this.parentRepository.save(parent);
+        }
+        parents.push(parent);
       }
       etudiant.parents = parents;
     }
