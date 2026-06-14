@@ -360,4 +360,12 @@ export class FinanceService {
 
     return await query.orderBy('facture.dateEcheance', 'ASC').getMany();
   }
+
+  async findByEtudiant(etudiantId: number) {
+    return await this.factureRepository.find({
+      where: { etudiant: { id: etudiantId } },
+      relations: { paiements: true },
+      order: { dateEmission: 'DESC' },
+    });
+  }
 }

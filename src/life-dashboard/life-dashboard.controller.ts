@@ -15,7 +15,9 @@ export class LifeDashboardController {
 
   @Get()
   @Roles(Role.SUPER_ADMIN, Role.ADMIN, Role.SURVEILLANT)
-  @ApiOperation({ summary: 'Récupérer les statistiques de vie scolaire (Surveillant)' })
+  @ApiOperation({
+    summary: 'Récupérer les statistiques de vie scolaire (Surveillant)',
+  })
   async getDashboard() {
     const data = await this.dashboardService.getDashboardStats();
     return {

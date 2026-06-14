@@ -237,6 +237,8 @@ async function seed() {
       classe: informatique,
       niveau: l2,
     });
+    // Note: etudiant2 (Fatou Ndiaye) et profSow (Mariam Sow) 
+    // sont créés sans compte User pour permettre de tester l'inscription par matricule.
     await etudiantRepo.save([etudiant1, etudiant2]);
 
     // 9. Emploi du Temps

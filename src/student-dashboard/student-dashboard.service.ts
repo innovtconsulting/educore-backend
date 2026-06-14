@@ -4,6 +4,8 @@ import { NoteService } from '../note/note.service';
 import { PresenceService } from '../presence/presence.service';
 import { DevoirService } from '../devoir/devoir.service';
 import { EmploiDuTempsService } from '../emploi-du-temps/emploi-du-temps.service';
+import { FinanceService } from '../finance/finance.service';
+import { SanctionService } from '../sanction/sanction.service';
 import { Etudiant } from '../etudiant/entities/etudiant.entity';
 import { Repository } from 'typeorm';
 
@@ -16,6 +18,8 @@ export class StudentDashboardService {
     private readonly presenceService: PresenceService,
     private readonly devoirService: DevoirService,
     private readonly emploiService: EmploiDuTempsService,
+    private readonly financeService: FinanceService,
+    private readonly sanctionService: SanctionService,
   ) {}
 
   async getDashboardData(user: any) {
@@ -26,11 +30,13 @@ export class StudentDashboardService {
     });
     if (!etudiant) throw new NotFoundException('Profil étudiant non trouvé');
 
-    const [notes, presenceStats, upcomingHomework, schedule] = await Promise.all([
+    const [notes, presenceStats, upcomingHomework, schedule, invoices, sanctions] = await Promise.all([
       this.noteService.findAll({ page: 1, limit: 5 }, user),
       this.presenceService.getStudentStats(etudiantId, user),
       this.devoirService.findByClasse(etudiant.classe.id, etudiant.niveau.id),
       this.emploiService.findAll({ page: 1, limit: 10 }, etudiant.classe.id, etudiant.niveau.id),
+      this.financeService.findByEtudiant(etudiantId),
+      this.sanctionService.findByEtudiant(etudiantId),
     ]);
 
     return {
@@ -47,6 +53,11 @@ export class StudentDashboardService {
       },
       upcomingHomework: upcomingHomework.filter(d => new Date(d.deadline) > new Date()).slice(0, 5),
       todaySchedule: schedule.items,
+      finances: {
+        totalInvoices: invoices.length,
+        unpaidInvoices: invoices.filter(f => f.status !== 'Payée'),
+      },
+      recentSanctions: sanctions.slice(0, 3),
     };
   }
 }

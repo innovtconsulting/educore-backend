@@ -6,6 +6,7 @@ import {
   ManyToMany,
   ManyToOne,
   OneToMany,
+  OneToOne,
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
@@ -14,6 +15,7 @@ import { Classe } from '../../classe/entities/classe.entity';
 import { Niveau } from '../../niveau/entities/niveau.entity';
 import { Parent } from '../../parent/entities/parent.entity';
 import { Sanction } from '../../sanction/entities/sanction.entity';
+import { User } from '../../user/entities/user.entity';
 
 export enum EnrollmentStatus {
   ACTIF = 'Actif',
@@ -28,6 +30,9 @@ export enum EnrollmentStatus {
 export class Etudiant {
   @PrimaryGeneratedColumn()
   id!: number;
+
+  @OneToOne(() => User, (user) => user.etudiant)
+  user?: User;
 
   @Column({ unique: true, nullable: true })
   matricule?: string;

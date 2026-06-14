@@ -65,6 +65,7 @@ export class EnseignantService {
           etablissement: true,
           niveau: true,
         },
+        user: true,
       },
       skip,
       take: limit,
@@ -88,6 +89,7 @@ export class EnseignantService {
           etablissement: true,
           niveau: true,
         },
+        user: true,
       },
     });
 
@@ -106,6 +108,7 @@ export class EnseignantService {
           etablissement: true,
           niveau: true,
         },
+        user: true,
       },
     });
   }
@@ -135,6 +138,12 @@ export class EnseignantService {
   async remove(id: number): Promise<void> {
     const enseignant = await this.findOne(id);
     await this.enseignantRepository.remove(enseignant);
+  }
+
+  async updateProfilePicture(id: number, filePath: string): Promise<Enseignant> {
+    const enseignant = await this.findOne(id);
+    enseignant.photoPath = filePath.replace(/\\/g, '/');
+    return await this.enseignantRepository.save(enseignant);
   }
 
   async addAffectation(enseignantId: number, createAffectationDto: CreateAffectationDto): Promise<Affectation> {

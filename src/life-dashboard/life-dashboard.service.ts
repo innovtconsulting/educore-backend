@@ -19,7 +19,11 @@ export class LifeDashboardService {
   async getDashboardStats() {
     const now = new Date();
     const today = now.toISOString().split('T')[0];
-    const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const startOfToday = new Date(
+      now.getFullYear(),
+      now.getMonth(),
+      now.getDate(),
+    );
 
     const [todayPresences, recentSanctions, latestReports] = await Promise.all([
       this.presenceRepository.find({
@@ -37,8 +41,12 @@ export class LifeDashboardService {
       }),
     ]);
 
-    const absences = todayPresences.filter(p => p.status === PresenceStatus.ABSENT).length;
-    const retards = todayPresences.filter(p => p.status === PresenceStatus.RETARD).length;
+    const absences = todayPresences.filter(
+      (p) => p.status === PresenceStatus.ABSENT,
+    ).length;
+    const retards = todayPresences.filter(
+      (p) => p.status === PresenceStatus.RETARD,
+    ).length;
 
     return {
       today: {

@@ -3,15 +3,20 @@ import {
   CreateDateColumn,
   Entity,
   OneToMany,
+  OneToOne,
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
 import { Affectation } from './affectation.entity';
+import { User } from '../../user/entities/user.entity';
 
 @Entity()
 export class Enseignant {
   @PrimaryGeneratedColumn()
   id!: number;
+
+  @OneToOne(() => User, (user) => user.enseignant)
+  user?: User;
 
   @Column()
   firstName!: string;
@@ -27,6 +32,9 @@ export class Enseignant {
 
   @Column({ unique: true })
   matricule!: string;
+
+  @Column({ nullable: true })
+  photoPath!: string;
 
   @Column({ type: 'date' })
   dateEmbauche!: Date;

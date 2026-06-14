@@ -8,6 +8,9 @@ import { RegisterDto } from './dto/register.dto';
 import { Role } from '../user/entities/user.entity';
 import { EnrollmentStatus } from '../etudiant/entities/etudiant.entity';
 import * as bcrypt from 'bcrypt';
+import * as crypto from 'crypto';
+import { ForgotPasswordDto, ResetPasswordDto } from './dto/password-reset.dto';
+import { MailService } from '../mail/mail.service';
 
 @Injectable()
 export class AuthService {
@@ -17,6 +20,7 @@ export class AuthService {
     private readonly enseignantService: EnseignantService,
     private readonly parentService: ParentService,
     private readonly jwtService: JwtService,
+    private readonly mailService: MailService,
   ) {}
 
   async validateUser(email: string, pass: string): Promise<any> {
@@ -38,7 +42,7 @@ export class AuthService {
       parentId: user.parent?.id,
     };
     return {
-      access_token: this.jwtService.sign(payload),
+      access_token: await this.jwtService.sign(payload),
       user: {
         id: user.id,
         email: user.email,
@@ -178,5 +182,48 @@ export class AuthService {
       }
       throw error;
     }
+  }
+
+  async forgotPassword(forgotPasswordDto: ForgotPasswordDto) {
+    const user = await this.userService.findByEmail(forgotPasswordDto.email);
+    if (!user) {
+      return {
+        message:
+          'Si cet email existe, un lien de réinitialisation a été envoyé.',
+      };
+    }
+
+    const token = crypto.randomBytes(32).toString('hex');
+    const expires = new Date();
+    expires.setHours(expires.getHours() + 1); // Token valide 1 heure
+
+    await this.userService.update(user.id, {
+      resetPasswordToken: token,
+      resetPasswordExpires: expires,
+    });
+
+    // Envoi de l'e-mail réel
+    await this.mailService.sendPasswordResetEmail(user.email, token);
+
+    return {
+      message: 'Si cet email existe, un lien de réinitialisation a été envoyé.',
+    };
+  }
+
+  async resetPassword(resetPasswordDto: ResetPasswordDto) {
+    const { token, newPassword } = resetPasswordDto;
+
+    const user = await this.userService.findByResetToken(token);
+    if (!user) {
+      throw new BadRequestException('Token invalide ou expiré');
+    }
+
+    await this.userService.update(user.id, {
+      password: newPassword,
+      resetPasswordToken: null,
+      resetPasswordExpires: null,
+    } as any);
+
+    return { message: 'Mot de passe réinitialisé avec succès.' };
   }
 }

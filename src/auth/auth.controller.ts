@@ -16,6 +16,7 @@ import {
 import { AuthService } from './auth.service';
 import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
+import { ForgotPasswordDto, ResetPasswordDto } from './dto/password-reset.dto';
 import { AuthGuard } from '@nestjs/passport';
 
 @ApiTags('auth')
@@ -50,6 +51,18 @@ export class AuthController {
   })
   async register(@Body() registerDto: RegisterDto) {
     return this.authService.register(registerDto);
+  }
+
+  @Post('forgot-password')
+  @ApiOperation({ summary: 'Demander la réinitialisation du mot de passe' })
+  async forgotPassword(@Body() forgotPasswordDto: ForgotPasswordDto) {
+    return this.authService.forgotPassword(forgotPasswordDto);
+  }
+
+  @Post('reset-password')
+  @ApiOperation({ summary: 'Réinitialiser le mot de passe avec un token' })
+  async resetPassword(@Body() resetPasswordDto: ResetPasswordDto) {
+    return this.authService.resetPassword(resetPasswordDto);
   }
 
   @UseGuards(AuthGuard('jwt'))

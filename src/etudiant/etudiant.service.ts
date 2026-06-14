@@ -163,6 +163,7 @@ export class EtudiantService {
         classe: true,
         niveau: true,
         parents: true,
+        user: true,
       },
       skip,
       take: limit,
@@ -185,6 +186,7 @@ export class EtudiantService {
         classe: true,
         niveau: true,
         parents: true,
+        user: true,
       },
     });
     if (!etudiant) throw new NotFoundException(`Étudiant #${id} introuvable`);
@@ -199,6 +201,7 @@ export class EtudiantService {
         classe: true,
         niveau: true,
         parents: true,
+        user: true,
       },
     });
   }

@@ -50,6 +50,7 @@ import { AuthModule } from './auth/auth.module';
 import { DevoirModule } from './devoir/devoir.module';
 import { StudentDashboardModule } from './student-dashboard/student-dashboard.module';
 import { LifeDashboardModule } from './life-dashboard/life-dashboard.module';
+import { MailModule } from './mail/mail.module';
 
 @Module({
   imports: [
@@ -114,6 +115,7 @@ import { LifeDashboardModule } from './life-dashboard/life-dashboard.module';
     DevoirModule,
     StudentDashboardModule,
     LifeDashboardModule,
+    MailModule,
   ],
   controllers: [AppController],
   providers: [AppService],

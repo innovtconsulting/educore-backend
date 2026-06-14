@@ -73,6 +73,8 @@ describe('Student Dashboard (e2e)', () => {
     expect(res.body.data).toBeDefined();
     expect(res.body.data.student).toBeDefined();
     expect(res.body.data.student.fullName).toBe('Ousmane Sow');
+    expect(res.body.data.finances).toBeDefined();
+    expect(res.body.data.recentSanctions).toBeDefined();
   });
 
   it('/api/devoirs (GET) should be accessible by student', async () => {

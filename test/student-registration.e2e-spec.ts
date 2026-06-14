@@ -5,15 +5,23 @@ import { AppModule } from './../src/app.module';
 import { DataSource } from 'typeorm';
 import { TransformInterceptor } from './../src/common/interceptors/transform.interceptor';
 import { Role } from './../src/user/entities/user.entity';
+import { MailService } from './../src/mail/mail.service';
 
 describe('Student Registration (e2e)', () => {
   let app: INestApplication;
   let dataSource: DataSource;
+  let mailService: MailService;
 
   beforeAll(async () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
       imports: [AppModule],
-    }).compile();
+    })
+    .overrideProvider(MailService)
+    .useValue({
+      sendPasswordResetEmail: jest.fn().mockResolvedValue(undefined),
+      sendMail: jest.fn().mockResolvedValue(undefined),
+    })
+    .compile();
 
     app = moduleFixture.createNestApplication();
     app.setGlobalPrefix('api');
@@ -22,6 +30,7 @@ describe('Student Registration (e2e)', () => {
     await app.init();
 
     dataSource = app.get(DataSource);
+    mailService = app.get(MailService);
     
     // Clean database
     const entities = dataSource.entityMetadatas;
@@ -157,6 +166,98 @@ describe('Student Registration (e2e)', () => {
 
       expect(res.status).toBe(400);
       expect(res.body.message).toContain("L'auto-inscription ne permet pas la création d'un nouveau profil enseignant");
+    });
+  });
+
+  describe('Profile Management', () => {
+    let studentToken: string;
+
+    beforeAll(async () => {
+      const loginRes = await request(app.getHttpServer())
+        .post('/api/auth/login')
+        .send({
+          email: 'john.doe@test.com',
+          password: 'password123'
+        });
+      studentToken = loginRes.body.data.access_token;
+    });
+
+    it('should get current user profile (GET /users/me)', async () => {
+      const res = await request(app.getHttpServer())
+        .get('/api/users/me')
+        .set('Authorization', `Bearer ${studentToken}`);
+
+      expect(res.status).toBe(200);
+      expect(res.body.data.email).toBe('john.doe@test.com');
+      expect(res.body.data.etudiant).toBeDefined();
+    });
+
+    it('should update current user profile (PATCH /users/me)', async () => {
+      const res = await request(app.getHttpServer())
+        .patch('/api/users/me')
+        .set('Authorization', `Bearer ${studentToken}`)
+        .send({
+          phoneNumber: '+221 77 111 22 33',
+          address: 'New Dakar Address'
+        });
+
+      expect(res.status).toBe(200);
+      // Check if profile is updated
+      expect(res.body.data.etudiant.phoneNumber).toBe('+221 77 111 22 33');
+      expect(res.body.data.etudiant.address).toBe('New Dakar Address');
+    });
+  });
+
+  describe('Password Reset Flow', () => {
+    let resetToken: string;
+
+    it('should request a password reset (POST /auth/forgot-password)', async () => {
+      const res = await request(app.getHttpServer())
+        .post('/api/auth/forgot-password')
+        .send({ email: 'john.doe@test.com' });
+
+      expect(res.status).toBe(201);
+      expect(res.body.message).toContain('lien de réinitialisation a été envoyé');
+
+      // Pour le test, on récupère le token directement en base (car on ne peut pas lire l'email réel ici)
+      const userRepo = dataSource.getRepository('User');
+      const user = await userRepo.findOne({ where: { email: 'john.doe@test.com' } });
+      resetToken = (user as any).resetPasswordToken;
+      expect(resetToken).toBeDefined();
+    });
+
+    it('should reset password with a valid token (POST /auth/reset-password)', async () => {
+      const res = await request(app.getHttpServer())
+        .post('/api/auth/reset-password')
+        .send({
+          token: resetToken,
+          newPassword: 'new-secure-password'
+        });
+
+      expect(res.status).toBe(201);
+      expect(res.body.message).toContain('réinitialisé avec succès');
+
+      // Verify login with new password
+      const loginRes = await request(app.getHttpServer())
+        .post('/api/auth/login')
+        .send({
+          email: 'john.doe@test.com',
+          password: 'new-secure-password'
+        });
+      expect(loginRes.status).toBe(201);
+      expect(loginRes.body.data.access_token).toBeDefined();
+    });
+
+    it('should fail to reset password with an invalid token', async () => {
+      const res = await request(app.getHttpServer())
+        .post('/api/auth/reset-password')
+        .send({
+          token: 'invalid-token',
+          newPassword: 'some-password'
+        });
+
+      expect(res.status).toBe(400);
+      expect(res.body.message).toContain('Token invalide ou expiré');
     });
   });
 });

@@ -6,6 +6,8 @@ import { NoteModule } from '../note/note.module';
 import { PresenceModule } from '../presence/presence.module';
 import { DevoirModule } from '../devoir/devoir.module';
 import { EmploiDuTempsModule } from '../emploi-du-temps/emploi-du-temps.module';
+import { FinanceModule } from '../finance/finance.module';
+import { SanctionModule } from '../sanction/sanction.module';
 
 @Module({
   imports: [
@@ -14,6 +16,8 @@ import { EmploiDuTempsModule } from '../emploi-du-temps/emploi-du-temps.module';
     PresenceModule,
     DevoirModule,
     EmploiDuTempsModule,
+    FinanceModule,
+    SanctionModule,
   ],
   controllers: [StudentDashboardController],
   providers: [StudentDashboardService],

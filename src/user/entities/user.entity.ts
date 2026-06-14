@@ -61,6 +61,14 @@ export class User {
   @JoinColumn()
   parent?: Parent;
 
+  @Column({ nullable: true })
+  @Exclude()
+  resetPasswordToken?: string;
+
+  @Column({ type: 'timestamp', nullable: true })
+  @Exclude()
+  resetPasswordExpires?: Date;
+
   @CreateDateColumn()
   @ApiProperty()
   createdAt!: Date;
