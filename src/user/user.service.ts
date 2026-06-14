@@ -40,6 +40,12 @@ export class UserService {
     });
   }
 
+  async findByEnseignantId(enseignantId: number): Promise<User | null> {
+    return await this.userRepository.findOne({
+      where: { enseignant: { id: enseignantId } },
+    });
+  }
+
   async findAll(): Promise<User[]> {
     return await this.userRepository.find({
       relations: { enseignant: true, etudiant: true, parent: true },

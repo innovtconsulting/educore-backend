@@ -15,10 +15,15 @@ import { CreateEnseignantDto } from '../../enseignant/dto/create-enseignant.dto'
 import { CreateParentDto } from '../../parent/dto/create-parent.dto';
 
 export class RegisterDto {
-  @ApiProperty({ example: 'user@example.com' })
+  @ApiProperty({
+    example: 'user@example.com',
+    required: false,
+    description:
+      "Optionnel pour Etudiant/Enseignant (récupéré via matricule). Obligatoire pour les autres.",
+  })
   @IsEmail()
-  @IsNotEmpty()
-  email!: string;
+  @IsOptional()
+  email?: string;
 
   @ApiProperty({ example: 'password123' })
   @IsString()
@@ -35,18 +40,30 @@ export class RegisterDto {
   @IsNotEmpty()
   role!: Role;
 
-  @ApiProperty({ example: 'ETU-2026-001', required: false })
+  @ApiProperty({
+    example: 'ETU-2026-001',
+    required: false,
+    description: "Obligatoire pour les rôles Etudiant et Enseignant. Sert à l'activation du compte.",
+  })
   @IsString()
   @IsOptional()
   matricule?: string;
 
-  @ApiProperty({ type: CreateEtudiantDto, required: false })
+  @ApiProperty({
+    type: CreateEtudiantDto,
+    required: false,
+    description: 'Non utilisé pour le rôle Etudiant (utilisez le matricule).',
+  })
   @IsOptional()
   @ValidateNested()
   @Type(() => CreateEtudiantDto)
   etudiantData?: CreateEtudiantDto;
 
-  @ApiProperty({ type: CreateEnseignantDto, required: false })
+  @ApiProperty({
+    type: CreateEnseignantDto,
+    required: false,
+    description: 'Non utilisé pour le rôle Enseignant (utilisez le matricule).',
+  })
   @IsOptional()
   @ValidateNested()
   @Type(() => CreateEnseignantDto)

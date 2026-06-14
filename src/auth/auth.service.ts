@@ -49,50 +49,84 @@ export class AuthService {
   }
 
   async register(registerDto: RegisterDto) {
-    const { email, password, role } = registerDto;
-
-    // 1. Vérifier si l'utilisateur existe déjà
-    const existingUser = await this.userService.findByEmail(email);
-    if (existingUser) {
-      throw new BadRequestException('Cet email est déjà utilisé');
-    }
-
+    const { password, role } = registerDto;
+    let email = registerDto.email;
     let profile: any;
 
     try {
-      // 2. Créer ou récupérer le profil selon le rôle
+      // 1. Gérer la récupération du profil et de l'email selon le rôle
       if (role === Role.ETUDIANT) {
+        if (registerDto.etudiantData) {
+          throw new BadRequestException(
+            "L'auto-inscription ne permet pas la création d'un nouveau profil étudiant. Veuillez utiliser uniquement votre matricule.",
+          );
+        }
+
         if (!registerDto.matricule) {
           throw new BadRequestException(
-            'Le matricule est obligatoire pour l\'inscription d\'un étudiant',
+            "Le matricule est obligatoire pour l'inscription d'un étudiant",
           );
         }
 
-        // Chercher l'étudiant par matricule
-        profile = await this.etudiantService.findByMatricule(registerDto.matricule);
+        profile = await this.etudiantService.findByMatricule(
+          registerDto.matricule,
+        );
         if (!profile) {
           throw new BadRequestException(
-            `Aucun étudiant trouvé avec le matricule ${registerDto.matricule}. Veuillez contacter l'administration.`,
+            `Aucun étudiant trouvé avec le matricule ${registerDto.matricule}.`,
           );
         }
 
-        // Vérifier si cet étudiant a déjà un compte utilisateur
-        const userWithProfile = await this.userService.findByEtudiantId(profile.id);
+        // Auto-remplissage de l'email depuis le profil
+        email = profile.email;
+
+        const userWithProfile = await this.userService.findByEtudiantId(
+          profile.id,
+        );
         if (userWithProfile) {
           throw new BadRequestException(
             'Un compte utilisateur existe déjà pour cet étudiant.',
           );
         }
       } else if (role === Role.ENSEIGNANT) {
-        if (!registerDto.enseignantData) {
+        if (registerDto.enseignantData) {
           throw new BadRequestException(
-            "Les données de l'enseignant sont manquantes",
+            "L'auto-inscription ne permet pas la création d'un nouveau profil enseignant. Veuillez utiliser uniquement votre matricule.",
           );
         }
-        profile = await this.enseignantService.create(
-          registerDto.enseignantData,
+
+        if (!registerDto.matricule) {
+          throw new BadRequestException(
+            "Le matricule est obligatoire pour l'inscription d'un enseignant",
+          );
+        }
+
+        profile = await this.enseignantService.findByMatricule(
+          registerDto.matricule,
         );
+        if (!profile) {
+          throw new BadRequestException(
+            `Aucun enseignant trouvé avec le matricule ${registerDto.matricule}.`,
+          );
+        }
+
+        // Auto-remplissage de l'email depuis le profil
+        email = profile.email;
+
+        const userWithProfile = await this.userService.findByEnseignantId(
+          profile.id,
+        );
+        if (userWithProfile) {
+          throw new BadRequestException(
+            'Un compte utilisateur existe déjà pour cet enseignant.',
+          );
+        }
       } else if (role === Role.PARENT) {
+        if (!email) {
+          throw new BadRequestException(
+            "L'email est obligatoire pour l'inscription d'un parent",
+          );
+        }
         if (!registerDto.parentData) {
           throw new BadRequestException(
             'Les données du parent sont manquantes',
@@ -102,6 +136,18 @@ export class AuthService {
       } else {
         throw new BadRequestException(
           "Rôle non supporté pour l'auto-inscription",
+        );
+      }
+
+      // 2. Vérifier si l'email (éventuellement récupéré du profil) est déjà utilisé par un User
+      if (!email) {
+        throw new BadRequestException("L'email n'a pas pu être déterminé.");
+      }
+
+      const existingUser = await this.userService.findByEmail(email);
+      if (existingUser) {
+        throw new BadRequestException(
+          `Cet email (${email}) est déjà utilisé par un compte utilisateur.`,
         );
       }
 

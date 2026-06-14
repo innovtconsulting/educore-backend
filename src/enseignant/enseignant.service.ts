@@ -97,6 +97,19 @@ export class EnseignantService {
     return enseignant;
   }
 
+  async findByMatricule(matricule: string): Promise<Enseignant | null> {
+    return await this.enseignantRepository.findOne({
+      where: { matricule },
+      relations: {
+        affectations: {
+          matiere: true,
+          etablissement: true,
+          niveau: true,
+        },
+      },
+    });
+  }
+
   async update(id: number, updateEnseignantDto: UpdateEnseignantDto): Promise<Enseignant> {
     const enseignant = await this.findOne(id);
     const { email, matricule } = updateEnseignantDto;
