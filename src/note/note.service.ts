@@ -62,6 +62,8 @@ export class NoteService {
     const where: any = {};
     if (user && user.role === Role.ETUDIANT) {
       where.etudiant = { id: user.etudiantId };
+    } else if (user && user.etudiantId) {
+      where.etudiant = { id: user.etudiantId };
     }
 
     const [items, total] = await this.noteRepository.findAndCount({

@@ -49,6 +49,7 @@ import { UserModule } from './user/user.module';
 import { AuthModule } from './auth/auth.module';
 import { DevoirModule } from './devoir/devoir.module';
 import { StudentDashboardModule } from './student-dashboard/student-dashboard.module';
+import { ParentDashboardModule } from './parent-dashboard/parent-dashboard.module';
 import { LifeDashboardModule } from './life-dashboard/life-dashboard.module';
 import { MailModule } from './mail/mail.module';
 
@@ -114,6 +115,7 @@ import { MailModule } from './mail/mail.module';
     AuthModule,
     DevoirModule,
     StudentDashboardModule,
+    ParentDashboardModule,
     LifeDashboardModule,
     MailModule,
   ],

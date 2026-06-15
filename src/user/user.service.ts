@@ -6,6 +6,7 @@ import * as bcrypt from 'bcrypt';
 import { UpdateProfileDto } from './dto/update-profile.dto';
 import { EtudiantService } from '../etudiant/etudiant.service';
 import { EnseignantService } from '../enseignant/enseignant.service';
+import { ParentService } from '../parent/parent.service';
 
 @Injectable()
 export class UserService {
@@ -14,6 +15,7 @@ export class UserService {
     private readonly userRepository: Repository<User>,
     private readonly etudiantService: EtudiantService,
     private readonly enseignantService: EnseignantService,
+    private readonly parentService: ParentService,
   ) {}
 
   async create(userData: Partial<User>): Promise<User> {
@@ -99,7 +101,7 @@ export class UserService {
       user.password = await bcrypt.hash(password, 10);
     }
 
-    // Mettre à jour le profil lié (Etudiant ou Enseignant)
+    // Mettre à jour le profil lié (Etudiant, Enseignant ou Parent)
     if (user.etudiant && (phoneNumber || address || email)) {
       await this.etudiantService.update(user.etudiant.id, {
         phoneNumber,
@@ -110,6 +112,12 @@ export class UserService {
       await this.enseignantService.update(user.enseignant.id, {
         phone: phoneNumber,
         email, // Synchronisation de l'email si modifié
+      } as any);
+    } else if (user.parent && (phoneNumber || address || email)) {
+      await this.parentService.update(user.parent.id, {
+        phoneNumber,
+        address,
+        email,
       } as any);
     }
 

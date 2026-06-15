@@ -1,0 +1,85 @@
+import { Injectable, NotFoundException } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import { Parent } from '../parent/entities/parent.entity';
+import { NoteService } from '../note/note.service';
+import { PresenceService } from '../presence/presence.service';
+import { FinanceService } from '../finance/finance.service';
+import { SanctionService } from '../sanction/sanction.service';
+
+@Injectable()
+export class ParentDashboardService {
+  constructor(
+    @InjectRepository(Parent)
+    private readonly parentRepository: Repository<Parent>,
+    private readonly noteService: NoteService,
+    private readonly presenceService: PresenceService,
+    private readonly financeService: FinanceService,
+    private readonly sanctionService: SanctionService,
+  ) {}
+
+  async getDashboardData(user: any) {
+    const parentId = user.parentId;
+    if (!parentId) {
+      throw new NotFoundException('Identifiant parent non trouvé dans le jeton');
+    }
+
+    const parent = await this.parentRepository.findOne({
+      where: { id: parentId },
+      relations: {
+        etudiants: {
+          classe: true,
+          niveau: true,
+        },
+      },
+    });
+
+    if (!parent) {
+      throw new NotFoundException('Profil parent non trouvé');
+    }
+
+    const childrenData = await Promise.all(
+      parent.etudiants.map(async (etudiant) => {
+        const [notes, presenceStats, invoices, sanctions] = await Promise.all([
+          this.noteService.findAll({ page: 1, limit: 5 }, { etudiantId: etudiant.id }),
+          this.presenceService.getStudentStats(etudiant.id, { etudiantId: etudiant.id }),
+          this.financeService.findByEtudiant(etudiant.id),
+          this.sanctionService.findByEtudiant(etudiant.id),
+        ]);
+
+        return {
+          id: etudiant.id,
+          fullName: `${etudiant.firstName} ${etudiant.lastName}`,
+          matricule: etudiant.matricule,
+          classe: etudiant.classe.name,
+          niveau: etudiant.niveau.name,
+          recentNotes: notes.items,
+          presence: {
+            absents: presenceStats.absents,
+            retards: presenceStats.retards,
+          },
+          finances: {
+            totalInvoices: invoices.length,
+            unpaidInvoices: invoices.filter((f) => f.status !== 'Payée'),
+            totalRemaining: invoices.reduce((acc, inv) => {
+              if (inv.status !== 'Payée') {
+                const paid = inv.paiements.reduce((sum, p) => sum + Number(p.montant), 0);
+                return acc + (Number(inv.montantTotal) - paid);
+              }
+              return acc;
+            }, 0),
+          },
+          recentSanctions: sanctions.slice(0, 3),
+        };
+      }),
+    );
+
+    return {
+      parent: {
+        id: parent.id,
+        fullName: `${parent.firstName} ${parent.lastName}`,
+      },
+      children: childrenData,
+    };
+  }
+}

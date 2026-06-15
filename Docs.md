@@ -1,0 +1,65 @@
+# 📘 Documentation des Fonctionnalités - Backend ESPM
+
+Ce document présente une vue d'ensemble exhaustive des capacités du système de gestion universitaire ESPM.
+
+## 1. 🔐 Authentification & Sécurité
+*   **Gestion des Comptes :** Activation de compte pour Étudiants et Enseignants via matricule pré-existant.
+*   **Authentification :** Sécurisée par JWT (JSON Web Tokens).
+*   **Rôles & Permissions :** Contrôle d'accès granulaire (RBAC) selon le type d'utilisateur (Admin, Comptable, Surveillant, Enseignant, Étudiant, Parent).
+*   **Profils :** Consultation et mise à jour des informations personnelles avec synchronisation automatique entre le compte utilisateur et le profil métier.
+*   **Photos de Profil :** Système d'upload centralisé pour les avatars.
+*   **Récupération :** Flux complet d'oubli et de réinitialisation de mot de passe par jetons temporaires.
+
+## 2. 🏛️ Structure Académique
+*   **Multi-Établissements :** Gestion de plusieurs sites ou entités.
+*   **Niveaux & Classes :** Organisation hiérarchique des cursus (ex: Licence 1 Informatique).
+*   **Matières :** Catalogue des unités d'enseignement avec codes uniques et coefficients pour le calcul des moyennes.
+*   **Affectations :** Liaison dynamique entre Enseignants, Matières, Niveaux et Établissements.
+
+## 3. 📅 Gestion Pédagogique (LMD)
+*   **Années Universitaires :** Définition des périodes académiques actives.
+*   **Semestres :** Découpage temporel de l'année.
+*   **Emploi du Temps :**
+    *   Planification des cours par matière, classe et enseignant.
+    *   **Détection de conflits :** Vérification automatique de la disponibilité des salles/classes et des enseignants.
+    *   Validation des affectations avant programmation.
+*   **Devoirs :** Gestion des travaux à rendre avec dates limites.
+
+## 4. 📝 Évaluations & Notes
+*   **Types d'Évaluations :** Support des Contrôles Continus (CC), Examens et Projets.
+*   **Système LMD :**
+    *   Calcul automatique des moyennes par matière (pondérée).
+    *   Calcul de la Moyenne Générale Semestrielle.
+    *   **Gestion des Rattrapages :** Remplacement intelligent de la note d'examen par la note de rattrapage.
+    *   **Règles de passage :** Gestion des notes éliminatoires (≤ 4/20) et conditions d'admission (Moyenne ≥ 10/20).
+*   **Bulletins :** Génération de synthèses de notes par semestre.
+
+## 5. 💰 Gestion Financière
+*   **Configuration des Frais :** Paramétrage des montants par classe et par niveau (Scolarité, Inscription, etc.).
+*   **Facturation :** Émission de factures aux étudiants avec suivi des statuts (Brouillon, Validée, Payée, etc.).
+*   **Paiements :** Enregistrement des règlements et mise à jour automatique des soldes.
+*   **Automatisation de Documents :**
+    *   Génération automatique de **Reçus de Paiement**.
+    *   Génération automatique de **Quittance de Solde** une fois la facture intégralement payée.
+
+## 6. 🏃 Vie Scolaire & Discipline
+*   **Présence :** Suivi rigoureux des absences et des retards pour chaque séance de cours.
+*   **Sanctions :** Gestion du dossier disciplinaire (Avertissement, Blâme, Exclusion, etc.) rattaché à l'étudiant.
+*   **Règlement Intérieur :** Centralisation des textes réglementaires et consignes de l'établissement.
+*   **Rapports Quotidiens :** Saisie et archivage des rapports de vacation par les surveillants.
+
+## 7. 📊 Tableaux de Bord & Reporting
+*   **Dashboard Étudiant :** Vue 360° (Notes, absences, devoirs, état financier, emploi du temps du jour).
+*   **Dashboard Vie Scolaire :** Monitoring des incidents et de l'assiduité.
+*   **Reporting Financier :**
+    *   Métriques globales (Total facturé, encaissé, impayés).
+    *   Ventilation précise par Niveau d'étude.
+    *   Suivi dynamique des relances pour factures en souffrance.
+
+## 8. 📂 Outils Transverses
+*   **GED (Gestion Électronique de Documents) :**
+    *   Stockage sécurisé de fichiers (Administratif, Pédagogique, Règlements).
+    *   Gestion du cycle de vie des documents (upload/suppression physique).
+*   **Service Mail :** Moteur d'envoi de notifications (notifications de compte, réinitialisation de mot de passe).
+*   **Pagination Globale :** Standardisation de la navigation dans les grands volumes de données (20 items par défaut).
+*   **Documentation API :** Interface Swagger auto-générée pour faciliter l'intégration frontend.
