@@ -8,6 +8,8 @@ import { PaginationQueryDto } from '../common/dto/pagination-query.dto';
 import { Evaluation } from '../evaluation/entities/evaluation.entity';
 import { EnseignantService } from '../enseignant/enseignant.service';
 import { Role } from '../user/entities/user.entity';
+import { TenantContext } from '../common/tenant/tenant.context';
+import { TenantHelper } from '../common/tenant/tenant.helper';
 
 @Injectable()
 export class NoteService {
@@ -58,13 +60,16 @@ export class NoteService {
   async findAll(paginationQuery: PaginationQueryDto, user?: any) {
     const { page = 1, limit = 15 } = paginationQuery;
     const skip = (page - 1) * limit;
+    const tenantId = TenantContext.getTenantId();
 
-    const where: any = {};
+    let where: any = {};
     if (user && user.role === Role.ETUDIANT) {
       where.etudiant = { id: user.etudiantId };
     } else if (user && user.etudiantId) {
       where.etudiant = { id: user.etudiantId };
     }
+
+    where = TenantHelper.addTenantFilter(where, tenantId, 'etudiant.etablissement');
 
     const [items, total] = await this.noteRepository.findAndCount({
       where,
@@ -86,8 +91,12 @@ export class NoteService {
   }
 
   async findOne(id: number, user?: any) {
+    const tenantId = TenantContext.getTenantId();
+    let where: any = { id };
+    where = TenantHelper.addTenantFilter(where, tenantId, 'etudiant.etablissement');
+
     const note = await this.noteRepository.findOne({
-      where: { id },
+      where,
       relations: {
         etudiant: true,
         evaluation: { matiere: true, semestre: true },
@@ -103,24 +112,25 @@ export class NoteService {
   }
 
   async update(id: number, updateNoteDto: UpdateNoteDto, user: any) {
-    const note = await this.noteRepository.findOne({
-      where: { id },
-      relations: { 
-        evaluation: { 
-          matiere: true, 
-          niveau: true,
-          classe: { etablissements: true }
-        } 
-      },
-    });
-    if (!note) throw new NotFoundException(`Note #${id} non trouvée`);
+    const note = await this.findOne(id, user);
 
     if (user.role === Role.ENSEIGNANT) {
-      const etablissementIds = note.evaluation.classe.etablissements.map(e => e.id);
+      // Re-charger les relations nécessaires pour la vérification de responsabilité
+      const noteFull = await this.noteRepository.findOne({
+        where: { id: note.id },
+        relations: { 
+          evaluation: { 
+            matiere: true, 
+            niveau: true,
+            classe: { etablissements: true }
+          } 
+        },
+      });
+      const etablissementIds = noteFull!.evaluation.classe.etablissements.map(e => e.id);
       const isResponsible = await this.enseignantService.isResponsibleFor(
         user.enseignantId,
-        note.evaluation.matiere.id,
-        note.evaluation.niveau.id,
+        noteFull!.evaluation.matiere.id,
+        noteFull!.evaluation.niveau.id,
         etablissementIds,
       );
       if (!isResponsible) {
@@ -135,24 +145,24 @@ export class NoteService {
   }
 
   async remove(id: number, user: any) {
-    const note = await this.noteRepository.findOne({
-      where: { id },
-      relations: { 
-        evaluation: { 
-          matiere: true, 
-          niveau: true,
-          classe: { etablissements: true }
-        } 
-      },
-    });
-    if (!note) throw new NotFoundException(`Note #${id} non trouvée`);
+    const note = await this.findOne(id, user);
 
     if (user.role === Role.ENSEIGNANT) {
-      const etablissementIds = note.evaluation.classe.etablissements.map(e => e.id);
+      const noteFull = await this.noteRepository.findOne({
+        where: { id: note.id },
+        relations: { 
+          evaluation: { 
+            matiere: true, 
+            niveau: true,
+            classe: { etablissements: true }
+          } 
+        },
+      });
+      const etablissementIds = noteFull!.evaluation.classe.etablissements.map(e => e.id);
       const isResponsible = await this.enseignantService.isResponsibleFor(
         user.enseignantId,
-        note.evaluation.matiere.id,
-        note.evaluation.niveau.id,
+        noteFull!.evaluation.matiere.id,
+        noteFull!.evaluation.niveau.id,
         etablissementIds,
       );
       if (!isResponsible) {

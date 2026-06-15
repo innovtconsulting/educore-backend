@@ -18,6 +18,7 @@ import { unlink } from 'fs/promises';
 import { existsSync } from 'fs';
 import { join } from 'path';
 import { PaginationQueryDto } from '../common/dto/pagination-query.dto';
+import { TenantContext } from '../common/tenant/tenant.context';
 
 @Injectable()
 export class EtudiantService {
@@ -143,21 +144,26 @@ export class EtudiantService {
     const { page = 1, limit = 15, search, status } = paginationQuery;
     const skip = (page - 1) * limit;
 
-    const where: FindOptionsWhere<Etudiant> | FindOptionsWhere<Etudiant>[] = [];
+    const tenantId = TenantContext.getTenantId();
+    const where: FindOptionsWhere<Etudiant>[] = [];
+
+    const baseWhere: any = {};
+    if (status) baseWhere.status = status;
+    if (tenantId) baseWhere.etablissement = { id: tenantId };
 
     if (search) {
       where.push(
-        { lastName: ILike(`%${search}%`), ...(status ? { status } : {}) },
-        { firstName: ILike(`%${search}%`), ...(status ? { status } : {}) },
-        { matricule: ILike(`%${search}%`), ...(status ? { status } : {}) },
-        { email: ILike(`%${search}%`), ...(status ? { status } : {}) },
+        { ...baseWhere, lastName: ILike(`%${search}%`) },
+        { ...baseWhere, firstName: ILike(`%${search}%`) },
+        { ...baseWhere, matricule: ILike(`%${search}%`) },
+        { ...baseWhere, email: ILike(`%${search}%`) },
       );
-    } else if (status) {
-      where.push({ status });
+    } else {
+      where.push(baseWhere);
     }
 
     const [items, total] = await this.etudiantRepository.findAndCount({
-      where: where.length > 0 ? where : {},
+      where,
       relations: {
         etablissement: true,
         classe: true,
@@ -179,8 +185,12 @@ export class EtudiantService {
   }
 
   async findOne(id: number): Promise<Etudiant> {
+    const tenantId = TenantContext.getTenantId();
+    const where: any = { id };
+    if (tenantId) where.etablissement = { id: tenantId };
+
     const etudiant = await this.etudiantRepository.findOne({
-      where: { id },
+      where,
       relations: {
         etablissement: true,
         classe: true,

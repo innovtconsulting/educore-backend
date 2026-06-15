@@ -14,8 +14,13 @@ import { CreateFactureDto } from './dto/create-facture.dto';
 import { CreatePaiementDto } from './dto/create-paiement.dto';
 import { Classe } from '../classe/entities/classe.entity';
 import { Niveau } from '../niveau/entities/niveau.entity';
-import { generateQuittancePdf, generateReceiptPdf } from './utils/pdf-generator';
+import {
+  generateQuittancePdf,
+  generateReceiptPdf,
+} from './utils/pdf-generator';
 import { PaginationQueryDto } from '../common/dto/pagination-query.dto';
+import { TenantContext } from '../common/tenant/tenant.context';
+import { TenantHelper } from '../common/tenant/tenant.helper';
 
 @Injectable()
 export class FinanceService {
@@ -38,7 +43,11 @@ export class FinanceService {
 
   async createFrais(dto: CreateFraisDto) {
     const { classeId, niveauId, ...rest } = dto;
-    const frais = this.fraisRepository.create(rest);
+    const tenantId = TenantContext.getTenantId();
+    const frais = this.fraisRepository.create({
+      ...rest,
+      etablissement: tenantId ? { id: tenantId } : undefined,
+    });
 
     if (classeId) {
       const classe = await this.classeRepository.findOneBy({ id: classeId });
@@ -58,7 +67,11 @@ export class FinanceService {
   }
 
   async findAllFrais() {
+    const tenantId = TenantContext.getTenantId();
+    const where = TenantHelper.addTenantFilter({}, tenantId);
+
     return await this.fraisRepository.find({
+      where: where as any,
       relations: { classe: true, niveau: true },
     });
   }
@@ -66,8 +79,9 @@ export class FinanceService {
   // --- Gestion des Factures ---
 
   async createFacture(dto: CreateFactureDto) {
-    const etudiant = await this.etudiantRepository.findOneBy({
-      id: dto.etudiantId,
+    const tenantId = TenantContext.getTenantId();
+    const etudiant = await this.etudiantRepository.findOne({
+      where: TenantHelper.addTenantFilter({ id: dto.etudiantId }, tenantId) as any,
     });
     if (!etudiant)
       throw new NotFoundException(`Étudiant #${dto.etudiantId} introuvable`);
@@ -105,7 +119,11 @@ export class FinanceService {
     const { page = 1, limit = 15 } = paginationQuery;
     const skip = (page - 1) * limit;
 
+    const tenantId = TenantContext.getTenantId();
+    const where = TenantHelper.addTenantFilter({}, tenantId, 'etudiant.etablissement');
+
     const [items, total] = await this.factureRepository.findAndCount({
+      where: where as any,
       relations: { etudiant: true, paiements: true },
       order: { dateEmission: 'DESC' },
       skip,
@@ -121,8 +139,11 @@ export class FinanceService {
   }
 
   async findOneFacture(id: number) {
+    const tenantId = TenantContext.getTenantId();
+    const where = TenantHelper.addTenantFilter({ id }, tenantId, 'etudiant.etablissement');
+
     const facture = await this.factureRepository.findOne({
-      where: { id },
+      where: where as any,
       relations: { etudiant: true, paiements: true },
     });
     if (!facture) throw new NotFoundException(`Facture #${id} introuvable`);
@@ -132,8 +153,9 @@ export class FinanceService {
   // --- Gestion des Paiements ---
 
   async createPaiement(dto: CreatePaiementDto) {
-    const etudiant = await this.etudiantRepository.findOneBy({
-      id: dto.etudiantId,
+    const tenantId = TenantContext.getTenantId();
+    const etudiant = await this.etudiantRepository.findOne({
+      where: TenantHelper.addTenantFilter({ id: dto.etudiantId }, tenantId) as any,
     });
     if (!etudiant)
       throw new NotFoundException(`Étudiant #${dto.etudiantId} introuvable`);
@@ -213,7 +235,11 @@ export class FinanceService {
     const { page = 1, limit = 15 } = paginationQuery;
     const skip = (page - 1) * limit;
 
+    const tenantId = TenantContext.getTenantId();
+    const where = TenantHelper.addTenantFilter({}, tenantId, 'etudiant.etablissement');
+
     const [items, total] = await this.paiementRepository.findAndCount({
+      where: where as any,
       relations: { etudiant: true, facture: true },
       order: { datePaiement: 'DESC' },
       skip,
@@ -231,10 +257,16 @@ export class FinanceService {
   // --- Tableau de Bord & Rapports ---
 
   async getDashboardStats() {
+    const tenantId = TenantContext.getTenantId();
+    const where = TenantHelper.addTenantFilter({}, tenantId, 'etudiant.etablissement');
+
     const now = new Date();
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
 
-    const allPaiements = await this.paiementRepository.find();
+    const allPaiements = await this.paiementRepository.find({
+      where: where as any,
+      relations: { etudiant: { niveau: true } },
+    });
     const totalCollected = allPaiements.reduce(
       (sum, p) => sum + Number(p.montant),
       0,
@@ -248,7 +280,10 @@ export class FinanceService {
       0,
     );
 
-    const allFactures = await this.factureRepository.find({ relations: { etudiant: { niveau: true } } });
+    const allFactures = await this.factureRepository.find({
+      where: where as any,
+      relations: { etudiant: { niveau: true } },
+    });
     const totalInvoiced = allFactures.reduce(
       (sum, f) => sum + Number(f.montantTotal),
       0,
@@ -257,7 +292,7 @@ export class FinanceService {
 
     // Calcul par niveau
     const statsByNiveau: any = {};
-    allFactures.forEach(f => {
+    allFactures.forEach((f) => {
       const niveauName = f.etudiant.niveau.name;
       if (!statsByNiveau[niveauName]) {
         statsByNiveau[niveauName] = { invoiced: 0, collected: 0, pending: 0 };
@@ -265,18 +300,16 @@ export class FinanceService {
       statsByNiveau[niveauName].invoiced += Number(f.montantTotal);
     });
 
-    allPaiements.forEach(p => {
-      if (p.facture) {
-        // Si le paiement est lié à une facture, on peut retrouver le niveau via la facture
-        const niveauName = p.etudiant.niveau.name;
-        if (statsByNiveau[niveauName]) {
-          statsByNiveau[niveauName].collected += Number(p.montant);
-        }
+    allPaiements.forEach((p) => {
+      const niveauName = p.etudiant.niveau.name;
+      if (statsByNiveau[niveauName]) {
+        statsByNiveau[niveauName].collected += Number(p.montant);
       }
     });
 
     for (const niveau in statsByNiveau) {
-      statsByNiveau[niveau].pending = statsByNiveau[niveau].invoiced - statsByNiveau[niveau].collected;
+      statsByNiveau[niveau].pending =
+        statsByNiveau[niveau].invoiced - statsByNiveau[niveau].collected;
     }
 
     return {
@@ -291,13 +324,15 @@ export class FinanceService {
   }
 
   async getFinancialReport(start?: string, end?: string) {
-    const where: any = {};
+    const tenantId = TenantContext.getTenantId();
+    let where: any = {};
     if (start && end) {
       where.datePaiement = Between(new Date(start), new Date(end));
     }
+    where = TenantHelper.addTenantFilter(where, tenantId, 'etudiant.etablissement');
 
     const paiements = await this.paiementRepository.find({
-      where,
+      where: where as any,
       relations: { etudiant: true, facture: true },
       order: { datePaiement: 'ASC' },
     });
@@ -311,48 +346,64 @@ export class FinanceService {
   }
 
   async generateManualReceipt(paiementId: number) {
+    const tenantId = TenantContext.getTenantId();
+    const where = TenantHelper.addTenantFilter({ id: paiementId }, tenantId, 'etudiant.etablissement');
+
     const paiement = await this.paiementRepository.findOne({
-      where: { id: paiementId },
+      where: where as any,
       relations: { etudiant: true, facture: true },
     });
-    if (!paiement) throw new NotFoundException(`Paiement #${paiementId} introuvable`);
+    if (!paiement)
+      throw new NotFoundException(`Paiement #${paiementId} introuvable`);
 
     try {
       const recuPath = await generateReceiptPdf(paiement);
       paiement.recuPath = recuPath;
       return await this.paiementRepository.save(paiement);
     } catch (error) {
-      throw new BadRequestException('Erreur lors de la génération manuelle du reçu');
+      throw new BadRequestException(
+        'Erreur lors de la génération manuelle du reçu',
+      );
     }
   }
 
   async generateManualQuittance(factureId: number) {
+    const tenantId = TenantContext.getTenantId();
+    const where = TenantHelper.addTenantFilter({ id: factureId }, tenantId, 'etudiant.etablissement');
+
     const facture = await this.factureRepository.findOne({
-      where: { id: factureId },
+      where: where as any,
       relations: { etudiant: true },
     });
-    if (!facture) throw new NotFoundException(`Facture #${factureId} introuvable`);
+    if (!facture)
+      throw new NotFoundException(`Facture #${factureId} introuvable`);
 
     try {
       const quittancePath = await generateQuittancePdf(facture);
       facture.quittancePath = quittancePath;
       return await this.factureRepository.save(facture);
     } catch (error) {
-      throw new BadRequestException('Erreur lors de la génération manuelle de la quittance');
+      throw new BadRequestException(
+        'Erreur lors de la génération manuelle de la quittance',
+      );
     }
   }
 
   async getUnpaidFactures(classeId?: number, niveauId?: number) {
-    const query = this.factureRepository.createQueryBuilder('facture')
+    const tenantId = TenantContext.getTenantId();
+    const query = this.factureRepository
+      .createQueryBuilder('facture')
       .leftJoinAndSelect('facture.etudiant', 'etudiant')
       .leftJoinAndSelect('etudiant.classe', 'classe')
       .leftJoinAndSelect('etudiant.niveau', 'niveau')
       .leftJoinAndSelect('facture.paiements', 'paiements')
-      .where('facture.status IN (:...statuses)', { statuses: [InvoiceStatus.VALIDE, InvoiceStatus.PARTIEL] });
+      .where('facture.status IN (:...statuses)', {
+        statuses: [InvoiceStatus.VALIDE, InvoiceStatus.PARTIEL],
+      });
 
-    if (classeId) {
-      query.andWhere('classe.id = :classeId', { classeId });
-    }
+    if (tenantId)
+      query.andWhere('etudiant.etablissementId = :tenantId', { tenantId });
+    if (classeId) query.andWhere('classe.id = :classeId', { classeId });
 
     if (niveauId) {
       query.andWhere('niveau.id = :niveauId', { niveauId });

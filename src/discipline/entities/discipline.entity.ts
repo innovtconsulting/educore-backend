@@ -1,5 +1,6 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, ManyToOne, JoinColumn } from 'typeorm';
 import { ApiProperty } from '@nestjs/swagger';
+import { Etablissement } from '../../etablissement/entities/etablissement.entity';
 
 export enum DisciplineCategory {
   REGLEMENT_INTERIEUR = 'Règlement Intérieur',
@@ -32,6 +33,13 @@ export class Discipline {
   @Column({ default: true })
   @ApiProperty({ default: true })
   isActive!: boolean;
+
+  @ManyToOne(() => Etablissement, { nullable: true })
+  @JoinColumn({ name: 'etablissementId' })
+  etablissement!: Etablissement;
+
+  @Column({ nullable: true })
+  etablissementId!: number;
 
   @CreateDateColumn()
   @ApiProperty()

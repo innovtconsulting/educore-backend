@@ -12,6 +12,8 @@ import { EmploiDuTemp } from '../emploi-du-temps/entities/emploi-du-temp.entity'
 import { Etudiant } from '../etudiant/entities/etudiant.entity';
 import { PaginationQueryDto } from '../common/dto/pagination-query.dto';
 import { Role } from '../user/entities/user.entity';
+import { TenantContext } from '../common/tenant/tenant.context';
+import { TenantHelper } from '../common/tenant/tenant.helper';
 
 @Injectable()
 export class PresenceService {
@@ -26,9 +28,10 @@ export class PresenceService {
 
   async bulkRecord(dto: BulkRecordPresenceDto): Promise<Presence[]> {
     const { emploiDuTempId, items } = dto;
+    const tenantId = TenantContext.getTenantId();
 
     const emploi = await this.emploiRepo.findOne({
-      where: { id: emploiDuTempId },
+      where: TenantHelper.addTenantFilter({ id: emploiDuTempId }, tenantId) as any,
       relations: { classe: true, niveau: true },
     });
     if (!emploi)
@@ -38,7 +41,7 @@ export class PresenceService {
 
     for (const item of items) {
       const etudiant = await this.etudiantRepo.findOne({
-        where: { id: item.etudiantId },
+        where: TenantHelper.addTenantFilter({ id: item.etudiantId }, tenantId) as any,
         relations: { classe: true, niveau: true },
       });
 
@@ -51,7 +54,6 @@ export class PresenceService {
         etudiant.classe.id !== emploi.classe.id ||
         etudiant.niveau.id !== emploi.niveau.id
       ) {
-        // Optionnel: on peut juste logger ou bloquer. Bloquons pour la cohérence.
         throw new BadRequestException(
           `L'étudiant ${etudiant.firstName} ${etudiant.lastName} n'appartient pas à cette classe/niveau`,
         );
@@ -84,8 +86,11 @@ export class PresenceService {
   async findAll(paginationQuery: PaginationQueryDto) {
     const { page = 1, limit = 15 } = paginationQuery;
     const skip = (page - 1) * limit;
+    const tenantId = TenantContext.getTenantId();
+    const where = TenantHelper.addTenantFilter({}, tenantId, 'etudiant.etablissement');
 
     const [items, total] = await this.presenceRepository.findAndCount({
+      where: where as any,
       relations: {
         etudiant: true,
         emploiDuTemp: { matiere: true, classe: true, niveau: true },
@@ -104,19 +109,29 @@ export class PresenceService {
   }
 
   async findBySession(emploiDuTempId: number): Promise<Presence[]> {
+    const tenantId = TenantContext.getTenantId();
+    const where: any = { emploiDuTemp: { id: emploiDuTempId } };
+    if (tenantId) where.etudiant = { etablissement: { id: tenantId } };
+
     return await this.presenceRepository.find({
-      where: { emploiDuTemp: { id: emploiDuTempId } },
+      where,
       relations: { etudiant: true },
     });
   }
 
   async getStudentStats(etudiantId: number, user?: any) {
     if (user && user.role === Role.ETUDIANT && user.etudiantId !== etudiantId) {
-      throw new ForbiddenException("Vous ne pouvez consulter que vos propres statistiques de présence");
+      throw new ForbiddenException(
+        'Vous ne pouvez consulter que vos propres statistiques de présence',
+      );
     }
 
+    const tenantId = TenantContext.getTenantId();
+    const where: any = { etudiant: { id: etudiantId } };
+    if (tenantId) where.etudiant.etablissement = { id: tenantId };
+
     const presences = await this.presenceRepository.find({
-      where: { etudiant: { id: etudiantId } },
+      where,
       relations: { emploiDuTemp: { matiere: true } },
     });
 

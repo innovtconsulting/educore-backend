@@ -15,6 +15,7 @@ import { Classe } from '../classe/entities/classe.entity';
 import { Niveau } from '../niveau/entities/niveau.entity';
 import { Affectation } from '../enseignant/entities/affectation.entity';
 import { PaginationQueryDto } from '../common/dto/pagination-query.dto';
+import { TenantContext } from '../common/tenant/tenant.context';
 
 @Injectable()
 export class EmploiDuTempsService {
@@ -158,6 +159,7 @@ export class EmploiDuTempsService {
     const { page = 1, limit = 15 } = paginationQuery;
     const skip = (page - 1) * limit;
 
+    const tenantId = TenantContext.getTenantId();
     const query = this.emploiDuTempRepository
       .createQueryBuilder('e')
       .leftJoinAndSelect('e.matiere', 'matiere')
@@ -166,6 +168,7 @@ export class EmploiDuTempsService {
       .leftJoinAndSelect('e.classe', 'classe')
       .leftJoinAndSelect('e.niveau', 'niveau');
 
+    if (tenantId) query.andWhere('e.etablissementId = :tenantId', { tenantId });
     if (classeId) query.andWhere('e.classeId = :classeId', { classeId });
     if (niveauId) query.andWhere('e.niveauId = :niveauId', { niveauId });
     if (start && end) {
@@ -190,8 +193,12 @@ export class EmploiDuTempsService {
   }
 
   async findOne(id: number): Promise<EmploiDuTemp> {
+    const tenantId = TenantContext.getTenantId();
+    const where: any = { id };
+    if (tenantId) where.etablissement = { id: tenantId };
+
     const emploi = await this.emploiDuTempRepository.findOne({
-      where: { id },
+      where,
       relations: {
         matiere: true,
         enseignant: true,

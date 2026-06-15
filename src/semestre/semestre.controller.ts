@@ -6,18 +6,26 @@ import {
   Patch,
   Param,
   Delete,
+  UseGuards,
 } from '@nestjs/common';
 import { SemestreService } from './semestre.service';
 import { CreateSemestreDto } from './dto/create-semestre.dto';
 import { UpdateSemestreDto } from './dto/update-semestre.dto';
-import { ApiTags, ApiOperation } from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { RolesGuard } from '../auth/guards/roles.guard';
+import { Roles } from '../auth/decorators/roles.decorator';
+import { Role } from '../user/entities/user.entity';
 
 @ApiTags('semestre')
+@ApiBearerAuth()
+@UseGuards(JwtAuthGuard, RolesGuard)
 @Controller('semestre')
 export class SemestreController {
   constructor(private readonly semestreService: SemestreService) {}
 
   @Post()
+  @Roles(Role.SUPER_ADMIN)
   @ApiOperation({ 
     summary: 'Créer un semestre', 
     description: 'Définit une période académique (Semestre 1 ou 2) rattachée à une année universitaire.' 
@@ -45,6 +53,7 @@ export class SemestreController {
   }
 
   @Patch(':id')
+  @Roles(Role.SUPER_ADMIN)
   @ApiOperation({ 
     summary: 'Modifier un semestre', 
     description: 'Met à jour les dates ou le libellé d\'un semestre.' 
@@ -57,6 +66,7 @@ export class SemestreController {
   }
 
   @Delete(':id')
+  @Roles(Role.SUPER_ADMIN)
   @ApiOperation({ 
     summary: 'Supprimer un semestre', 
     description: 'Supprime un semestre du système.' 

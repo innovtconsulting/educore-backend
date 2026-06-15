@@ -13,6 +13,7 @@ import { Role } from '../user/entities/user.entity';
 import { Document } from '../document/entities/document.entity';
 import { Classe } from '../classe/entities/classe.entity';
 import { PaginationQueryDto } from '../common/dto/pagination-query.dto';
+import { TenantContext } from '../common/tenant/tenant.context';
 
 @Injectable()
 export class DevoirService {
@@ -74,19 +75,23 @@ export class DevoirService {
   async findAll(paginationQuery: PaginationQueryDto, user?: any) {
     const { page = 1, limit = 15 } = paginationQuery;
     const skip = (page - 1) * limit;
+    const tenantId = TenantContext.getTenantId();
 
     const query = this.devoirRepository
       .createQueryBuilder('d')
       .leftJoinAndSelect('d.matiere', 'matiere')
       .leftJoinAndSelect('d.classe', 'classe')
+      .leftJoin('classe.etablissements', 'etablissements')
       .leftJoinAndSelect('d.niveau', 'niveau')
       .leftJoinAndSelect('d.enseignant', 'enseignant')
       .leftJoinAndSelect('d.documents', 'documents');
 
+    if (tenantId) {
+      query.andWhere('etablissements.id = :tenantId', { tenantId });
+    }
+
     if (user && user.role === Role.ETUDIANT) {
-      // Pour un étudiant, on filtre par sa classe et son niveau
-      // Ces informations doivent être récupérées via son profil
-      // Mais pour simplifier ici, on pourrait passer les filtres depuis le controller
+      // Pour un étudiant, on pourrait filtrer davantage ici si nécessaire
     }
 
     const [items, total] = await query
@@ -104,11 +109,15 @@ export class DevoirService {
   }
 
   async findByClasse(classeId: number, niveauId: number) {
+    const tenantId = TenantContext.getTenantId();
+    const where: any = {
+      classe: { id: classeId },
+      niveau: { id: niveauId },
+    };
+    if (tenantId) where.classe.etablissements = { id: tenantId };
+
     return await this.devoirRepository.find({
-      where: {
-        classe: { id: classeId },
-        niveau: { id: niveauId },
-      },
+      where,
       relations: {
         matiere: true,
         enseignant: true,
@@ -119,16 +128,22 @@ export class DevoirService {
   }
 
   async findOne(id: number) {
-    const devoir = await this.devoirRepository.findOne({
-      where: { id },
-      relations: {
-        matiere: true,
-        classe: true,
-        niveau: true,
-        enseignant: true,
-        documents: true,
-      },
-    });
+    const tenantId = TenantContext.getTenantId();
+    const query = this.devoirRepository
+      .createQueryBuilder('d')
+      .leftJoinAndSelect('d.matiere', 'matiere')
+      .leftJoinAndSelect('d.classe', 'classe')
+      .leftJoinAndSelect('classe.etablissements', 'etablissements')
+      .leftJoinAndSelect('d.niveau', 'niveau')
+      .leftJoinAndSelect('d.enseignant', 'enseignant')
+      .leftJoinAndSelect('d.documents', 'documents')
+      .where('d.id = :id', { id });
+
+    if (tenantId) {
+      query.andWhere('etablissements.id = :tenantId', { tenantId });
+    }
+
+    const devoir = await query.getOne();
     if (!devoir) throw new NotFoundException(`Devoir #${id} non trouvé`);
     return devoir;
   }
@@ -137,17 +152,18 @@ export class DevoirService {
     const devoir = await this.findOne(id);
 
     if (user.role === Role.ENSEIGNANT) {
-      const etablissementIds = devoir.classe.etablissements?.map((e: any) => e.id) || [];
-      // Note: findOne above needs to load etablissements if we want to check here
-      // But usually only the creator can update.
       if (devoir.enseignant.id !== user.enseignantId) {
-        throw new ForbiddenException("Vous ne pouvez modifier que vos propres devoirs");
+        throw new ForbiddenException(
+          'Vous ne pouvez modifier que vos propres devoirs',
+        );
       }
     }
 
     const { documentIds, ...data } = updateDevoirDto;
     if (documentIds) {
-      devoir.documents = await this.documentRepository.findBy({ id: In(documentIds) });
+      devoir.documents = await this.documentRepository.findBy({
+        id: In(documentIds),
+      });
     }
 
     Object.assign(devoir, data);
@@ -156,8 +172,13 @@ export class DevoirService {
 
   async remove(id: number, user: any) {
     const devoir = await this.findOne(id);
-    if (user.role === Role.ENSEIGNANT && devoir.enseignant.id !== user.enseignantId) {
-      throw new ForbiddenException("Vous ne pouvez supprimer que vos propres devoirs");
+    if (
+      user.role === Role.ENSEIGNANT &&
+      devoir.enseignant.id !== user.enseignantId
+    ) {
+      throw new ForbiddenException(
+        'Vous ne pouvez supprimer que vos propres devoirs',
+      );
     }
     return await this.devoirRepository.remove(devoir);
   }

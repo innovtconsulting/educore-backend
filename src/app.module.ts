@@ -37,6 +37,7 @@ import { Paiement } from './finance/entities/paiement.entity';
 import { Discipline } from './discipline/entities/discipline.entity';
 import { User } from './user/entities/user.entity';
 import { Devoir } from './devoir/entities/devoir.entity';
+import { GlobalSetting } from './global-setting/entities/global-setting.entity';
 import { ReportingModule } from './reporting/reporting.module';
 import { DocumentModule } from './document/document.module';
 import { EvaluationModule } from './evaluation/evaluation.module';
@@ -52,6 +53,7 @@ import { StudentDashboardModule } from './student-dashboard/student-dashboard.mo
 import { ParentDashboardModule } from './parent-dashboard/parent-dashboard.module';
 import { LifeDashboardModule } from './life-dashboard/life-dashboard.module';
 import { MailModule } from './mail/mail.module';
+import { GlobalSettingModule } from './global-setting/global-setting.module';
 
 @Module({
   imports: [
@@ -89,6 +91,7 @@ import { MailModule } from './mail/mail.module';
         Discipline,
         User,
         Devoir,
+        GlobalSetting,
       ],
       synchronize: true,
     }),
@@ -118,6 +121,7 @@ import { MailModule } from './mail/mail.module';
     ParentDashboardModule,
     LifeDashboardModule,
     MailModule,
+    GlobalSettingModule,
   ],
   controllers: [AppController],
   providers: [AppService],

@@ -12,6 +12,7 @@ import { Classe } from '../classe/entities/classe.entity';
 import { PaginationQueryDto } from '../common/dto/pagination-query.dto';
 import { EnseignantService } from '../enseignant/enseignant.service';
 import { Role } from '../user/entities/user.entity';
+import { TenantContext } from '../common/tenant/tenant.context';
 
 @Injectable()
 export class EvaluationService {
@@ -66,7 +67,14 @@ export class EvaluationService {
     const { page = 1, limit = 15 } = paginationQuery;
     const skip = (page - 1) * limit;
 
+    const tenantId = TenantContext.getTenantId();
+    const where: any = {};
+    if (tenantId) {
+      where.classe = { etablissements: { id: tenantId } };
+    }
+
     const [items, total] = await this.evaluationRepository.findAndCount({
+      where,
       relations: {
         matiere: true,
         classe: true,
@@ -87,8 +95,14 @@ export class EvaluationService {
   }
 
   async findOne(id: number) {
+    const tenantId = TenantContext.getTenantId();
+    const where: any = { id };
+    if (tenantId) {
+      where.classe = { etablissements: { id: tenantId } };
+    }
+
     const evaluation = await this.evaluationRepository.findOne({
-      where: { id },
+      where,
       relations: {
         matiere: true,
         classe: { etablissements: true },

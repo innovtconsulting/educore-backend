@@ -11,6 +11,7 @@ import * as bcrypt from 'bcrypt';
 import * as crypto from 'crypto';
 import { ForgotPasswordDto, ResetPasswordDto } from './dto/password-reset.dto';
 import { MailService } from '../mail/mail.service';
+import { GlobalSettingService } from '../global-setting/global-setting.service';
 
 @Injectable()
 export class AuthService {
@@ -21,6 +22,7 @@ export class AuthService {
     private readonly parentService: ParentService,
     private readonly jwtService: JwtService,
     private readonly mailService: MailService,
+    private readonly globalSettingService: GlobalSettingService,
   ) {}
 
   async validateUser(email: string, pass: string): Promise<any> {
@@ -37,6 +39,7 @@ export class AuthService {
       email: user.email,
       sub: user.id,
       role: user.role,
+      etablissementId: user.etablissementId || user.etudiant?.etablissement?.id || user.enseignant?.affectations?.[0]?.etablissement?.id,
       enseignantId: user.enseignant?.id,
       etudiantId: user.etudiant?.id,
       parentId: user.parent?.id,
@@ -60,6 +63,11 @@ export class AuthService {
     try {
       // 1. Gérer la récupération du profil et de l'email selon le rôle
       if (role === Role.ETUDIANT) {
+        const allowReg = await this.globalSettingService.getValue('ENABLE_STUDENT_REGISTRATION', 'true');
+        if (allowReg === 'false') {
+          throw new BadRequestException("L'auto-inscription des étudiants est actuellement désactivée.");
+        }
+
         if (registerDto.etudiantData) {
           throw new BadRequestException(
             "L'auto-inscription ne permet pas la création d'un nouveau profil étudiant. Veuillez utiliser uniquement votre matricule.",
@@ -93,6 +101,11 @@ export class AuthService {
           );
         }
       } else if (role === Role.ENSEIGNANT) {
+        const allowReg = await this.globalSettingService.getValue('ENABLE_TEACHER_REGISTRATION', 'true');
+        if (allowReg === 'false') {
+          throw new BadRequestException("L'auto-inscription des enseignants est actuellement désactivée.");
+        }
+
         if (registerDto.enseignantData) {
           throw new BadRequestException(
             "L'auto-inscription ne permet pas la création d'un nouveau profil enseignant. Veuillez utiliser uniquement votre matricule.",
@@ -160,6 +173,7 @@ export class AuthService {
         email: email,
         password: password,
         role: role,
+        etablissement: (role === Role.ETUDIANT || role === Role.ENSEIGNANT) ? profile.etablissement || (profile.affectations?.[0]?.etablissement) : null,
         etudiant: role === Role.ETUDIANT ? profile : null,
         enseignant: role === Role.ENSEIGNANT ? profile : null,
         parent: role === Role.PARENT ? profile : null,

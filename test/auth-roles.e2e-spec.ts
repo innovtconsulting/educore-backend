@@ -15,6 +15,10 @@ describe('Auth & Roles (e2e)', () => {
   let adminToken: string;
   let teacherToken: string;
 
+  let matRepo: any;
+  let nivRepo: any;
+  let etabRepo: any;
+
   beforeAll(async () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
       imports: [AppModule],
@@ -38,9 +42,9 @@ describe('Auth & Roles (e2e)', () => {
     const passwordHash = await bcrypt.hash('password123', 10);
     const userRepo = dataSource.getRepository('User');
     const teacherRepo = dataSource.getRepository('Enseignant');
-    const etabRepo = dataSource.getRepository('Etablissement');
-    const nivRepo = dataSource.getRepository('Niveau');
-    const matRepo = dataSource.getRepository('Matiere');
+    etabRepo = dataSource.getRepository('Etablissement');
+    nivRepo = dataSource.getRepository('Niveau');
+    matRepo = dataSource.getRepository('Matiere');
     const affectRepo = dataSource.getRepository('Affectation');
 
     // Create Base Entities
@@ -192,7 +196,9 @@ describe('Auth & Roles (e2e)', () => {
         .send({
           firstName: 'Etu', lastName: 'Admin', email: 'etu.admin@test.com', matricule: 'ETU-ADM-001',
           etablissementId: etab.body.data.id, classeId: cls.body.data.id, niveauId: niv.body.data.id,
-          parentIds: [parent.body.data.id]
+          parentsData: [
+            { firstName: 'P', lastName: 'A', gender: 'Père', phoneNumber: '000' }
+          ]
         })
         .expect(201);
     });
@@ -232,7 +238,7 @@ describe('Auth & Roles (e2e)', () => {
 
       const sem = await request(app.getHttpServer())
         .post('/api/semestre')
-        .set('Authorization', `Bearer ${adminToken}`)
+        .set('Authorization', `Bearer ${superAdminToken}`)
         .send({ name: 'S1 Teach', startDate: '2028-10-01', endDate: '2029-02-28', anneeUniversitaireId: annee.body.data.id });
 
       await request(app.getHttpServer())

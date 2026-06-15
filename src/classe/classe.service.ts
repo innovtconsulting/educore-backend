@@ -1,6 +1,7 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { In, Repository } from 'typeorm';
+import { TenantContext } from '../common/tenant/tenant.context';
 import { CreateClasseDto } from './dto/create-classe.dto';
 import { UpdateClasseDto } from './dto/update-classe.dto';
 import { Classe } from './entities/classe.entity';
@@ -64,14 +65,25 @@ export class ClasseService {
   }
 
   async findAll(): Promise<Classe[]> {
+    const tenantId = TenantContext.getTenantId();
+    const where: any = {};
+    if (tenantId) {
+      where.etablissements = { id: tenantId };
+    }
     return await this.classeRepository.find({
+      where,
       relations: { etablissements: true, niveaux: true },
     });
   }
 
   async findOne(id: number): Promise<Classe> {
+    const tenantId = TenantContext.getTenantId();
+    const where: any = { id };
+    if (tenantId) {
+      where.etablissements = { id: tenantId };
+    }
     const classe = await this.classeRepository.findOne({
-      where: { id },
+      where,
       relations: { etablissements: true, niveaux: true },
     });
     if (!classe) {

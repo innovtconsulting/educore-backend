@@ -4,8 +4,11 @@ import {
   Column,
   CreateDateColumn,
   UpdateDateColumn,
+  ManyToOne,
+  JoinColumn,
 } from 'typeorm';
 import { ApiProperty } from '@nestjs/swagger';
+import { Etablissement } from '../../etablissement/entities/etablissement.entity';
 
 export enum DocumentCategory {
   ADMINISTRATIF = 'Administratif',
@@ -50,6 +53,13 @@ export class Document {
   @Column({ type: 'bigint', nullable: true })
   @ApiProperty({ required: false })
   fileSize!: number;
+
+  @ManyToOne(() => Etablissement, { nullable: true })
+  @JoinColumn({ name: 'etablissementId' })
+  etablissement!: Etablissement;
+
+  @Column({ nullable: true })
+  etablissementId!: number;
 
   @CreateDateColumn()
   @ApiProperty()

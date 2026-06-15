@@ -5,10 +5,12 @@ import {
   ManyToOne,
   PrimaryGeneratedColumn,
   UpdateDateColumn,
+  JoinColumn,
 } from 'typeorm';
 import { Classe } from '../../classe/entities/classe.entity';
 import { Niveau } from '../../niveau/entities/niveau.entity';
 import { ApiProperty } from '@nestjs/swagger';
+import { Etablissement } from '../../etablissement/entities/etablissement.entity';
 
 export enum FeeType {
   INSCRIPTION = 'Inscription',
@@ -46,6 +48,13 @@ export class Frais {
   @ManyToOne(() => Niveau, { nullable: true, onDelete: 'SET NULL' })
   @ApiProperty({ type: () => Niveau, required: false })
   niveau?: Niveau;
+
+  @ManyToOne(() => Etablissement, { nullable: true })
+  @JoinColumn({ name: 'etablissementId' })
+  etablissement!: Etablissement;
+
+  @Column({ nullable: true })
+  etablissementId!: number;
 
   @CreateDateColumn()
   createdAt!: Date;
