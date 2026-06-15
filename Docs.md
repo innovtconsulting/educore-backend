@@ -17,8 +17,8 @@ Ce document présente une vue d'ensemble exhaustive des capacités du système d
 *   **Affectations :** Liaison dynamique entre Enseignants, Matières, Niveaux et Établissements.
 
 ## 3. 📅 Gestion Pédagogique (LMD)
-*   **Années Universitaires :** Définition des périodes académiques actives.
-*   **Semestres :** Découpage temporel de l'année.
+*   **Années Universitaires :** Définition des périodes académiques (ex: 2025-2026). Gestion **globale** centralisée par le SuperAdmin.
+*   **Semestres :** Découpage temporel de l'année (S1, S2). Configuration restreinte au SuperAdmin pour garantir la cohérence du cursus.
 *   **Emploi du Temps :**
     *   Planification des cours par matière, classe et enseignant.
     *   **Détection de conflits :** Vérification automatique de la disponibilité des salles/classes et des enseignants.
@@ -63,3 +63,10 @@ Ce document présente une vue d'ensemble exhaustive des capacités du système d
 *   **Service Mail :** Moteur d'envoi de notifications (notifications de compte, réinitialisation de mot de passe).
 *   **Pagination Globale :** Standardisation de la navigation dans les grands volumes de données (20 items par défaut).
 *   **Documentation API :** Interface Swagger auto-générée pour faciliter l'intégration frontend.
+
+## 9. ⚙️ Configuration Globale (SuperAdmin)
+*   **Panneau de Contrôle :** Interface centralisée permettant de modifier le comportement de toute la plateforme sans déploiement.
+*   **Paramètres Académiques :** Définition globale des moyennes de passage et des seuils de notes éliminatoires.
+*   **Gestion des Flux :** Activation/Désactivation de l'auto-inscription publique des étudiants et enseignants.
+*   **Paramètres Financiers :** Gestion de la devise par défaut et des éventuelles pénalités de retard.
+*   **Système & Sécurité :** Mode maintenance, limites de taille d'upload et configuration des expéditeurs d'emails.
