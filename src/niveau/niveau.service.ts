@@ -4,6 +4,8 @@ import { Repository } from 'typeorm';
 import { CreateNiveauDto } from './dto/create-niveau.dto';
 import { UpdateNiveauDto } from './dto/update-niveau.dto';
 import { Niveau } from './entities/niveau.entity';
+import { TenantContext } from '../common/tenant/tenant.context';
+import { TenantHelper } from '../common/tenant/tenant.helper';
 
 @Injectable()
 export class NiveauService {
@@ -18,11 +20,25 @@ export class NiveauService {
   }
 
   async findAll(): Promise<Niveau[]> {
-    return await this.niveauRepository.find();
+    const tenantId = TenantContext.getTenantId();
+    const where = TenantHelper.addTenantFilter(
+      {},
+      tenantId,
+      'classes.etablissements',
+    );
+
+    return await this.niveauRepository.find({ where });
   }
 
   async findOne(id: number): Promise<Niveau> {
-    const niveau = await this.niveauRepository.findOneBy({ id });
+    const tenantId = TenantContext.getTenantId();
+    const where = TenantHelper.addTenantFilter(
+      { id },
+      tenantId,
+      'classes.etablissements',
+    );
+
+    const niveau = await this.niveauRepository.findOneBy(where);
     if (!niveau) {
       throw new NotFoundException(
         `Le niveau avec l'ID ${id} n'a pas été trouvé`,

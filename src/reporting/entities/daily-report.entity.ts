@@ -4,16 +4,21 @@ import {
   Column,
   CreateDateColumn,
   UpdateDateColumn,
+  ManyToOne,
+  JoinColumn,
+  Index,
 } from 'typeorm';
 import { ApiProperty } from '@nestjs/swagger';
+import { Etablissement } from '../../etablissement/entities/etablissement.entity';
 
 @Entity()
+@Index(['date', 'etablissement'], { unique: true })
 export class DailyReport {
   @PrimaryGeneratedColumn()
   @ApiProperty()
   id!: number;
 
-  @Column({ type: 'date', unique: true })
+  @Column({ type: 'date' })
   @ApiProperty()
   date!: string;
 
@@ -40,6 +45,17 @@ export class DailyReport {
   @Column({ default: false })
   @ApiProperty()
   isSubmitted!: boolean;
+
+  @Column({ nullable: true })
+  @ApiProperty({ required: false })
+  pdfUrl?: string;
+
+  @ManyToOne(() => Etablissement, { nullable: true })
+  @JoinColumn({ name: 'etablissementId' })
+  etablissement!: Etablissement;
+
+  @Column({ nullable: true })
+  etablissementId!: number;
 
   @CreateDateColumn()
   @ApiProperty()

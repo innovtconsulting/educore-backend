@@ -1,4 +1,10 @@
-import { Injectable, NotFoundException, ConflictException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  ConflictException,
+  Inject,
+  forwardRef,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, MoreThan } from 'typeorm';
 import { User, Role } from './entities/user.entity';
@@ -13,8 +19,11 @@ export class UserService {
   constructor(
     @InjectRepository(User)
     private readonly userRepository: Repository<User>,
+    @Inject(forwardRef(() => EtudiantService))
     private readonly etudiantService: EtudiantService,
+    @Inject(forwardRef(() => EnseignantService))
     private readonly enseignantService: EnseignantService,
+    @Inject(forwardRef(() => ParentService))
     private readonly parentService: ParentService,
   ) {}
 
@@ -26,9 +35,8 @@ export class UserService {
       throw new ConflictException('Email déjà utilisé');
     }
 
-    if (userData.password) {
-      userData.password = await bcrypt.hash(userData.password, 10);
-    }
+    const password = userData.password || '12345678';
+    userData.password = await bcrypt.hash(password, 10);
 
     const user = this.userRepository.create(userData);
     return await this.userRepository.save(user);
@@ -37,7 +45,7 @@ export class UserService {
   async findByEmail(email: string): Promise<User | null> {
     return await this.userRepository.findOne({
       where: { email },
-      relations: { enseignant: true, etudiant: true, parent: true },
+      relations: { enseignant: true, etudiant: true, parent: true, etablissement: true },
     });
   }
 
@@ -93,12 +101,19 @@ export class UserService {
     // Mettre à jour l'utilisateur (User)
     if (email && email !== user.email) {
       const existing = await this.findByEmail(email);
-      if (existing) throw new ConflictException('Email déjà utilisé');
+      if (existing) throw new ConflictException('Email ou numéro de téléphone déjà utilisé');
       user.email = email;
     }
 
     if (password) {
       user.password = await bcrypt.hash(password, 10);
+    }
+
+    // Pour les parents, si le numéro de téléphone change, on met à jour l'identifiant si non déjà fait
+    if (user.role === Role.PARENT && phoneNumber && phoneNumber !== user.email && !email) {
+      const existing = await this.findByEmail(phoneNumber);
+      if (existing) throw new ConflictException('Numéro de téléphone déjà utilisé');
+      user.email = phoneNumber;
     }
 
     // Mettre à jour le profil lié (Etudiant, Enseignant ou Parent)

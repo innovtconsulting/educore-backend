@@ -5,15 +5,15 @@ export class CreateAffectationDto {
   @ApiProperty({ example: 1, description: 'ID de la matière' })
   @IsNumber()
   @IsNotEmpty()
-  matiereId: number;
+  matiereId!: number;
 
   @ApiProperty({ example: 1, description: "ID de l'établissement" })
   @IsNumber()
   @IsNotEmpty()
-  etablissementId: number;
+  etablissementId!: number;
 
   @ApiProperty({ example: 1, description: 'ID du niveau' })
   @IsNumber()
   @IsNotEmpty()
-  niveauId: number;
+  niveauId!: number;
 }

@@ -1,4 +1,13 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Patch,
+  Param,
+  Delete,
+  UseGuards,
+} from '@nestjs/common';
 import { AnneeUniversitaireService } from './annee-universitaire.service';
 import { CreateAnneeUniversitaireDto } from './dto/create-annee-universitaire.dto';
 import { UpdateAnneeUniversitaireDto } from './dto/update-annee-universitaire.dto';
@@ -23,7 +32,7 @@ export class AnneeUniversitaireController {
   }
 
   @Get('active')
-  @ApiOperation({ summary: 'Récupérer l\'année universitaire active' })
+  @ApiOperation({ summary: "Récupérer l'année universitaire active" })
   getActive() {
     return this.service.getActiveYear();
   }

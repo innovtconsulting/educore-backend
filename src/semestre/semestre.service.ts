@@ -28,7 +28,10 @@ export class SemestreService {
   }
 
   async findOne(id: number) {
-    const semestre = await this.semestreRepository.findOne({ where: { id } });
+    const semestre = await this.semestreRepository.findOne({
+      where: { id },
+      relations: { anneeUniversitaire: true },
+    });
     if (!semestre) throw new NotFoundException(`Semestre #${id} non trouvé`);
     return semestre;
   }

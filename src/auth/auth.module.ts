@@ -8,6 +8,7 @@ import { UserModule } from '../user/user.module';
 import { EtudiantModule } from '../etudiant/etudiant.module';
 import { EnseignantModule } from '../enseignant/enseignant.module';
 import { ParentModule } from '../parent/parent.module';
+import { GlobalSettingModule } from '../global-setting/global-setting.module';
 import { JwtStrategy } from './strategies/jwt.strategy';
 
 @Module({
@@ -16,6 +17,7 @@ import { JwtStrategy } from './strategies/jwt.strategy';
     EtudiantModule,
     EnseignantModule,
     ParentModule,
+    GlobalSettingModule,
     PassportModule,
     JwtModule.registerAsync({
       imports: [ConfigModule],

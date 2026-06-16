@@ -15,7 +15,7 @@ export class PaginationQueryDto {
   page?: number = 1;
 
   @ApiPropertyOptional({
-    description: 'Nombre d\'éléments par page',
+    description: "Nombre d'éléments par page",
     default: 20,
     minimum: 1,
   })
@@ -31,4 +31,4 @@ export class PaginationQueryDto {
   @IsOptional()
   @IsString()
   search?: string;
-  }
+}

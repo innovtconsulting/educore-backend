@@ -6,10 +6,13 @@ import { AppModule } from './../src/app.module';
 import { DataSource } from 'typeorm';
 import { TransformInterceptor } from './../src/common/interceptors/transform.interceptor';
 import { SanctionType } from './../src/sanction/entities/sanction.entity';
+import { Role } from './../src/user/entities/user.entity';
+import * as bcrypt from 'bcrypt';
 
 describe('Sanction Module (e2e)', () => {
   let app: NestExpressApplication;
   let dataSource: DataSource;
+  let accessToken: string;
 
   let etudiantId: number;
 
@@ -26,9 +29,31 @@ describe('Sanction Module (e2e)', () => {
 
     dataSource = app.get(DataSource);
 
+    // Clean state
+    const entities = dataSource.entityMetadatas;
+    for (const entity of entities) {
+      const repository = dataSource.getRepository(entity.name);
+      await repository.query(`TRUNCATE "${entity.tableName}" RESTART IDENTITY CASCADE;`);
+    }
+
+    // Setup SuperAdmin
+    const passwordHash = await bcrypt.hash('password123', 10);
+    await dataSource.getRepository('User').save({
+      email: 'superadmin@test.com',
+      password: passwordHash,
+      role: Role.SUPER_ADMIN,
+    });
+
+    const loginRes = await request(app.getHttpServer())
+      .post('/api/auth/login')
+      .send({ email: 'superadmin@test.com', password: 'password123' });
+    
+    accessToken = loginRes.body.data.access_token;
+
     // Setup: Create Etablissement, Niveau, Classe, Parent, then Etudiant
     const etablissement = await request(app.getHttpServer())
       .post('/api/etablissement')
+      .set('Authorization', `Bearer ${accessToken}`)
       .send({
         name: 'Etab Test Sanction',
         address: 'Test',
@@ -39,11 +64,13 @@ describe('Sanction Module (e2e)', () => {
 
     const niveau = await request(app.getHttpServer())
       .post('/api/niveau')
+      .set('Authorization', `Bearer ${accessToken}`)
       .send({ name: 'Niveau Test Sanction' });
     const niveauId = niveau.body.data.id;
 
     const classe = await request(app.getHttpServer())
       .post('/api/classe')
+      .set('Authorization', `Bearer ${accessToken}`)
       .send({
         name: 'Classe Test Sanction',
         etablissementIds: [etablissementId],
@@ -51,18 +78,9 @@ describe('Sanction Module (e2e)', () => {
       });
     const classeId = classe.body.data.id;
 
-    const parent = await request(app.getHttpServer())
-      .post('/api/parents')
-      .send({
-        firstName: 'Parent',
-        lastName: 'Sanction',
-        gender: 'Tuteur',
-        phoneNumber: '001',
-      });
-    const parentId = parent.body.data.id;
-
     const etudiant = await request(app.getHttpServer())
       .post('/api/etudiants')
+      .set('Authorization', `Bearer ${accessToken}`)
       .send({
         firstName: 'Etudiant',
         lastName: 'Sanctionné',
@@ -71,17 +89,19 @@ describe('Sanction Module (e2e)', () => {
         etablissementId,
         classeId,
         niveauId,
-        parentIds: [parentId],
+        parentsData: [
+          {
+            firstName: 'Parent',
+            lastName: 'Sanction',
+            gender: 'Tuteur',
+            phoneNumber: '001',
+          },
+        ],
       });
     etudiantId = etudiant.body.data.id;
   });
 
   afterAll(async () => {
-    const entities = dataSource.entityMetadatas;
-    for (const entity of entities) {
-      const repository = dataSource.getRepository(entity.name);
-      await repository.query(`TRUNCATE "${entity.tableName}" RESTART IDENTITY CASCADE;`);
-    }
     await app.close();
   });
 
@@ -90,6 +110,7 @@ describe('Sanction Module (e2e)', () => {
   it('1. Création d\'une sanction (Succès)', async () => {
     const res = await request(app.getHttpServer())
       .post('/api/sanctions')
+      .set('Authorization', `Bearer ${accessToken}`)
       .send({
         etudiantId,
         type: SanctionType.AVERTISSEMENT,
@@ -107,6 +128,7 @@ describe('Sanction Module (e2e)', () => {
   it('2. Récupération de toutes les sanctions', async () => {
     const res = await request(app.getHttpServer())
       .get('/api/sanctions')
+      .set('Authorization', `Bearer ${accessToken}`)
       .expect(200);
     
     expect(Array.isArray(res.body.data.items)).toBe(true);
@@ -116,6 +138,7 @@ describe('Sanction Module (e2e)', () => {
   it('3. Récupération des sanctions d\'un étudiant', async () => {
     const res = await request(app.getHttpServer())
       .get(`/api/sanctions/etudiant/${etudiantId}`)
+      .set('Authorization', `Bearer ${accessToken}`)
       .expect(200);
     
     expect(Array.isArray(res.body.data)).toBe(true);
@@ -125,6 +148,7 @@ describe('Sanction Module (e2e)', () => {
   it('4. Mise à jour d\'une sanction', async () => {
     const res = await request(app.getHttpServer())
       .patch(`/api/sanctions/${sanctionId}`)
+      .set('Authorization', `Bearer ${accessToken}`)
       .send({
         motif: 'Retards répétés et absentéisme',
         type: SanctionType.BLAME,
@@ -138,10 +162,13 @@ describe('Sanction Module (e2e)', () => {
   it('5. Suppression d\'une sanction', async () => {
     await request(app.getHttpServer())
       .delete(`/api/sanctions/${sanctionId}`)
+      .set('Authorization', `Bearer ${accessToken}`)
       .expect(200);
     
     await request(app.getHttpServer())
       .get(`/api/sanctions/${sanctionId}`)
+      .set('Authorization', `Bearer ${accessToken}`)
       .expect(404);
   });
 });
+

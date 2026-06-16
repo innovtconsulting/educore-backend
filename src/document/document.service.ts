@@ -6,6 +6,8 @@ import { UpdateDocumentDto } from './dto/update-document.dto';
 import { Document } from './entities/document.entity';
 import * as fs from 'fs';
 import { PaginationQueryDto } from '../common/dto/pagination-query.dto';
+import { TenantContext } from '../common/tenant/tenant.context';
+import { TenantHelper } from '../common/tenant/tenant.helper';
 
 @Injectable()
 export class DocumentService {
@@ -18,12 +20,14 @@ export class DocumentService {
     createDocumentDto: CreateDocumentDto,
     file: Express.Multer.File,
   ) {
+    const tenantId = TenantContext.getTenantId();
     const document = this.documentRepository.create({
       ...createDocumentDto,
       filePath: file.path,
       originalName: file.originalname,
       mimeType: file.mimetype,
       fileSize: file.size,
+      etablissement: tenantId ? { id: tenantId } : undefined,
     });
     return await this.documentRepository.save(document);
   }
@@ -31,14 +35,19 @@ export class DocumentService {
   async findAll(paginationQuery: PaginationQueryDto) {
     const { page = 1, limit = 15, search } = paginationQuery;
     const skip = (page - 1) * limit;
+    const tenantId = TenantContext.getTenantId();
 
-    let where: FindOptionsWhere<Document> | FindOptionsWhere<Document>[] = {};
+    let where: FindOptionsWhere<Document> | FindOptionsWhere<Document>[] = [];
     if (search) {
       where = [
         { title: ILike(`%${search}%`) },
         { description: ILike(`%${search}%`) },
       ];
+    } else {
+      where = {};
     }
+
+    where = TenantHelper.addTenantFilter(where, tenantId);
 
     const [items, total] = await this.documentRepository.findAndCount({
       where,
@@ -56,7 +65,10 @@ export class DocumentService {
   }
 
   async findOne(id: number) {
-    const document = await this.documentRepository.findOne({ where: { id } });
+    const tenantId = TenantContext.getTenantId();
+    const where = TenantHelper.addTenantFilter({ id }, tenantId);
+
+    const document = await this.documentRepository.findOne({ where });
     if (!document) {
       throw new NotFoundException(`Document #${id} non trouvé`);
     }

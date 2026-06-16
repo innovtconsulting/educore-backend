@@ -28,9 +28,10 @@ export class MatiereController {
 
   @Post()
   @Roles(Role.SUPER_ADMIN, Role.ADMIN)
-  @ApiOperation({ 
-    summary: 'Créer une matière', 
-    description: 'Enregistre une nouvelle unité d\'enseignement avec son code unique et son coefficient.' 
+  @ApiOperation({
+    summary: 'Créer une matière',
+    description:
+      "Enregistre une nouvelle unité d'enseignement avec son code unique et son coefficient.",
   })
   async create(@Body() createMatiereDto: CreateMatiereDto) {
     const data = await this.matiereService.create(createMatiereDto);
@@ -41,9 +42,10 @@ export class MatiereController {
   }
 
   @Get()
-  @ApiOperation({ 
-    summary: 'Lister toutes les matières', 
-    description: 'Récupère la liste complète des matières enregistrées dans le système.' 
+  @ApiOperation({
+    summary: 'Lister toutes les matières',
+    description:
+      'Récupère la liste complète des matières enregistrées dans le système.',
   })
   async findAll(@Query() paginationQuery: PaginationQueryDto) {
     const data = await this.matiereService.findAll(paginationQuery);
@@ -54,9 +56,10 @@ export class MatiereController {
   }
 
   @Get(':id')
-  @ApiOperation({ 
-    summary: 'Récupérer une matière par ID', 
-    description: 'Affiche les informations détaillées d\'une matière spécifique.' 
+  @ApiOperation({
+    summary: 'Récupérer une matière par ID',
+    description:
+      "Affiche les informations détaillées d'une matière spécifique.",
   })
   async findOne(@Param('id') id: string) {
     const data = await this.matiereService.findOne(+id);
@@ -68,9 +71,10 @@ export class MatiereController {
 
   @Patch(':id')
   @Roles(Role.SUPER_ADMIN, Role.ADMIN)
-  @ApiOperation({ 
-    summary: 'Modifier une matière', 
-    description: 'Permet de mettre à jour le nom, le code ou le coefficient d\'une matière.' 
+  @ApiOperation({
+    summary: 'Modifier une matière',
+    description:
+      "Permet de mettre à jour le nom, le code ou le coefficient d'une matière.",
   })
   async update(
     @Param('id') id: string,
@@ -85,9 +89,9 @@ export class MatiereController {
 
   @Delete(':id')
   @Roles(Role.SUPER_ADMIN, Role.ADMIN)
-  @ApiOperation({ 
-    summary: 'Supprimer une matière', 
-    description: 'Supprime définitivement une matière du système.' 
+  @ApiOperation({
+    summary: 'Supprimer une matière',
+    description: 'Supprime définitivement une matière du système.',
   })
   async remove(@Param('id') id: string) {
     await this.matiereService.remove(+id);

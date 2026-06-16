@@ -3,22 +3,33 @@
 Ce document présente une vue d'ensemble exhaustive des capacités du système de gestion universitaire ESPM.
 
 ## 1. 🔐 Authentification & Sécurité
-*   **Gestion des Comptes :** Activation de compte pour Étudiants et Enseignants via matricule pré-existant.
-*   **Authentification :** Sécurisée par JWT (JSON Web Tokens).
-*   **Rôles & Permissions :** Contrôle d'accès granulaire (RBAC) selon le type d'utilisateur (Admin, Comptable, Surveillant, Enseignant, Étudiant, Parent).
+*   **Gestion des Comptes :** Flux d'activation différencié selon le rôle :
+    *   **Étudiants & Enseignants :** Activation par **matricule**.
+    *   **Parents :** Activation par **numéro de téléphone** (identifiant principal).
+    *   **Admins, Comptables, Surveillants :** Activation par **ID utilisateur**.
+*   **Authentification :** Sécurisée par JWT (JSON Web Tokens). L'identifiant peut être un email ou un téléphone (parents).
+*   **Rôles & Permissions :** Contrôle d'accès granulaire (RBAC) selon le type d'utilisateur (SuperAdmin, Admin, Comptable, Surveillant, Enseignant, Étudiant, Parent).
 *   **Profils :** Consultation et mise à jour des informations personnelles avec synchronisation automatique entre le compte utilisateur et le profil métier.
 *   **Photos de Profil :** Système d'upload centralisé pour les avatars.
-*   **Récupération :** Flux complet d'oubli et de réinitialisation de mot de passe par jetons temporaires.
+*   **Récupération :** Flux complet d'oubli et de réinitialisation de mot de passe par jetons temporaires à usage unique.
 
-## 2. 🏛️ Structure Académique
-*   **Multi-Établissements :** Gestion de plusieurs sites ou entités.
-*   **Niveaux & Classes :** Organisation hiérarchique des cursus (ex: Licence 1 Informatique).
+## 2. 🏢 Architecture Multi-tenant
+Le système implémente une isolation stricte des données pour garantir la confidentialité entre les établissements :
+*   **Isolation par Tenant :** Chaque établissement (tenant) possède son propre espace de données.
+*   **Contexte de Requête :** Utilisation d'un `TenantInterceptor` et de `AsyncLocalStorage` pour propager l'ID de l'établissement tout au long du traitement d'une requête.
+*   **Filtrage Automatique :** Les ressources sensibles (Étudiants, Factures, Emplois du Temps, etc.) sont systématiquement filtrées par `etablissementId`.
+*   **Ressources Partagées :** Certaines ressources académiques (Années Universitaires, Classes, Niveaux) peuvent être partagées ou transverses, mais l'accès reste contrôlé par le contexte du tenant.
+*   **Vue Transverse :** Le rôle `SuperAdmin` bénéficie d'une visibilité totale sur l'ensemble des tenants pour la gestion globale.
+
+## 3. 🏛️ Structure Académique
+*   **Multi-Établissements :** Gestion de plusieurs sites ou entités au sein d'une même instance.
+*   **Niveaux & Classes :** Organisation hiérarchique des cursus (ex: Licence 1 Informatique). Une classe peut être rattachée à plusieurs établissements.
 *   **Matières :** Catalogue des unités d'enseignement avec codes uniques et coefficients pour le calcul des moyennes.
-*   **Affectations :** Liaison dynamique entre Enseignants, Matières, Niveaux et Établissements.
+*   **Affectations :** Liaison dynamique entre Enseignants, Matières, Niveaux et Établissements via l'entité `Affectation`.
 
 ## 3. 📅 Gestion Pédagogique (LMD)
-*   **Années Universitaires :** Définition des périodes académiques actives.
-*   **Semestres :** Découpage temporel de l'année.
+*   **Années Universitaires :** Définition des périodes académiques (ex: 2025-2026). Gestion **globale** centralisée par le SuperAdmin.
+*   **Semestres :** Découpage temporel de l'année (S1, S2). Configuration restreinte au SuperAdmin pour garantir la cohérence du cursus.
 *   **Emploi du Temps :**
     *   Planification des cours par matière, classe et enseignant.
     *   **Détection de conflits :** Vérification automatique de la disponibilité des salles/classes et des enseignants.
@@ -56,10 +67,29 @@ Ce document présente une vue d'ensemble exhaustive des capacités du système d
     *   Ventilation précise par Niveau d'étude.
     *   Suivi dynamique des relances pour factures en souffrance.
 
-## 8. 📂 Outils Transverses
+## 8. 📜 Documents Administratifs
+*   **Certificats & Attestations :** 
+    *   Génération de **Certificats de Scolarité** pour les étudiants actifs.
+    *   Génération d'**Attestations de Réussite** basées sur les résultats académiques annuels.
+*   **Historique :** Suivi complet des documents générés par étudiant avec archivage des métadonnées et accès facilité via les dashboards.
+
+## 9. 🎓 Réinscriptions & Diplomation
+*   **Cycle de Vie Annuel :** Gestion semi-automatisée du passage à l'année supérieure.
+*   **Critères de Réinscription :** Vérification automatique de la réussite académique (moyenne ≥ seuil) et de la régularité financière (solde nul).
+*   **Diplomation :** Processus de clôture du cursus pour les étudiants ayant validé leur cycle final, passant leur statut à `DIPLOME`.
+*   **Historique de Cursus :** Conservation de l'historique complet des inscriptions (Etablissement, Classe, Niveau) au fil des années.
+
+## 10. 📂 Outils Transverses
 *   **GED (Gestion Électronique de Documents) :**
     *   Stockage sécurisé de fichiers (Administratif, Pédagogique, Règlements).
     *   Gestion du cycle de vie des documents (upload/suppression physique).
 *   **Service Mail :** Moteur d'envoi de notifications (notifications de compte, réinitialisation de mot de passe).
 *   **Pagination Globale :** Standardisation de la navigation dans les grands volumes de données (20 items par défaut).
 *   **Documentation API :** Interface Swagger auto-générée pour faciliter l'intégration frontend.
+
+## 11. ⚙️ Configuration Globale (SuperAdmin)
+*   **Panneau de Contrôle :** Interface centralisée permettant de modifier le comportement de toute la plateforme sans déploiement.
+*   **Paramètres Académiques :** Définition globale des moyennes de passage et des seuils de notes éliminatoires.
+*   **Gestion des Flux :** Activation/Désactivation de l'auto-inscription publique des étudiants et enseignants.
+*   **Paramètres Financiers :** Gestion de la devise par défaut et des éventuelles pénalités de retard.
+*   **Système & Sécurité :** Mode maintenance, limites de taille d'upload et configuration des expéditeurs d'emails.

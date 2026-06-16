@@ -12,7 +12,12 @@ import {
 import { EmploiDuTempsService } from './emploi-du-temps.service';
 import { CreateEmploiDuTempDto } from './dto/create-emploi-du-temp.dto';
 import { UpdateEmploiDuTempDto } from './dto/update-emploi-du-temp.dto';
-import { ApiTags, ApiOperation, ApiQuery, ApiBearerAuth } from '@nestjs/swagger';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiQuery,
+  ApiBearerAuth,
+} from '@nestjs/swagger';
 import { PaginationQueryDto } from '../common/dto/pagination-query.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
@@ -34,7 +39,13 @@ export class EmploiDuTempsController {
   }
 
   @Get()
-  @Roles(Role.SUPER_ADMIN, Role.ADMIN, Role.ENSEIGNANT, Role.ETUDIANT, Role.SURVEILLANT)
+  @Roles(
+    Role.SUPER_ADMIN,
+    Role.ADMIN,
+    Role.ENSEIGNANT,
+    Role.ETUDIANT,
+    Role.SURVEILLANT,
+  )
   @ApiOperation({
     summary: "Récupérer l'emploi du temps (avec filtres optionnels)",
   })
@@ -69,7 +80,13 @@ export class EmploiDuTempsController {
   }
 
   @Get(':id')
-  @Roles(Role.SUPER_ADMIN, Role.ADMIN, Role.ENSEIGNANT, Role.ETUDIANT, Role.SURVEILLANT)
+  @Roles(
+    Role.SUPER_ADMIN,
+    Role.ADMIN,
+    Role.ENSEIGNANT,
+    Role.ETUDIANT,
+    Role.SURVEILLANT,
+  )
   @ApiOperation({ summary: 'Récupérer un créneau par son ID' })
   findOne(@Param('id') id: string) {
     return this.emploiDuTempsService.findOne(+id);

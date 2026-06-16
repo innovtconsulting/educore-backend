@@ -1,5 +1,10 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsDateString, IsNotEmpty, IsNumber } from 'class-validator';
+import {
+  IsDateString,
+  IsNotEmpty,
+  IsNumber,
+  IsOptional,
+} from 'class-validator';
 
 export class CreateEmploiDuTempDto {
   @ApiProperty({
@@ -39,4 +44,9 @@ export class CreateEmploiDuTempDto {
   @IsNumber()
   @IsNotEmpty()
   niveauId!: number;
+
+  @ApiProperty({ example: 1, required: false })
+  @IsNumber()
+  @IsOptional()
+  salleId?: number;
 }

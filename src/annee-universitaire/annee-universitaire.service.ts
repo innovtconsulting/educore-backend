@@ -32,12 +32,14 @@ export class AnneeUniversitaireService {
       where: { id },
       relations: { semestres: true },
     });
-    if (!annee) throw new NotFoundException(`Année universitaire #${id} non trouvée`);
+    if (!annee)
+      throw new NotFoundException(`Année universitaire #${id} non trouvée`);
     return annee;
   }
 
   async update(id: number, dto: UpdateAnneeUniversitaireDto) {
     const annee = await this.findOne(id);
+
     if (dto.isActive && !annee.isActive) {
       await this.repo.update({}, { isActive: false });
     }
@@ -52,7 +54,8 @@ export class AnneeUniversitaireService {
 
   async getActiveYear() {
     const active = await this.repo.findOne({ where: { isActive: true } });
-    if (!active) throw new NotFoundException('Aucune année universitaire active');
+    if (!active)
+      throw new NotFoundException('Aucune année universitaire active');
     return active;
   }
 }

@@ -7,6 +7,7 @@ import {
   Param,
   ParseIntPipe,
   UseGuards,
+  NotFoundException,
 } from '@nestjs/common';
 import { ReportingService } from './reporting.service';
 import { ApiTags, ApiOperation, ApiQuery, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
@@ -91,6 +92,20 @@ export class ReportingController {
     return {
       message: 'Rapport quotidien récupéré avec succès',
       data: report,
+    };
+  }
+
+  @Get('daily-report/:id/pdf')
+  @Roles(Role.SUPER_ADMIN, Role.ADMIN, Role.SURVEILLANT)
+  @ApiOperation({ summary: 'Récupérer le PDF d\'un rapport quotidien' })
+  async getDailyReportPdf(@Param('id', ParseIntPipe) id: number) {
+    const report = await this.reportingService.getDailyReportById(id);
+    if (!report.pdfUrl) {
+      throw new NotFoundException('Le PDF de ce rapport n\'a pas encore été généré');
+    }
+    return {
+      message: 'Lien du PDF récupéré avec succès',
+      data: { pdfUrl: `/${report.pdfUrl}` },
     };
   }
 }

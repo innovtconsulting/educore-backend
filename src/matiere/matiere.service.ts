@@ -11,6 +11,8 @@ import { Matiere } from './entities/matiere.entity';
 import { Classe } from '../classe/entities/classe.entity';
 import { Niveau } from '../niveau/entities/niveau.entity';
 import { PaginationQueryDto } from '../common/dto/pagination-query.dto';
+import { TenantContext } from '../common/tenant/tenant.context';
+import { TenantHelper } from '../common/tenant/tenant.helper';
 
 @Injectable()
 export class MatiereService {
@@ -64,14 +66,20 @@ export class MatiereService {
   async findAll(paginationQuery: PaginationQueryDto) {
     const { page = 1, limit = 15, search } = paginationQuery;
     const skip = (page - 1) * limit;
+    const tenantId = TenantContext.getTenantId();
 
-    let where: FindOptionsWhere<Matiere> | FindOptionsWhere<Matiere>[] = {};
+    let where: FindOptionsWhere<Matiere> | FindOptionsWhere<Matiere>[] = [];
     if (search) {
-      where = [
-        { name: ILike(`%${search}%`) },
-        { code: ILike(`%${search}%`) },
-      ];
+      where = [{ name: ILike(`%${search}%`) }, { code: ILike(`%${search}%`) }];
+    } else {
+      where = {};
     }
+
+    where = TenantHelper.addTenantFilter(
+      where,
+      tenantId,
+      'classes.etablissements',
+    );
 
     const [items, total] = await this.matiereRepository.findAndCount({
       where,
@@ -90,8 +98,15 @@ export class MatiereService {
   }
 
   async findOne(id: number): Promise<Matiere> {
+    const tenantId = TenantContext.getTenantId();
+    const where = TenantHelper.addTenantFilter(
+      { id },
+      tenantId,
+      'classes.etablissements',
+    );
+
     const matiere = await this.matiereRepository.findOne({
-      where: { id },
+      where: where,
       relations: { classes: true, niveaux: true },
     });
     if (!matiere) {

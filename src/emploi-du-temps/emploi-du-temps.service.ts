@@ -13,8 +13,10 @@ import { Enseignant } from '../enseignant/entities/enseignant.entity';
 import { Etablissement } from '../etablissement/entities/etablissement.entity';
 import { Classe } from '../classe/entities/classe.entity';
 import { Niveau } from '../niveau/entities/niveau.entity';
+import { Salle } from '../salle/entities/salle.entity';
 import { Affectation } from '../enseignant/entities/affectation.entity';
 import { PaginationQueryDto } from '../common/dto/pagination-query.dto';
+import { TenantContext } from '../common/tenant/tenant.context';
 
 @Injectable()
 export class EmploiDuTempsService {
@@ -31,6 +33,8 @@ export class EmploiDuTempsService {
     private readonly classeRepository: Repository<Classe>,
     @InjectRepository(Niveau)
     private readonly niveauRepository: Repository<Niveau>,
+    @InjectRepository(Salle)
+    private readonly salleRepository: Repository<Salle>,
     @InjectRepository(Affectation)
     private readonly affectationRepository: Repository<Affectation>,
   ) {}
@@ -46,6 +50,7 @@ export class EmploiDuTempsService {
       etablissementId,
       classeId,
       niveauId,
+      salleId,
     } = createEmploiDuTempDto;
     const start = new Date(startTime);
     const end = new Date(endTime);
@@ -57,9 +62,22 @@ export class EmploiDuTempsService {
     }
 
     // 1. Vérifier l'existence des entités
-    const matiere = await this.matiereRepository.findOneBy({ id: matiereId });
+    const matiere = await this.matiereRepository.findOne({
+      where: { id: matiereId },
+      relations: { classes: true, niveaux: true },
+    });
     if (!matiere)
       throw new NotFoundException(`Matière ${matiereId} introuvable`);
+
+    // Vérification de la cohérence académique : La matière doit être liée à la classe et au niveau
+    const hasClasse = matiere.classes.some((c) => c.id === classeId);
+    const hasNiveau = matiere.niveaux.some((n) => n.id === niveauId);
+
+    if (!hasClasse || !hasNiveau) {
+      throw new BadRequestException(
+        "Cette matière n'est pas prévue pour cette classe ou ce niveau",
+      );
+    }
 
     const enseignant = await this.enseignantRepository.findOneBy({
       id: enseignantId,
@@ -81,6 +99,13 @@ export class EmploiDuTempsService {
     const niveau = await this.niveauRepository.findOneBy({ id: niveauId });
     if (!niveau) throw new NotFoundException(`Niveau ${niveauId} introuvable`);
 
+    let salle: Salle | undefined;
+    if (salleId) {
+      salle =
+        (await this.salleRepository.findOneBy({ id: salleId })) || undefined;
+      if (!salle) throw new NotFoundException(`Salle ${salleId} introuvable`);
+    }
+
     // 2. Vérifier l'affectation de l'enseignant
     const affectation = await this.affectationRepository.findOne({
       where: {
@@ -97,7 +122,14 @@ export class EmploiDuTempsService {
     }
 
     // 3. Vérifier les conflits
-    await this.checkConflicts(start, end, enseignantId, classeId);
+    await this.checkConflicts(
+      start,
+      end,
+      enseignantId,
+      classeId,
+      undefined,
+      salleId,
+    );
 
     const newEmploi = this.emploiDuTempRepository.create({
       startTime: start,
@@ -107,6 +139,7 @@ export class EmploiDuTempsService {
       etablissement,
       classe,
       niveau,
+      salle,
     });
 
     return await this.emploiDuTempRepository.save(newEmploi);
@@ -118,6 +151,7 @@ export class EmploiDuTempsService {
     enseignantId: number,
     classeId: number,
     excludeId?: number,
+    salleId?: number,
   ) {
     // Conflit enseignant
     const enseignantConflict = await this.emploiDuTempRepository
@@ -146,6 +180,22 @@ export class EmploiDuTempsService {
         'La classe est déjà occupée sur cette plage horaire',
       );
     }
+
+    // Conflit salle
+    if (salleId) {
+      const salleConflict = await this.emploiDuTempRepository
+        .createQueryBuilder('e')
+        .where('e.salleId = :salleId', { salleId })
+        .andWhere(':start < e.endTime AND :end > e.startTime', { start, end })
+        .andWhere(excludeId ? 'e.id != :excludeId' : '1=1', { excludeId })
+        .getOne();
+
+      if (salleConflict) {
+        throw new BadRequestException(
+          'La salle est déjà occupée sur cette plage horaire',
+        );
+      }
+    }
   }
 
   async findAll(
@@ -158,14 +208,17 @@ export class EmploiDuTempsService {
     const { page = 1, limit = 15 } = paginationQuery;
     const skip = (page - 1) * limit;
 
+    const tenantId = TenantContext.getTenantId();
     const query = this.emploiDuTempRepository
       .createQueryBuilder('e')
       .leftJoinAndSelect('e.matiere', 'matiere')
       .leftJoinAndSelect('e.enseignant', 'enseignant')
       .leftJoinAndSelect('e.etablissement', 'etablissement')
       .leftJoinAndSelect('e.classe', 'classe')
-      .leftJoinAndSelect('e.niveau', 'niveau');
+      .leftJoinAndSelect('e.niveau', 'niveau')
+      .leftJoinAndSelect('e.salle', 'salle');
 
+    if (tenantId) query.andWhere('e.etablissementId = :tenantId', { tenantId });
     if (classeId) query.andWhere('e.classeId = :classeId', { classeId });
     if (niveauId) query.andWhere('e.niveauId = :niveauId', { niveauId });
     if (start && end) {
@@ -190,14 +243,19 @@ export class EmploiDuTempsService {
   }
 
   async findOne(id: number): Promise<EmploiDuTemp> {
+    const tenantId = TenantContext.getTenantId();
+    const where: any = { id };
+    if (tenantId) where.etablissement = { id: tenantId };
+
     const emploi = await this.emploiDuTempRepository.findOne({
-      where: { id },
+      where,
       relations: {
         matiere: true,
         enseignant: true,
         etablissement: true,
         classe: true,
         niveau: true,
+        salle: true,
       },
     });
     if (!emploi)
@@ -210,31 +268,66 @@ export class EmploiDuTempsService {
     updateEmploiDuTempDto: UpdateEmploiDuTempDto,
   ): Promise<EmploiDuTemp> {
     const emploi = await this.findOne(id);
-    const { startTime, endTime, enseignantId, classeId } =
-      updateEmploiDuTempDto;
+    const {
+      startTime,
+      endTime,
+      enseignantId,
+      classeId,
+      salleId,
+      matiereId,
+      niveauId,
+    } = updateEmploiDuTempDto;
 
     const start = startTime ? new Date(startTime) : emploi.startTime;
     const end = endTime ? new Date(endTime) : emploi.endTime;
     const eId = enseignantId || emploi.enseignant.id;
     const cId = classeId || emploi.classe.id;
+    const sId = salleId !== undefined ? salleId || undefined : emploi.salle?.id;
 
-    if (startTime || endTime || enseignantId || classeId) {
+    if (
+      startTime ||
+      endTime ||
+      enseignantId ||
+      classeId ||
+      salleId !== undefined
+    ) {
       if (start >= end)
         throw new BadRequestException(
           "L'heure de début doit être avant l'heure de fin",
         );
-      await this.checkConflicts(start, end, eId, cId, id);
+      await this.checkConflicts(start, end, eId, cId, id, sId);
     }
 
-    // Note: Pour une mise à jour complexe impliquant matiereId/etablissementId/niveauId,
-    // il faudrait aussi re-vérifier l'affectation, mais on reste simple ici ou on Object.assign
+    if (matiereId || niveauId || classeId) {
+      const mId = matiereId || emploi.matiere.id;
+      const nId = niveauId || emploi.niveau.id;
+      const clId = classeId || emploi.classe.id;
+
+      const matiere = await this.matiereRepository.findOne({
+        where: { id: mId },
+        relations: { classes: true, niveaux: true },
+      });
+
+      if (matiere) {
+        const hasClasse = matiere.classes.some((c) => c.id === clId);
+        const hasNiveau = matiere.niveaux.some((n) => n.id === nId);
+        if (!hasClasse || !hasNiveau) {
+          throw new BadRequestException(
+            "Cette matière n'est pas prévue pour cette classe ou ce niveau",
+          );
+        }
+      }
+    }
+
+    if (salleId) {
+      const salle = await this.salleRepository.findOneBy({ id: salleId });
+      if (!salle) throw new NotFoundException(`Salle ${salleId} introuvable`);
+      emploi.salle = salle;
+    } else if (salleId === null) {
+      emploi.salle = undefined;
+    }
+
     Object.assign(emploi, updateEmploiDuTempDto);
-
-    // Si des IDs sont passés, TypeORM ne les mappera pas automatiquement via Object.assign sur les relations
-    // On laisse TypeORM gérer les scalaires et on pourrait charger les entités si besoin.
-    // Pour ce projet, on va supposer que les IDs sont gérés par les colonnes de jointure si définies,
-    // ou on fait des findOne si on veut être strict.
-
     return await this.emploiDuTempRepository.save(emploi);
   }
 

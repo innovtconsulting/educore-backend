@@ -6,21 +6,37 @@ import { Matiere } from '../matiere/entities/matiere.entity';
 import { Enseignant } from '../enseignant/entities/enseignant.entity';
 import { Affectation } from '../enseignant/entities/affectation.entity';
 import { EmploiDuTemp } from '../emploi-du-temps/entities/emploi-du-temp.entity';
-import { Etudiant } from '../etudiant/entities/etudiant.entity';
+import { Etudiant, EnrollmentStatus } from '../etudiant/entities/etudiant.entity';
 import { Parent } from '../parent/entities/parent.entity';
 import { Presence } from '../presence/entities/presence.entity';
 import { Sanction, SanctionType } from '../sanction/entities/sanction.entity';
 import { DailyReport } from '../reporting/entities/daily-report.entity';
-import { Document, DocumentCategory } from '../document/entities/document.entity';
+import {
+  Document,
+  DocumentCategory,
+} from '../document/entities/document.entity';
 import { AnneeUniversitaire } from '../annee-universitaire/entities/annee-universitaire.entity';
 import { Semestre } from '../semestre/entities/semestre.entity';
-import { Evaluation, EvaluationSession, EvaluationType } from '../evaluation/entities/evaluation.entity';
+import {
+  Evaluation,
+  EvaluationSession,
+  EvaluationType,
+} from '../evaluation/entities/evaluation.entity';
 import { Note } from '../note/entities/note.entity';
 import { Devoir } from '../devoir/entities/devoir.entity';
+import { Submission } from '../devoir/entities/submission.entity';
+import { Salle } from '../salle/entities/salle.entity';
 import { Frais, FeeType } from '../finance/entities/frais.entity';
 import { Facture, InvoiceStatus } from '../finance/entities/facture.entity';
 import { Paiement, PaymentMethod } from '../finance/entities/paiement.entity';
-import { Discipline, DisciplineCategory } from '../discipline/entities/discipline.entity';
+import {
+  Discipline,
+  DisciplineCategory,
+} from '../discipline/entities/discipline.entity';
+import {
+  GlobalSetting,
+  SettingCategory,
+} from '../global-setting/entities/global-setting.entity';
 import { User, Role } from '../user/entities/user.entity';
 import * as bcrypt from 'bcrypt';
 import { generateReceiptPdf } from '../finance/utils/pdf-generator';
@@ -61,7 +77,10 @@ const dataSource = new DataSource({
     Discipline,
     User,
     Devoir,
-    ],
+    Submission,
+    Salle,
+    GlobalSetting,
+  ],
   synchronize: true,
 });
 
@@ -91,8 +110,48 @@ async function seed() {
     const factureRepo = dataSource.getRepository(Facture);
     const paiementRepo = dataSource.getRepository(Paiement);
     const devoirRepo = dataSource.getRepository(Devoir);
+    const submissionRepo = dataSource.getRepository(Submission);
+    const salleRepo = dataSource.getRepository(Salle);
+    const globalSettingRepo = dataSource.getRepository(GlobalSetting);
 
-    // 0. Année Universitaire
+    // 0. Configuration Globale
+    const defaultSettings = [
+      {
+        key: 'ACADEMIC_PASSING_GRADE',
+        value: '10',
+        category: SettingCategory.ACADEMIC,
+        description: 'Moyenne de passage par défaut',
+      },
+      {
+        key: 'ACADEMIC_ELIMINATION_THRESHOLD',
+        value: '4',
+        category: SettingCategory.ACADEMIC,
+        description: 'Note éliminatoire',
+      },
+      {
+        key: 'ENABLE_STUDENT_REGISTRATION',
+        value: 'true',
+        category: SettingCategory.SECURITY,
+        description: "Autoriser l'auto-inscription des étudiants",
+      },
+      {
+        key: 'ENABLE_TEACHER_REGISTRATION',
+        value: 'true',
+        category: SettingCategory.SECURITY,
+        description: "Autoriser l'auto-inscription des enseignants",
+      },
+      {
+        key: 'FINANCIAL_CURRENCY',
+        value: 'CFA',
+        category: SettingCategory.FINANCIAL,
+        description: 'Devise du système',
+      },
+    ];
+    await globalSettingRepo.save(
+      defaultSettings.map((s) => globalSettingRepo.create(s)),
+    );
+
+    // 0.1 Année Universitaire
     const annee2026 = anneeRepo.create({
       label: '2026-2027',
       startDate: new Date('2026-10-01'),
@@ -114,7 +173,13 @@ async function seed() {
       email: 'contact.esp@ucad.edu.sn',
       phone: '+221 33 864 51 96',
     });
-    await etablissementRepo.save([fst, esp]);
+    const iut = etablissementRepo.create({
+      name: 'Institut Universitaire de Technologie (IUT)',
+      address: 'UCAD, Dakar',
+      email: 'contact.iut@ucad.edu.sn',
+      phone: '+221 33 824 00 00',
+    });
+    await etablissementRepo.save([fst, esp, iut]);
 
     // 2. Niveaux
     const l1 = niveauRepo.create({ name: 'Licence 1' });
@@ -122,7 +187,9 @@ async function seed() {
     const l3 = niveauRepo.create({ name: 'Licence 3' });
     const m1 = niveauRepo.create({ name: 'Master 1' });
     const m2 = niveauRepo.create({ name: 'Master 2' });
-    await niveauRepo.save([l1, l2, l3, m1, m2]);
+    const dut1 = niveauRepo.create({ name: 'DUT 1' });
+    const dut2 = niveauRepo.create({ name: 'DUT 2' });
+    await niveauRepo.save([l1, l2, l3, m1, m2, dut1, dut2]);
 
     // 3. Classes
     const informatique = classeRepo.create({
@@ -135,7 +202,12 @@ async function seed() {
       niveaux: [l1, l2, l3],
       etablissements: [fst],
     });
-    await classeRepo.save([informatique, mathematiques]);
+    const genieElectrique = classeRepo.create({
+      name: 'Génie Électrique',
+      niveaux: [dut1, dut2],
+      etablissements: [iut],
+    });
+    await classeRepo.save([informatique, mathematiques, genieElectrique]);
 
     // 4. Matières
     const algo = matiereRepo.create({
@@ -159,7 +231,14 @@ async function seed() {
       classes: [informatique],
       niveaux: [l3],
     });
-    await matiereRepo.save([algo, baseDonnees, reseaux]);
+    const electronique = matiereRepo.create({
+      code: 'GE101',
+      name: 'Électronique Fondamentale',
+      coefficient: 3,
+      classes: [genieElectrique],
+      niveaux: [dut1],
+    });
+    await matiereRepo.save([algo, baseDonnees, reseaux, electronique]);
 
     // 5. Enseignants
     const profDiallo = enseignantRepo.create({
@@ -178,7 +257,15 @@ async function seed() {
       dateEmbauche: new Date('2021-01-01'),
       phone: '+221 77 987 65 43',
     });
-    await enseignantRepo.save([profDiallo, profSow]);
+    const profNdiaye = enseignantRepo.create({
+      firstName: 'Abdou',
+      lastName: 'Ndiaye',
+      email: 'abdou.ndiaye@ucad.edu.sn',
+      matricule: 'IUT-GE-001',
+      dateEmbauche: new Date('2022-01-01'),
+      phone: '+221 77 555 44 33',
+    });
+    await enseignantRepo.save([profDiallo, profSow, profNdiaye]);
 
     // 6. Affectations
     const aff1 = affectationRepo.create({
@@ -199,7 +286,13 @@ async function seed() {
       etablissement: fst,
       niveau: l1,
     });
-    await affectationRepo.save([aff1, aff2, aff3]);
+    const aff4 = affectationRepo.create({
+      enseignant: profNdiaye,
+      matiere: electronique,
+      etablissement: iut,
+      niveau: dut1,
+    });
+    await affectationRepo.save([aff1, aff2, aff3, aff4]);
 
     // 7. Parents
     const parent1 = parentRepo.create({
@@ -215,7 +308,13 @@ async function seed() {
       gender: 'Mère' as any,
       phoneNumber: '+221 77 444 55 66',
     });
-    await parentRepo.save([parent1, parent2]);
+    const parent3 = parentRepo.create({
+      firstName: 'Ibrahima',
+      lastName: 'Ndiaye',
+      gender: 'Père' as any,
+      phoneNumber: '+221 77 666 77 88',
+    });
+    await parentRepo.save([parent1, parent2, parent3]);
 
     // 8. Étudiants
     const etudiant1 = etudiantRepo.create({
@@ -237,9 +336,44 @@ async function seed() {
       classe: informatique,
       niveau: l2,
     });
-    // Note: etudiant2 (Fatou Ndiaye) et profSow (Mariam Sow) 
-    // sont créés sans compte User pour permettre de tester l'inscription par matricule.
-    await etudiantRepo.save([etudiant1, etudiant2]);
+    const etudiant3 = etudiantRepo.create({
+      firstName: 'Amadou',
+      lastName: 'Ndiaye',
+      email: 'amadou.ndiaye@email.sn',
+      matricule: 'ETU-2026-003',
+      etablissement: iut,
+      classe: genieElectrique,
+      niveau: dut1,
+      parents: [parent3],
+    });
+    const etudiantWait = etudiantRepo.create({
+      firstName: 'Jean',
+      lastName: 'Dupont',
+      email: 'jean.dupont@email.sn',
+      status: EnrollmentStatus.EN_ATTENTE,
+      etablissement: fst,
+      classe: informatique,
+      niveau: l1,
+    });
+    await etudiantRepo.save([etudiant1, etudiant2, etudiant3, etudiantWait]);
+
+    // 8.1 Salles
+    const salle101 = salleRepo.create({
+      name: 'Salle 101',
+      capacity: 40,
+      etablissement: fst,
+    });
+    const salle102 = salleRepo.create({
+      name: 'Salle 102',
+      capacity: 30,
+      etablissement: esp,
+    });
+    const laboInfo = salleRepo.create({
+      name: 'Laboratoire Info',
+      capacity: 25,
+      etablissement: fst,
+    });
+    await salleRepo.save([salle101, salle102, laboInfo]);
 
     // 9. Emploi du Temps
     const cours1 = emploiRepo.create({
@@ -250,6 +384,7 @@ async function seed() {
       etablissement: fst,
       classe: informatique,
       niveau: l1,
+      salle: salle101,
     });
     await emploiRepo.save(cours1);
 
@@ -258,7 +393,7 @@ async function seed() {
       etudiant: etudiant1,
       emploiDuTemp: cours1,
       status: 'Présent' as any,
-      remark: 'À l\'heure',
+      remark: "À l'heure",
     });
     await presenceRepo.save(pres1);
 
@@ -266,7 +401,7 @@ async function seed() {
     const sanc1 = sanctionRepo.create({
       etudiant: etudiant1,
       type: SanctionType.AVERTISSEMENT,
-      motif: 'Retards répétés au cours d\'Algorithmique',
+      motif: "Retards répétés au cours d'Algorithmique",
       dateDecision: new Date('2026-06-09'),
       isApplied: true,
     });
@@ -281,7 +416,7 @@ async function seed() {
       niveau: l1,
     });
     const fraisInscr = fraisRepo.create({
-      name: 'Frais d\'inscription L1',
+      name: "Frais d'inscription L1",
       amount: 50000,
       type: FeeType.INSCRIPTION,
       classe: informatique,
@@ -305,7 +440,7 @@ async function seed() {
       montantTotal: 600000,
       status: InvoiceStatus.VALIDE,
     });
-    
+
     // Facture directement payée (Formulaire manuel)
     const facManual = factureRepo.create({
       numero: 'FAC-MANUAL-001',
@@ -313,9 +448,9 @@ async function seed() {
       dateEmission: new Date('2026-06-11'),
       montantTotal: 100000,
       status: InvoiceStatus.PAYE,
-      notes: 'Règlement immédiat lors de la saisie manuelle'
+      notes: 'Règlement immédiat lors de la saisie manuelle',
     });
-    
+
     await factureRepo.save([fac1, fac2, facManual]);
 
     const pay1 = paiementRepo.create({
@@ -327,7 +462,7 @@ async function seed() {
       modePaiement: PaymentMethod.WAVE,
     });
     const savedPay1 = await paiementRepo.save(pay1);
-    
+
     // Générer le reçu PDF pour le premier paiement
     try {
       const recuPath = await generateReceiptPdf(savedPay1);
@@ -350,16 +485,17 @@ async function seed() {
 
     // Mettre à jour manuellement le statut dans le seed pour déclencher la quittance
     // (Dans l'app, c'est fait via FinanceService.createPaiement)
-    // Ici on simule l'appel au service ou on laisse le repo faire, 
+    // Ici on simule l'appel au service ou on laisse le repo faire,
     // mais pour le seed on va juste s'assurer que l'appel a eu lieu.
     // Note: Le seed utilise les repos directement, donc on doit appeler le service si on veut l'automatisation.
     // Pour rester simple et efficace dans le seed, je vais juste vérifier le fonctionnement via le build/test.
-    
+
     // 13. Rapport Quotidien
     const dailyReport = dailyReportRepo.create({
       date: '2026-06-09',
       supervisorName: 'M. Faye',
-      observations: 'Journée calme, quelques retards signalés en début de matinée.',
+      observations:
+        'Journée calme, quelques retards signalés en début de matinée.',
       totalAbsences: 0,
       totalRetards: 0,
       totalSanctions: 1,
@@ -457,12 +593,14 @@ async function seed() {
     const disciplineRepo = dataSource.getRepository(Discipline);
     const reglement1 = disciplineRepo.create({
       title: 'Tenue Vestimentaire',
-      content: 'Le port de la blouse est obligatoire pour tous les étudiants dans l\'enceinte de l\'établissement.',
+      content:
+        "Le port de la blouse est obligatoire pour tous les étudiants dans l'enceinte de l'établissement.",
       category: DisciplineCategory.REGLEMENT_INTERIEUR,
     });
     const reglement2 = disciplineRepo.create({
       title: 'Usage des Smartphones',
-      content: 'L\'utilisation des téléphones portables est strictement interdite durant les heures de cours et d\'examen.',
+      content:
+        "L'utilisation des téléphones portables est strictement interdite durant les heures de cours et d'examen.",
       category: DisciplineCategory.DISCIPLINE,
     });
     await disciplineRepo.save([reglement1, reglement2]);
@@ -481,6 +619,12 @@ async function seed() {
         email: 'admin@espm.sn',
         password: passwordHash,
         role: Role.ADMIN,
+      }),
+      // Utilisateur Admin prêt à être activé (pas de mot de passe)
+      userRepo.create({
+        email: 'activation.admin@espm.sn',
+        role: Role.ADMIN,
+        isActive: false,
       }),
       userRepo.create({
         email: 'comptable@espm.sn',
@@ -504,8 +648,9 @@ async function seed() {
         role: Role.ETUDIANT,
         etudiant: etudiant1,
       }),
+      // Parent avec numéro de téléphone comme identifiant
       userRepo.create({
-        email: 'modou.sow@espm.sn',
+        email: parent1.phoneNumber,
         password: passwordHash,
         role: Role.PARENT,
         parent: parent1,
@@ -525,14 +670,34 @@ async function seed() {
     });
     const devoir2 = devoirRepo.create({
       title: 'Projet Base de Données',
-      description: 'Concevoir le schéma MCD/MLD d\'une gestion de stock.',
+      description: "Concevoir le schéma MCD/MLD d'une gestion de stock.",
       deadline: new Date('2026-06-30T23:59:59Z'),
       matiere: baseDonnees,
       classe: informatique,
       niveau: l2,
       enseignant: profDiallo,
     });
-    await devoirRepo.save([devoir1, devoir2]);
+    const savedDevoirs = await devoirRepo.save([devoir1, devoir2]);
+
+    // 19. Submissions
+    const docRendu = documentRepo.create({
+      title: 'Rendu TP Liste Chaînée - Ousmane Sow',
+      description: 'Mon code source C et le compte-rendu.',
+      category: DocumentCategory.PEDAGOGIQUE,
+      filePath: 'uploads/documents/rendu_tp1_ousmane.pdf',
+      originalName: 'rendu_tp1_ousmane.pdf',
+      mimeType: 'application/pdf',
+      fileSize: 1024 * 150,
+    });
+    const savedDocRendu = await documentRepo.save(docRendu);
+
+    const submission1 = submissionRepo.create({
+      devoir: savedDevoirs[0],
+      etudiant: etudiant1,
+      document: savedDocRendu,
+      comment: "Voici mon travail pour le TP 1. J'ai ajouté les bonus.",
+    });
+    await submissionRepo.save(submission1);
 
     console.log('Seeding terminé avec succès !');
   } catch (error) {

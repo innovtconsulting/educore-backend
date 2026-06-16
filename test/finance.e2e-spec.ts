@@ -8,10 +8,13 @@ import { TransformInterceptor } from './../src/common/interceptors/transform.int
 import { FeeType } from './../src/finance/entities/frais.entity';
 import { InvoiceStatus } from './../src/finance/entities/facture.entity';
 import { PaymentMethod } from './../src/finance/entities/paiement.entity';
+import { Role } from './../src/user/entities/user.entity';
+import * as bcrypt from 'bcrypt';
 
 describe('Finance Module (e2e)', () => {
   let app: NestExpressApplication;
   let dataSource: DataSource;
+  let accessToken: string;
 
   let etudiantId: number;
 
@@ -35,9 +38,24 @@ describe('Finance Module (e2e)', () => {
       await repository.query(`TRUNCATE "${entity.tableName}" RESTART IDENTITY CASCADE;`);
     }
 
+    // Setup SuperAdmin
+    const passwordHash = await bcrypt.hash('password123', 10);
+    await dataSource.getRepository('User').save({
+      email: 'superadmin@test.com',
+      password: passwordHash,
+      role: Role.SUPER_ADMIN,
+    });
+
+    const loginRes = await request(app.getHttpServer())
+      .post('/api/auth/login')
+      .send({ email: 'superadmin@test.com', password: 'password123' });
+    
+    accessToken = loginRes.body.data.access_token;
+
     // Setup: Create Etab, Niveau, Classe, Parent, then Etudiant
     const etablissement = await request(app.getHttpServer())
       .post('/api/etablissement')
+      .set('Authorization', `Bearer ${accessToken}`)
       .send({
         name: 'Etab Test Finance',
         address: 'Test',
@@ -48,11 +66,13 @@ describe('Finance Module (e2e)', () => {
 
     const niveau = await request(app.getHttpServer())
       .post('/api/niveau')
+      .set('Authorization', `Bearer ${accessToken}`)
       .send({ name: 'Niveau Test Finance' });
     const niveauId = niveau.body.data.id;
 
     const classe = await request(app.getHttpServer())
       .post('/api/classe')
+      .set('Authorization', `Bearer ${accessToken}`)
       .send({
         name: 'Classe Test Finance',
         etablissementIds: [etablissementId],
@@ -62,6 +82,7 @@ describe('Finance Module (e2e)', () => {
 
     const parent = await request(app.getHttpServer())
       .post('/api/parents')
+      .set('Authorization', `Bearer ${accessToken}`)
       .send({
         firstName: 'Parent',
         lastName: 'Finance',
@@ -72,6 +93,7 @@ describe('Finance Module (e2e)', () => {
 
     const etudiant = await request(app.getHttpServer())
       .post('/api/etudiants')
+      .set('Authorization', `Bearer ${accessToken}`)
       .send({
         firstName: 'Etudiant',
         lastName: 'Finance',
@@ -80,23 +102,27 @@ describe('Finance Module (e2e)', () => {
         etablissementId,
         classeId,
         niveauId,
-        parentIds: [parentId],
+        parentsData: [
+          {
+            firstName: 'Parent',
+            lastName: 'Finance',
+            gender: 'Tuteur',
+            phoneNumber: '002',
+          },
+        ],
       });
     etudiantId = etudiant.body.data.id;
+
   });
 
   afterAll(async () => {
-    const entities = dataSource.entityMetadatas;
-    for (const entity of entities) {
-      const repository = dataSource.getRepository(entity.name);
-      await repository.query(`TRUNCATE "${entity.tableName}" RESTART IDENTITY CASCADE;`);
-    }
     await app.close();
   });
 
   it('1. Création d\'un frais configuré', async () => {
     const res = await request(app.getHttpServer())
       .post('/api/finance/frais')
+      .set('Authorization', `Bearer ${accessToken}`)
       .send({
         name: 'Scolarité L1 Info',
         amount: 500000,
@@ -112,6 +138,7 @@ describe('Finance Module (e2e)', () => {
   it('2. Émission d\'une facture', async () => {
     const res = await request(app.getHttpServer())
       .post('/api/finance/factures')
+      .set('Authorization', `Bearer ${accessToken}`)
       .send({
         numero: 'FAC-2026-TEST-001',
         etudiantId,
@@ -128,6 +155,7 @@ describe('Finance Module (e2e)', () => {
   it('3. Enregistrement d\'un paiement partiel', async () => {
     const res = await request(app.getHttpServer())
       .post('/api/finance/paiements')
+      .set('Authorization', `Bearer ${accessToken}`)
       .send({
         reference: 'PAY-TEST-001',
         etudiantId,
@@ -144,6 +172,7 @@ describe('Finance Module (e2e)', () => {
     // Vérifier le statut de la facture
     const facRes = await request(app.getHttpServer())
       .get(`/api/finance/factures/${factureId}`)
+      .set('Authorization', `Bearer ${accessToken}`)
       .expect(200);
     
     expect(facRes.body.data.status).toBe(InvoiceStatus.PARTIEL);
@@ -152,6 +181,7 @@ describe('Finance Module (e2e)', () => {
   it('4. Enregistrement du paiement du solde', async () => {
     await request(app.getHttpServer())
       .post('/api/finance/paiements')
+      .set('Authorization', `Bearer ${accessToken}`)
       .send({
         reference: 'PAY-TEST-002',
         etudiantId,
@@ -165,6 +195,7 @@ describe('Finance Module (e2e)', () => {
     // Vérifier le statut de la facture
     const facRes = await request(app.getHttpServer())
       .get(`/api/finance/factures/${factureId}`)
+      .set('Authorization', `Bearer ${accessToken}`)
       .expect(200);
     
     expect(facRes.body.data.status).toBe(InvoiceStatus.PAYE);
@@ -173,6 +204,7 @@ describe('Finance Module (e2e)', () => {
   it('5. Consultation du tableau de bord', async () => {
     const res = await request(app.getHttpServer())
       .get('/api/finance/dashboard')
+      .set('Authorization', `Bearer ${accessToken}`)
       .expect(200);
     
     expect(res.body.data.totalCollected).toBe(500000);
@@ -183,9 +215,11 @@ describe('Finance Module (e2e)', () => {
   it('6. Génération d\'un rapport financier', async () => {
     const res = await request(app.getHttpServer())
       .get('/api/finance/report?start=2026-06-01&end=2026-06-30')
+      .set('Authorization', `Bearer ${accessToken}`)
       .expect(200);
     
     expect(res.body.data.count).toBe(2);
     expect(res.body.data.totalCollected).toBe(500000);
   });
 });
+

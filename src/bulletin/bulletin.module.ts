@@ -10,5 +10,6 @@ import { Semestre } from '../semestre/entities/semestre.entity';
   imports: [TypeOrmModule.forFeature([Note, Etudiant, Semestre])],
   controllers: [BulletinController],
   providers: [BulletinService],
+  exports: [BulletinService],
 })
 export class BulletinModule {}

@@ -6,11 +6,14 @@ import { Sanction } from '../sanction/entities/sanction.entity';
 import { DailyReport } from './entities/daily-report.entity';
 import { SubmitDailyReportDto } from './dto/submit-daily-report.dto';
 import { PaginationQueryDto } from '../common/dto/pagination-query.dto';
+import { generateDailyReportPdf } from './utils/daily-report-pdf-generator';
 import { Etudiant } from '../etudiant/entities/etudiant.entity';
 import { Enseignant } from '../enseignant/entities/enseignant.entity';
 import { Classe } from '../classe/entities/classe.entity';
 import { Facture } from '../finance/entities/facture.entity';
 import { Paiement } from '../finance/entities/paiement.entity';
+import { TenantContext } from '../common/tenant/tenant.context';
+import { TenantHelper } from '../common/tenant/tenant.helper';
 
 @Injectable()
 export class ReportingService {
@@ -34,19 +37,33 @@ export class ReportingService {
   ) {}
 
   async getGlobalStats() {
+    const tenantId = TenantContext.getTenantId();
+
     const [totalEtudiants, totalEnseignants, totalClasses] = await Promise.all([
-      this.etudiantRepository.count(),
-      this.enseignantRepository.count(),
-      this.classeRepository.count(),
+      this.etudiantRepository.count({
+        where: TenantHelper.addTenantFilter({}, tenantId) as any,
+      }),
+      this.enseignantRepository.count({
+        where: tenantId ? { affectations: { etablissement: { id: tenantId } } } : {},
+      }),
+      this.classeRepository.count({
+        where: TenantHelper.addTenantFilter({}, tenantId, 'etablissements') as any,
+      }),
     ]);
 
-    const financialStats = await this.factureRepository
-      .createQueryBuilder('f')
+    const financialQuery = this.factureRepository.createQueryBuilder('f');
+    if (tenantId) {
+      financialQuery.innerJoin('f.etudiant', 'e').andWhere('e.etablissementId = :tenantId', { tenantId });
+    }
+    const financialStats = await financialQuery
       .select('SUM(f.montantTotal)', 'totalInvoiced')
       .getRawOne();
 
-    const paymentStats = await this.paiementRepository
-      .createQueryBuilder('p')
+    const paymentQuery = this.paiementRepository.createQueryBuilder('p');
+    if (tenantId) {
+      paymentQuery.innerJoin('p.etudiant', 'e').andWhere('e.etablissementId = :tenantId', { tenantId });
+    }
+    const paymentStats = await paymentQuery
       .select('SUM(p.montant)', 'totalCollected')
       .getRawOne();
 
@@ -65,17 +82,21 @@ export class ReportingService {
   }
 
   async getDailySupervisorReport(date: string) {
+    const tenantId = TenantContext.getTenantId();
     const targetDate = new Date(date);
     const startOfDay = new Date(new Date(targetDate).setHours(0, 0, 0, 0));
     const endOfDay = new Date(new Date(targetDate).setHours(23, 59, 59, 999));
 
     // Récupérer les présences (Absences et Retards) de la journée
-    const presences = await this.presenceRepository.find({
-      where: {
-        emploiDuTemp: {
-          startTime: Between(startOfDay, endOfDay),
-        },
+    const presenceWhere: any = {
+      emploiDuTemp: {
+        startTime: Between(startOfDay, endOfDay),
       },
+    };
+    if (tenantId) presenceWhere.etudiant = { etablissement: { id: tenantId } };
+
+    const presences = await this.presenceRepository.find({
+      where: presenceWhere,
       relations: {
         etudiant: { classe: true, niveau: true },
         emploiDuTemp: { matiere: true },
@@ -88,10 +109,11 @@ export class ReportingService {
     const retards = presences.filter((p) => p.status === PresenceStatus.RETARD);
 
     // Récupérer les sanctions de la journée
+    const sanctionWhere: any = { dateDecision: targetDate };
+    if (tenantId) sanctionWhere.etudiant = { etablissement: { id: tenantId } };
+
     const sanctions = await this.sanctionRepository.find({
-      where: {
-        dateDecision: targetDate,
-      },
+      where: sanctionWhere,
       relations: {
         etudiant: { classe: true, niveau: true },
       },
@@ -99,7 +121,7 @@ export class ReportingService {
 
     // Vérifier si un rapport est déjà soumis
     const savedReport = await this.dailyReportRepository.findOne({
-      where: { date },
+      where: TenantHelper.addTenantFilter({ date }, tenantId) as any,
     });
 
     return {
@@ -143,15 +165,17 @@ export class ReportingService {
   }
 
   async submitDailyReport(dto: SubmitDailyReportDto) {
+    const tenantId = TenantContext.getTenantId();
     const reportData = await this.getDailySupervisorReport(dto.date);
 
     let report = await this.dailyReportRepository.findOne({
-      where: { date: dto.date },
+      where: TenantHelper.addTenantFilter({ date: dto.date }, tenantId) as any,
     });
 
     if (!report) {
       report = this.dailyReportRepository.create({
         date: dto.date,
+        etablissement: tenantId ? { id: tenantId } : undefined,
       });
     }
 
@@ -162,14 +186,29 @@ export class ReportingService {
     report.totalSanctions = reportData.summary.totalSanctions;
     report.isSubmitted = true;
 
+    // Génération du PDF
+    const etablissement = tenantId 
+      ? await this.etudiantRepository.manager.getRepository('Etablissement').findOneBy({ id: tenantId }) 
+      : null;
+
+    const pdfUrl = await generateDailyReportPdf({
+      ...reportData,
+      supervisorName: dto.supervisorName,
+      observations: dto.observations,
+      etablissement,
+    });
+    report.pdfUrl = pdfUrl;
+
     return await this.dailyReportRepository.save(report);
   }
 
   async getAllDailyReports(paginationQuery: PaginationQueryDto) {
+    const tenantId = TenantContext.getTenantId();
     const { page = 1, limit = 15 } = paginationQuery;
     const skip = (page - 1) * limit;
 
     const [items, total] = await this.dailyReportRepository.findAndCount({
+      where: TenantHelper.addTenantFilter({}, tenantId) as any,
       skip,
       take: limit,
       order: { date: 'DESC' },
@@ -184,7 +223,10 @@ export class ReportingService {
   }
 
   async getDailyReportById(id: number) {
-    const report = await this.dailyReportRepository.findOne({ where: { id } });
+    const tenantId = TenantContext.getTenantId();
+    const report = await this.dailyReportRepository.findOne({
+      where: TenantHelper.addTenantFilter({ id }, tenantId) as any,
+    });
     if (!report) {
       throw new NotFoundException(
         `Rapport quotidien avec l'ID ${id} non trouvé`,

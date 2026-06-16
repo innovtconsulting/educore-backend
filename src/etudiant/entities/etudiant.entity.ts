@@ -16,6 +16,7 @@ import { Niveau } from '../../niveau/entities/niveau.entity';
 import { Parent } from '../../parent/entities/parent.entity';
 import { Sanction } from '../../sanction/entities/sanction.entity';
 import { User } from '../../user/entities/user.entity';
+import { Inscription } from './inscription.entity';
 
 export enum EnrollmentStatus {
   ACTIF = 'Actif',
@@ -135,4 +136,7 @@ export class Etudiant {
 
   @OneToMany(() => Sanction, (sanction) => sanction.etudiant)
   sanctions!: Sanction[];
+
+  @OneToMany(() => Inscription, (inscription) => inscription.etudiant)
+  inscriptions!: Inscription[];
 }

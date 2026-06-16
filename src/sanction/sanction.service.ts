@@ -6,6 +6,8 @@ import { UpdateSanctionDto } from './dto/update-sanction.dto';
 import { Sanction } from './entities/sanction.entity';
 import { Etudiant } from '../etudiant/entities/etudiant.entity';
 import { PaginationQueryDto } from '../common/dto/pagination-query.dto';
+import { TenantContext } from '../common/tenant/tenant.context';
+import { TenantHelper } from '../common/tenant/tenant.helper';
 
 @Injectable()
 export class SanctionService {
@@ -19,7 +21,10 @@ export class SanctionService {
   async create(createSanctionDto: CreateSanctionDto): Promise<Sanction> {
     const { etudiantId, ...rest } = createSanctionDto;
 
-    const etudiant = await this.etudiantRepository.findOneBy({ id: etudiantId });
+    const etudiant = await this.etudiantRepository.findOne({
+      where: { id: etudiantId },
+      relations: { parents: true, etablissement: true },
+    });
     if (!etudiant) {
       throw new NotFoundException(`Étudiant #${etudiantId} introuvable`);
     }
@@ -38,16 +43,21 @@ export class SanctionService {
   async findAll(paginationQuery: PaginationQueryDto) {
     const { page = 1, limit = 15, search } = paginationQuery;
     const skip = (page - 1) * limit;
+    const tenantId = TenantContext.getTenantId();
 
-    let where: FindOptionsWhere<Sanction> | FindOptionsWhere<Sanction>[] = {};
+    let where: FindOptionsWhere<Sanction> | FindOptionsWhere<Sanction>[] = [];
     if (search) {
       where = [
         { motif: ILike(`%${search}%`) },
       ];
+    } else {
+      where = {};
     }
 
+    where = TenantHelper.addTenantFilter(where, tenantId, 'etudiant.etablissement');
+
     const [items, total] = await this.sanctionRepository.findAndCount({
-      where,
+      where: where as any,
       relations: { etudiant: true },
       order: { dateDecision: 'DESC' },
       skip,
@@ -63,16 +73,22 @@ export class SanctionService {
   }
 
   async findByEtudiant(etudiantId: number): Promise<Sanction[]> {
+    const tenantId = TenantContext.getTenantId();
+    const where = TenantHelper.addTenantFilter({ etudiant: { id: etudiantId } }, tenantId, 'etudiant.etablissement');
+
     return await this.sanctionRepository.find({
-      where: { etudiant: { id: etudiantId } },
+      where: where as any,
       relations: { etudiant: true },
       order: { dateDecision: 'DESC' },
     });
   }
 
   async findOne(id: number): Promise<Sanction> {
+    const tenantId = TenantContext.getTenantId();
+    const where = TenantHelper.addTenantFilter({ id }, tenantId, 'etudiant.etablissement');
+
     const sanction = await this.sanctionRepository.findOne({
-      where: { id },
+      where: where as any,
       relations: { etudiant: true },
     });
     if (!sanction) {

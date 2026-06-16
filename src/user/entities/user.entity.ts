@@ -6,12 +6,14 @@ import {
   UpdateDateColumn,
   OneToOne,
   JoinColumn,
+  ManyToOne,
 } from 'typeorm';
 import { ApiProperty } from '@nestjs/swagger';
 import { Exclude } from 'class-transformer';
 import { Enseignant } from '../../enseignant/entities/enseignant.entity';
 import { Etudiant } from '../../etudiant/entities/etudiant.entity';
 import { Parent } from '../../parent/entities/parent.entity';
+import { Etablissement } from '../../etablissement/entities/etablissement.entity';
 
 export enum Role {
   SUPER_ADMIN = 'SuperAdmin',
@@ -33,9 +35,9 @@ export class User {
   @ApiProperty()
   email!: string;
 
-  @Column()
+  @Column({ nullable: true })
   @Exclude()
-  password!: string;
+  password?: string;
 
   @Column({
     type: 'enum',
@@ -48,6 +50,13 @@ export class User {
   @Column({ default: true })
   @ApiProperty()
   isActive!: boolean;
+
+  @ManyToOne(() => Etablissement, { nullable: true })
+  @JoinColumn({ name: 'etablissementId' })
+  etablissement?: Etablissement;
+
+  @Column({ nullable: true })
+  etablissementId?: number;
 
   @OneToOne(() => Enseignant, { nullable: true, onDelete: 'SET NULL' })
   @JoinColumn()

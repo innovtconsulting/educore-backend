@@ -70,7 +70,9 @@ async function reset() {
     for (const entity of entities) {
       const repository = dataSource.getRepository(entity.name);
       console.log(`Nettoyage de la table : ${entity.tableName}`);
-      await repository.query(`TRUNCATE "${entity.tableName}" RESTART IDENTITY CASCADE;`);
+      await repository.query(
+        `TRUNCATE "${entity.tableName}" RESTART IDENTITY CASCADE;`,
+      );
     }
 
     console.log('Base de données vidée et compteurs (IDs) réinitialisés.');

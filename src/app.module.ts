@@ -25,6 +25,7 @@ import { Presence } from './presence/entities/presence.entity';
 import { SanctionModule } from './sanction/sanction.module';
 import { Sanction } from './sanction/entities/sanction.entity';
 import { DailyReport } from './reporting/entities/daily-report.entity';
+import { GeneratedDocument } from './certificate/entities/generated-document.entity';
 import { Document } from './document/entities/document.entity';
 import { AnneeUniversitaire } from './annee-universitaire/entities/annee-universitaire.entity';
 import { Semestre } from './semestre/entities/semestre.entity';
@@ -37,6 +38,10 @@ import { Paiement } from './finance/entities/paiement.entity';
 import { Discipline } from './discipline/entities/discipline.entity';
 import { User } from './user/entities/user.entity';
 import { Devoir } from './devoir/entities/devoir.entity';
+import { GlobalSetting } from './global-setting/entities/global-setting.entity';
+import { Submission } from './devoir/entities/submission.entity';
+import { Salle } from './salle/entities/salle.entity';
+import { Inscription } from './etudiant/entities/inscription.entity';
 import { ReportingModule } from './reporting/reporting.module';
 import { DocumentModule } from './document/document.module';
 import { EvaluationModule } from './evaluation/evaluation.module';
@@ -52,6 +57,10 @@ import { StudentDashboardModule } from './student-dashboard/student-dashboard.mo
 import { ParentDashboardModule } from './parent-dashboard/parent-dashboard.module';
 import { LifeDashboardModule } from './life-dashboard/life-dashboard.module';
 import { MailModule } from './mail/mail.module';
+import { GlobalSettingModule } from './global-setting/global-setting.module';
+import { CertificateModule } from './certificate/certificate.module';
+import { SalleModule } from './salle/salle.module';
+import { InscriptionModule } from './inscription/inscription.module';
 
 @Module({
   imports: [
@@ -78,6 +87,7 @@ import { MailModule } from './mail/mail.module';
         Presence,
         Sanction,
         DailyReport,
+        GeneratedDocument,
         Document,
         AnneeUniversitaire,
         Semestre,
@@ -89,6 +99,10 @@ import { MailModule } from './mail/mail.module';
         Discipline,
         User,
         Devoir,
+        Submission,
+        Salle,
+        Inscription,
+        GlobalSetting,
       ],
       synchronize: true,
     }),
@@ -118,6 +132,10 @@ import { MailModule } from './mail/mail.module';
     ParentDashboardModule,
     LifeDashboardModule,
     MailModule,
+    GlobalSettingModule,
+    CertificateModule,
+    SalleModule,
+    InscriptionModule,
   ],
   controllers: [AppController],
   providers: [AppService],

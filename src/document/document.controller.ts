@@ -15,7 +15,13 @@ import {
 import { DocumentService } from './document.service';
 import { CreateDocumentDto } from './dto/create-document.dto';
 import { UpdateDocumentDto } from './dto/update-document.dto';
-import { ApiTags, ApiOperation, ApiConsumes, ApiBody, ApiBearerAuth } from '@nestjs/swagger';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiConsumes,
+  ApiBody,
+  ApiBearerAuth,
+} from '@nestjs/swagger';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
 import { extname } from 'path';
@@ -34,9 +40,10 @@ export class DocumentController {
 
   @Post('upload')
   @Roles(Role.SUPER_ADMIN, Role.ADMIN, Role.ENSEIGNANT)
-  @ApiOperation({ 
+  @ApiOperation({
     summary: 'Uploader un nouveau document',
-    description: 'Permet de stocker un fichier physique (PDF, Image, etc.) et d\'y associer des métadonnées (titre, catégorie).'
+    description:
+      "Permet de stocker un fichier physique (PDF, Image, etc.) et d'y associer des métadonnées (titre, catégorie).",
   })
   @ApiConsumes('multipart/form-data')
   @ApiBody({
@@ -46,11 +53,15 @@ export class DocumentController {
         file: {
           type: 'string',
           format: 'binary',
-          description: 'Fichier à uploader (max 10MB)'
+          description: 'Fichier à uploader (max 10MB)',
         },
         title: { type: 'string', description: 'Titre du document' },
         description: { type: 'string', description: 'Description optionnelle' },
-        category: { type: 'string', enum: ['Administratif', 'Pédagogique', 'Règlement', 'Autre'], description: 'Catégorie du document' },
+        category: {
+          type: 'string',
+          enum: ['Administratif', 'Pédagogique', 'Règlement', 'Autre'],
+          description: 'Catégorie du document',
+        },
       },
     },
   })
@@ -86,10 +97,18 @@ export class DocumentController {
   }
 
   @Get()
-  @Roles(Role.SUPER_ADMIN, Role.ADMIN, Role.SURVEILLANT, Role.ENSEIGNANT, Role.ETUDIANT, Role.PARENT)
-  @ApiOperation({ 
+  @Roles(
+    Role.SUPER_ADMIN,
+    Role.ADMIN,
+    Role.SURVEILLANT,
+    Role.ENSEIGNANT,
+    Role.ETUDIANT,
+    Role.PARENT,
+  )
+  @ApiOperation({
     summary: 'Récupérer tous les documents',
-    description: 'Liste tous les documents enregistrés dans la GED (Gestion Électronique de Documents).'
+    description:
+      'Liste tous les documents enregistrés dans la GED (Gestion Électronique de Documents).',
   })
   async findAll(@Query() paginationQuery: PaginationQueryDto) {
     const data = await this.documentService.findAll(paginationQuery);
@@ -100,10 +119,18 @@ export class DocumentController {
   }
 
   @Get(':id')
-  @Roles(Role.SUPER_ADMIN, Role.ADMIN, Role.SURVEILLANT, Role.ENSEIGNANT, Role.ETUDIANT, Role.PARENT)
-  @ApiOperation({ 
+  @Roles(
+    Role.SUPER_ADMIN,
+    Role.ADMIN,
+    Role.SURVEILLANT,
+    Role.ENSEIGNANT,
+    Role.ETUDIANT,
+    Role.PARENT,
+  )
+  @ApiOperation({
     summary: 'Récupérer un document par son ID',
-    description: 'Affiche les informations détaillées d\'un document et son lien de téléchargement.'
+    description:
+      "Affiche les informations détaillées d'un document et son lien de téléchargement.",
   })
   async findOne(@Param('id') id: string) {
     const data = await this.documentService.findOne(+id);
@@ -115,9 +142,10 @@ export class DocumentController {
 
   @Patch(':id')
   @Roles(Role.SUPER_ADMIN, Role.ADMIN, Role.ENSEIGNANT)
-  @ApiOperation({ 
-    summary: 'Modifier les métadonnées d\'un document',
-    description: 'Permet de changer le titre, la description ou la catégorie sans modifier le fichier physique.'
+  @ApiOperation({
+    summary: "Modifier les métadonnées d'un document",
+    description:
+      'Permet de changer le titre, la description ou la catégorie sans modifier le fichier physique.',
   })
   async update(
     @Param('id') id: string,
@@ -132,9 +160,10 @@ export class DocumentController {
 
   @Delete(':id')
   @Roles(Role.SUPER_ADMIN, Role.ADMIN)
-  @ApiOperation({ 
+  @ApiOperation({
     summary: 'Supprimer un document',
-    description: 'Supprime l\'entrée en base de données ET le fichier physique sur le serveur.'
+    description:
+      "Supprime l'entrée en base de données ET le fichier physique sur le serveur.",
   })
   async remove(@Param('id') id: string) {
     await this.documentService.remove(+id);
