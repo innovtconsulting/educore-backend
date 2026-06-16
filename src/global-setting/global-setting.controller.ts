@@ -1,4 +1,13 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Patch,
+  Param,
+  Delete,
+  UseGuards,
+} from '@nestjs/common';
 import { GlobalSettingService } from './global-setting.service';
 import { CreateGlobalSettingDto } from './dto/create-global-setting.dto';
 import { UpdateGlobalSettingDto } from './dto/update-global-setting.dto';

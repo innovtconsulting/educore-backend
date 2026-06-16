@@ -31,6 +31,7 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { Role } from '../user/entities/user.entity';
+import { Public } from '../auth/decorators/public.decorator';
 
 @ApiTags('etudiants')
 @ApiBearerAuth()
@@ -38,6 +39,18 @@ import { Role } from '../user/entities/user.entity';
 @Controller('etudiants')
 export class EtudiantController {
   constructor(private readonly etudiantService: EtudiantService) {}
+
+  @Public()
+  @Post('pre-inscription')
+  @ApiOperation({ summary: "Pré-inscription d'un étudiant (Public)" })
+  async preRegister(@Body() createEtudiantDto: CreateEtudiantDto) {
+    const data = await this.etudiantService.preRegister(createEtudiantDto);
+    return {
+      message:
+        'Votre demande de pré-inscription a été enregistrée avec succès. Un administrateur la validera prochainement.',
+      data,
+    };
+  }
 
   @Post()
   @Roles(Role.SUPER_ADMIN, Role.ADMIN)

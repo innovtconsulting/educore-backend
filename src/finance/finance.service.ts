@@ -431,4 +431,46 @@ export class FinanceService {
       order: { dateEmission: 'DESC' },
     });
   }
+
+  async generateAutoFactures(etudiantId: number, classeId: number, niveauId: number) {
+    const etudiant = await this.etudiantRepository.findOne({
+      where: { id: etudiantId },
+      relations: { etablissement: true }
+    });
+    if (!etudiant) throw new NotFoundException(`Étudiant #${etudiantId} introuvable`);
+
+    const tenantId = etudiant.etablissement.id;
+
+    // Récupérer les frais configurés pour ce duo classe/niveau
+    const fraisList = await this.fraisRepository.find({
+      where: {
+        classe: { id: classeId },
+        niveau: { id: niveauId },
+        etablissement: { id: tenantId }
+      }
+    });
+
+    if (fraisList.length === 0) {
+      console.warn(`Aucun frais configuré pour Classe #${classeId} et Niveau #${niveauId}`);
+      return [];
+    }
+
+    const createdFactures: Facture[] = [];
+
+    for (const frais of fraisList) {
+      const numero = `FACT-${etudiant.id}-${Date.now()}-${frais.id}`;
+      const facture = this.factureRepository.create({
+        numero,
+        designation: `Frais de ${frais.type} - Année Académique`,
+        montantTotal: frais.montant,
+        dateEmission: new Date(),
+        status: InvoiceStatus.VALIDE,
+        etudiant: etudiant
+      });
+
+      createdFactures.push(await this.factureRepository.save(facture));
+    }
+
+    return createdFactures;
+  }
 }

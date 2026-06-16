@@ -1,4 +1,13 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Patch,
+  Param,
+  Delete,
+  UseGuards,
+} from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { EtablissementService } from './etablissement.service';
 import { CreateEtablissementDto } from './dto/create-etablissement.dto';
@@ -17,9 +26,10 @@ export class EtablissementController {
 
   @Post()
   @Roles(Role.SUPER_ADMIN)
-  @ApiOperation({ 
-    summary: 'Créer un établissement', 
-    description: 'Permet d\'enregistrer un nouvel établissement (FST, ESP, etc.) dans le système.' 
+  @ApiOperation({
+    summary: 'Créer un établissement',
+    description:
+      "Permet d'enregistrer un nouvel établissement (FST, ESP, etc.) dans le système.",
   })
   async create(@Body() createEtablissementDto: CreateEtablissementDto) {
     const data = await this.etablissementService.create(createEtablissementDto);
@@ -30,9 +40,9 @@ export class EtablissementController {
   }
 
   @Get()
-  @ApiOperation({ 
-    summary: 'Lister tous les établissements', 
-    description: 'Récupère la liste complète des établissements enregistrés.' 
+  @ApiOperation({
+    summary: 'Lister tous les établissements',
+    description: 'Récupère la liste complète des établissements enregistrés.',
   })
   async findAll() {
     const data = await this.etablissementService.findAll();
@@ -40,9 +50,10 @@ export class EtablissementController {
   }
 
   @Get(':id')
-  @ApiOperation({ 
-    summary: 'Récupérer un établissement par ID', 
-    description: 'Affiche les informations détaillées d\'un établissement spécifique.' 
+  @ApiOperation({
+    summary: 'Récupérer un établissement par ID',
+    description:
+      "Affiche les informations détaillées d'un établissement spécifique.",
   })
   async findOne(@Param('id') id: string) {
     const data = await this.etablissementService.findOne(+id);
@@ -54,12 +65,18 @@ export class EtablissementController {
 
   @Patch(':id')
   @Roles(Role.SUPER_ADMIN)
-  @ApiOperation({ 
-    summary: 'Modifier un établissement', 
-    description: 'Met à jour les coordonnées ou le nom d\'un établissement.' 
+  @ApiOperation({
+    summary: 'Modifier un établissement',
+    description: "Met à jour les coordonnées ou le nom d'un établissement.",
   })
-  async update(@Param('id') id: string, @Body() updateEtablissementDto: UpdateEtablissementDto) {
-    const data = await this.etablissementService.update(+id, updateEtablissementDto);
+  async update(
+    @Param('id') id: string,
+    @Body() updateEtablissementDto: UpdateEtablissementDto,
+  ) {
+    const data = await this.etablissementService.update(
+      +id,
+      updateEtablissementDto,
+    );
     return {
       message: `Etablissement #${id} mis à jour avec succès`,
       data,
@@ -68,9 +85,9 @@ export class EtablissementController {
 
   @Delete(':id')
   @Roles(Role.SUPER_ADMIN)
-  @ApiOperation({ 
-    summary: 'Supprimer un établissement', 
-    description: 'Supprime un établissement du système.' 
+  @ApiOperation({
+    summary: 'Supprimer un établissement',
+    description: 'Supprime un établissement du système.',
   })
   async remove(@Param('id') id: string) {
     await this.etablissementService.remove(+id);

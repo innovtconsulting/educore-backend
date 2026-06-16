@@ -50,6 +50,11 @@ export class CreateEtudiantDto {
   @IsNotEmpty()
   email!: string;
 
+  @ApiProperty({ example: 'password123', required: false })
+  @IsString()
+  @IsOptional()
+  password?: string;
+
   @ApiProperty({ example: '+221 77 000 00 00', required: false })
   @IsString()
   @IsOptional()

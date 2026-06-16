@@ -30,9 +30,10 @@ export class NoteController {
 
   @Post()
   @Roles(Role.SUPER_ADMIN, Role.ADMIN, Role.ENSEIGNANT)
-  @ApiOperation({ 
-    summary: 'Enregistrer une note', 
-    description: 'Attribue une note à un étudiant pour une évaluation spécifique.' 
+  @ApiOperation({
+    summary: 'Enregistrer une note',
+    description:
+      'Attribue une note à un étudiant pour une évaluation spécifique.',
   })
   create(@Body() createNoteDto: CreateNoteDto, @Request() req: any) {
     return this.noteService.create(createNoteDto, req.user);
@@ -40,21 +41,35 @@ export class NoteController {
 
   @Post('bulk')
   @Roles(Role.SUPER_ADMIN, Role.ADMIN, Role.ENSEIGNANT)
-  @ApiOperation({ 
-    summary: 'Enregistrer des notes en masse', 
-    description: 'Permet à un enseignant ou administrateur de saisir les notes de plusieurs étudiants pour une évaluation.' 
+  @ApiOperation({
+    summary: 'Enregistrer des notes en masse',
+    description:
+      'Permet à un enseignant ou administrateur de saisir les notes de plusieurs étudiants pour une évaluation.',
   })
-  bulkCreate(@Body() bulkCreateNoteDto: BulkCreateNoteDto, @Request() req: any) {
+  bulkCreate(
+    @Body() bulkCreateNoteDto: BulkCreateNoteDto,
+    @Request() req: any,
+  ) {
     return this.noteService.bulkCreate(bulkCreateNoteDto, req.user);
   }
 
   @Get()
-  @Roles(Role.SUPER_ADMIN, Role.ADMIN, Role.ENSEIGNANT, Role.SURVEILLANT, Role.ETUDIANT)
-  @ApiOperation({ 
-    summary: 'Lister toutes les notes', 
-    description: 'Récupère la liste des notes. Si c\'est un étudiant, il ne voit que les siennes.' 
+  @Roles(
+    Role.SUPER_ADMIN,
+    Role.ADMIN,
+    Role.ENSEIGNANT,
+    Role.SURVEILLANT,
+    Role.ETUDIANT,
+  )
+  @ApiOperation({
+    summary: 'Lister toutes les notes',
+    description:
+      "Récupère la liste des notes. Si c'est un étudiant, il ne voit que les siennes.",
   })
-  async findAll(@Query() paginationQuery: PaginationQueryDto, @Request() req: any) {
+  async findAll(
+    @Query() paginationQuery: PaginationQueryDto,
+    @Request() req: any,
+  ) {
     const data = await this.noteService.findAll(paginationQuery, req.user);
     return {
       message: 'Liste des notes récupérée avec succès',
@@ -63,10 +78,16 @@ export class NoteController {
   }
 
   @Get(':id')
-  @Roles(Role.SUPER_ADMIN, Role.ADMIN, Role.ENSEIGNANT, Role.SURVEILLANT, Role.ETUDIANT)
-  @ApiOperation({ 
-    summary: 'Récupérer une note par ID', 
-    description: 'Affiche les détails d\'une note individuelle.' 
+  @Roles(
+    Role.SUPER_ADMIN,
+    Role.ADMIN,
+    Role.ENSEIGNANT,
+    Role.SURVEILLANT,
+    Role.ETUDIANT,
+  )
+  @ApiOperation({
+    summary: 'Récupérer une note par ID',
+    description: "Affiche les détails d'une note individuelle.",
   })
   findOne(@Param('id') id: string, @Request() req: any) {
     return this.noteService.findOne(+id, req.user);
@@ -74,19 +95,23 @@ export class NoteController {
 
   @Patch(':id')
   @Roles(Role.SUPER_ADMIN, Role.ADMIN, Role.ENSEIGNANT)
-  @ApiOperation({ 
-    summary: 'Modifier une note', 
-    description: 'Permet de corriger la valeur d\'une note déjà saisie.' 
+  @ApiOperation({
+    summary: 'Modifier une note',
+    description: "Permet de corriger la valeur d'une note déjà saisie.",
   })
-  update(@Param('id') id: string, @Body() updateNoteDto: UpdateNoteDto, @Request() req: any) {
+  update(
+    @Param('id') id: string,
+    @Body() updateNoteDto: UpdateNoteDto,
+    @Request() req: any,
+  ) {
     return this.noteService.update(+id, updateNoteDto, req.user);
   }
 
   @Delete(':id')
   @Roles(Role.SUPER_ADMIN, Role.ADMIN, Role.ENSEIGNANT)
-  @ApiOperation({ 
-    summary: 'Supprimer une note', 
-    description: 'Supprime une note du système.' 
+  @ApiOperation({
+    summary: 'Supprimer une note',
+    description: 'Supprime une note du système.',
   })
   remove(@Param('id') id: string, @Request() req: any) {
     return this.noteService.remove(+id, req.user);

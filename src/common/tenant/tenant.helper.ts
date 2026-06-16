@@ -1,5 +1,4 @@
 import { FindOptionsWhere } from 'typeorm';
-import { TenantContext } from './tenant.context';
 
 export class TenantHelper {
   static addTenantFilter<T>(

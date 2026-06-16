@@ -1,11 +1,21 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Etudiant } from '../etudiant/entities/etudiant.entity';
 import { AnneeUniversitaire } from '../annee-universitaire/entities/annee-universitaire.entity';
-import { GeneratedDocument, AdministrativeDocumentType } from './entities/generated-document.entity';
+import {
+  GeneratedDocument,
+  AdministrativeDocumentType,
+} from './entities/generated-document.entity';
 import { BulletinService } from '../bulletin/bulletin.service';
-import { generateScolarityCertificatePdf, generateSuccessAttestationPdf } from './utils/pdf-templates';
+import {
+  generateScolarityCertificatePdf,
+  generateSuccessAttestationPdf,
+} from './utils/pdf-templates';
 import { PaginationQueryDto } from '../common/dto/pagination-query.dto';
 import { TenantHelper } from '../common/tenant/tenant.helper';
 import { TenantContext } from '../common/tenant/tenant.context';
@@ -29,16 +39,24 @@ export class CertificateService {
     });
 
     if (!etudiant) throw new NotFoundException('Étudiant non trouvé');
-    if (!etudiant.matricule) throw new BadRequestException('L\'étudiant doit avoir un matricule pour générer ce document');
+    if (!etudiant.matricule)
+      throw new BadRequestException(
+        "L'étudiant doit avoir un matricule pour générer ce document",
+      );
 
-    const anneeActive = await this.anneeRepo.findOne({ where: { isActive: true } });
-    if (!anneeActive) throw new NotFoundException('Aucune année universitaire active trouvée');
+    const anneeActive = await this.anneeRepo.findOne({
+      where: { isActive: true },
+    });
+    if (!anneeActive)
+      throw new NotFoundException('Aucune année universitaire active trouvée');
 
     const pdfUrl = await generateScolarityCertificatePdf({
       firstName: etudiant.firstName,
       lastName: etudiant.lastName,
       matricule: etudiant.matricule,
-      birthDate: etudiant.birthDate ? new Date(etudiant.birthDate).toLocaleDateString('fr-FR') : null,
+      birthDate: etudiant.birthDate
+        ? new Date(etudiant.birthDate).toLocaleDateString('fr-FR')
+        : null,
       birthPlace: etudiant.birthPlace,
       etablissement: etudiant.etablissement,
       classe: etudiant.classe.name,
@@ -60,7 +78,11 @@ export class CertificateService {
     return { pdfUrl: `/${pdfUrl}` };
   }
 
-  async getSuccessAttestation(etudiantId: number, anneeId?: number, user?: any) {
+  async getSuccessAttestation(
+    etudiantId: number,
+    anneeId?: number,
+    user?: any,
+  ) {
     const etudiant = await this.etudiantRepository.findOne({
       where: { id: etudiantId },
       relations: { etablissement: true, classe: true, niveau: true },
@@ -68,7 +90,7 @@ export class CertificateService {
 
     if (!etudiant) throw new NotFoundException('Étudiant non trouvé');
 
-    const annee = anneeId 
+    const annee = anneeId
       ? await this.anneeRepo.findOne({ where: { id: anneeId } })
       : await this.anneeRepo.findOne({ where: { isActive: true } });
 
@@ -113,11 +135,11 @@ export class CertificateService {
 
     const where: any = {};
     if (etudiantId) where.etudiant = { id: etudiantId };
-    
+
     const filteredWhere = TenantHelper.addTenantFilter(where, tenantId);
 
     const [items, total] = await this.generatedDocRepo.findAndCount({
-      where: filteredWhere as any,
+      where: filteredWhere,
       relations: { etudiant: true, generatedBy: true },
       order: { createdAt: 'DESC' },
       skip,

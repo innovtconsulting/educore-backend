@@ -41,6 +41,7 @@ import { Devoir } from './devoir/entities/devoir.entity';
 import { GlobalSetting } from './global-setting/entities/global-setting.entity';
 import { Submission } from './devoir/entities/submission.entity';
 import { Salle } from './salle/entities/salle.entity';
+import { Inscription } from './etudiant/entities/inscription.entity';
 import { ReportingModule } from './reporting/reporting.module';
 import { DocumentModule } from './document/document.module';
 import { EvaluationModule } from './evaluation/evaluation.module';
@@ -59,6 +60,7 @@ import { MailModule } from './mail/mail.module';
 import { GlobalSettingModule } from './global-setting/global-setting.module';
 import { CertificateModule } from './certificate/certificate.module';
 import { SalleModule } from './salle/salle.module';
+import { InscriptionModule } from './inscription/inscription.module';
 
 @Module({
   imports: [
@@ -99,6 +101,7 @@ import { SalleModule } from './salle/salle.module';
         Devoir,
         Submission,
         Salle,
+        Inscription,
         GlobalSetting,
       ],
       synchronize: true,
@@ -132,6 +135,7 @@ import { SalleModule } from './salle/salle.module';
     GlobalSettingModule,
     CertificateModule,
     SalleModule,
+    InscriptionModule,
   ],
   controllers: [AppController],
   providers: [AppService],

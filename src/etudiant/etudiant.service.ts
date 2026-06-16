@@ -2,6 +2,8 @@ import {
   BadRequestException,
   Injectable,
   NotFoundException,
+  Inject,
+  forwardRef,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
@@ -19,6 +21,8 @@ import { existsSync } from 'fs';
 import { join } from 'path';
 import { PaginationQueryDto } from '../common/dto/pagination-query.dto';
 import { TenantContext } from '../common/tenant/tenant.context';
+import { UserService } from '../user/user.service';
+import { Role } from '../user/entities/user.entity';
 
 @Injectable()
 export class EtudiantService {
@@ -33,7 +37,110 @@ export class EtudiantService {
     private readonly niveauRepository: Repository<Niveau>,
     @InjectRepository(Parent)
     private readonly parentRepository: Repository<Parent>,
+    @Inject(forwardRef(() => UserService))
+    private readonly userService: UserService,
   ) {}
+
+  async preRegister(createEtudiantDto: CreateEtudiantDto): Promise<Etudiant> {
+    const {
+      etablissementId,
+      classeId,
+      niveauId,
+      parentsData,
+      password,
+      ...rest
+    } = createEtudiantDto;
+
+    // Pour une pré-inscription, on force le statut EN_ATTENTE et on ignore le matricule
+    const status = EnrollmentStatus.EN_ATTENTE;
+    delete rest.matricule;
+
+    if (!password) {
+      throw new BadRequestException(
+        'Le mot de passe est obligatoire pour la pré-inscription',
+      );
+    }
+
+    const etablissement = await this.etablissementRepository.findOneBy({
+      id: etablissementId,
+    });
+    if (!etablissement)
+      throw new NotFoundException(
+        `Établissement #${etablissementId} introuvable`,
+      );
+
+    const classe = await this.classeRepository.findOneBy({ id: classeId });
+    if (!classe) throw new NotFoundException(`Classe #${classeId} introuvable`);
+
+    const niveau = await this.niveauRepository.findOneBy({ id: niveauId });
+    if (!niveau) throw new NotFoundException(`Niveau #${niveauId} introuvable`);
+
+    const parents: Parent[] = [];
+    if (parentsData && parentsData.length > 0) {
+      for (const pData of parentsData) {
+        let parent = await this.parentRepository.findOne({
+          where: [
+            { phoneNumber: pData.phoneNumber },
+            ...(pData.email ? [{ email: pData.email }] : []),
+          ],
+        });
+
+        if (!parent) {
+          parent = this.parentRepository.create(pData);
+          parent = await this.parentRepository.save(parent);
+        }
+        parents.push(parent);
+
+        // Créer un compte utilisateur pour le parent s'il n'existe pas
+        const parentUserEmail = pData.phoneNumber; // Identifiant parent = téléphone
+        const existingParentUser =
+          await this.userService.findByEmail(parentUserEmail);
+        if (!existingParentUser) {
+          await this.userService.create({
+            email: parentUserEmail,
+            password: '12345678',
+            role: Role.PARENT,
+            isActive: false, // Sera activé lors de la validation de l'étudiant
+            parent: parent,
+          });
+        }
+      }
+    } else {
+      throw new BadRequestException(
+        'Un étudiant doit avoir au moins un parent ou tuteur',
+      );
+    }
+
+    const existingEmail = await this.etudiantRepository.findOne({
+      where: { email: rest.email },
+    });
+    if (existingEmail) {
+      throw new BadRequestException("L'email existe déjà");
+    }
+
+    const etudiant = this.etudiantRepository.create({
+      ...rest,
+      status,
+      etablissement,
+      classe,
+      niveau,
+      parents,
+    });
+
+    const savedEtudiant = await this.etudiantRepository.save(etudiant);
+
+    // Créer le compte utilisateur pour l'étudiant
+    await this.userService.create({
+      email: rest.email,
+      password: password,
+      role: Role.ETUDIANT,
+      isActive: false, // Sera activé lors de la validation
+      etudiant: savedEtudiant,
+      etablissement: etablissement,
+    });
+
+    return savedEtudiant;
+  }
 
   async create(createEtudiantDto: CreateEtudiantDto): Promise<Etudiant> {
     const { etablissementId, classeId, niveauId, parentsData, ...rest } =
@@ -54,7 +161,7 @@ export class EtudiantService {
     const niveau = await this.niveauRepository.findOneBy({ id: niveauId });
     if (!niveau) throw new NotFoundException(`Niveau #${niveauId} introuvable`);
 
-    let parents: Parent[] = [];
+    const parents: Parent[] = [];
     if (parentsData && parentsData.length > 0) {
       for (const pData of parentsData) {
         // Chercher si le parent existe déjà par téléphone ou email
@@ -312,7 +419,27 @@ export class EtudiantService {
     Object.assign(etudiant, validateDto);
     etudiant.status = EnrollmentStatus.ACTIF;
 
-    return await this.etudiantRepository.save(etudiant);
+    const savedEtudiant = await this.etudiantRepository.save(etudiant);
+
+    // Activer le compte utilisateur de l'étudiant
+    const studentUser = await this.userService.findByEtudiantId(id);
+    if (studentUser) {
+      await this.userService.update(studentUser.id, { isActive: true });
+    }
+
+    // Activer les comptes utilisateurs des parents
+    if (savedEtudiant.parents) {
+      for (const parent of savedEtudiant.parents) {
+        const parentUser = await this.userService.findByEmail(
+          parent.phoneNumber,
+        );
+        if (parentUser && parentUser.role === Role.PARENT) {
+          await this.userService.update(parentUser.id, { isActive: true });
+        }
+      }
+    }
+
+    return savedEtudiant;
   }
 
   async remove(id: number): Promise<void> {

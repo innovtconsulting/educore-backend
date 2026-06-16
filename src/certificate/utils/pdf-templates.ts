@@ -2,13 +2,15 @@ import PDFDocument from 'pdfkit';
 import * as fs from 'fs';
 import * as path from 'path';
 
-export async function generateScolarityCertificatePdf(data: any): Promise<string> {
+export async function generateScolarityCertificatePdf(
+  data: any,
+): Promise<string> {
   return new Promise((resolve, reject) => {
     try {
       const doc = new PDFDocument({ size: 'A4', margin: 50 });
       const filename = `certificat_scolarite_${data.matricule}_${Date.now()}.pdf`;
       const directory = path.join(process.cwd(), 'uploads', 'documents');
-      
+
       if (!fs.existsSync(directory)) {
         fs.mkdirSync(directory, { recursive: true });
       }
@@ -19,7 +21,7 @@ export async function generateScolarityCertificatePdf(data: any): Promise<string
       doc.pipe(stream);
 
       // --- En-tête ---
-      const schoolName = data.etablissement?.name?.toUpperCase() || 'ÉCOLE SUPÉRIEURE POLYTECHNIQUE';
+      const schoolName = data.etablissement?.name?.toUpperCase() || 'EDUCORE';
       doc
         .fontSize(16)
         .font('Helvetica-Bold')
@@ -30,7 +32,10 @@ export async function generateScolarityCertificatePdf(data: any): Promise<string
         .fontSize(10)
         .font('Helvetica')
         .text(data.etablissement.address, { align: 'center' })
-        .text(`Email : ${data.etablissement.email} | Tél : ${data.etablissement.phone}`, { align: 'center' })
+        .text(
+          `Email : ${data.etablissement.email} | Tél : ${data.etablissement.phone}`,
+          { align: 'center' },
+        )
         .moveDown(2);
 
       // --- Titre ---
@@ -44,24 +49,34 @@ export async function generateScolarityCertificatePdf(data: any): Promise<string
       doc
         .fontSize(12)
         .font('Helvetica')
-        .text('Le Directeur de l\'établissement soussigné, certifie que :', { lineGap: 10 })
+        .text("Le Directeur de l'établissement soussigné, certifie que :", {
+          lineGap: 10,
+        })
         .moveDown();
 
       doc
         .fontSize(14)
         .font('Helvetica-Bold')
-        .text(`M./Mlle : ${data.firstName} ${data.lastName.toUpperCase()}`, { indent: 20 })
+        .text(`M./Mlle : ${data.firstName} ${data.lastName.toUpperCase()}`, {
+          indent: 20,
+        })
         .moveDown(0.5);
 
       doc
         .fontSize(12)
         .font('Helvetica')
-        .text(`Né(e) le : ${data.birthDate || 'N/A'} à ${data.birthPlace || 'N/A'}`, { indent: 20 })
+        .text(
+          `Né(e) le : ${data.birthDate || 'N/A'} à ${data.birthPlace || 'N/A'}`,
+          { indent: 20 },
+        )
         .text(`Matricule : ${data.matricule}`, { indent: 20 })
         .moveDown();
 
       doc
-        .text('Est régulièrement inscrit(e) au titre de l\'année universitaire ', { continued: true })
+        .text(
+          "Est régulièrement inscrit(e) au titre de l'année universitaire ",
+          { continued: true },
+        )
         .font('Helvetica-Bold')
         .text(data.anneeUniversitaire)
         .font('Helvetica')
@@ -76,7 +91,9 @@ export async function generateScolarityCertificatePdf(data: any): Promise<string
 
       doc
         .font('Helvetica')
-        .text('En foi de quoi, le présent certificat est délivré pour servir et valoir ce que de droit.')
+        .text(
+          'En foi de quoi, le présent certificat est délivré pour servir et valoir ce que de droit.',
+        )
         .moveDown(2);
 
       // --- Date et Signature ---
@@ -92,7 +109,12 @@ export async function generateScolarityCertificatePdf(data: any): Promise<string
       doc
         .fontSize(8)
         .font('Helvetica')
-        .text('Ce document est une pièce officielle. Toute rature ou surcharge l\'annule.', 50, footerY, { align: 'center' });
+        .text(
+          "Ce document est une pièce officielle. Toute rature ou surcharge l'annule.",
+          50,
+          footerY,
+          { align: 'center' },
+        );
 
       doc.end();
 
@@ -109,13 +131,15 @@ export async function generateScolarityCertificatePdf(data: any): Promise<string
   });
 }
 
-export async function generateSuccessAttestationPdf(data: any): Promise<string> {
+export async function generateSuccessAttestationPdf(
+  data: any,
+): Promise<string> {
   return new Promise((resolve, reject) => {
     try {
       const doc = new PDFDocument({ size: 'A4', margin: 50 });
       const filename = `attestation_reussite_${data.matricule}_${Date.now()}.pdf`;
       const directory = path.join(process.cwd(), 'uploads', 'documents');
-      
+
       if (!fs.existsSync(directory)) {
         fs.mkdirSync(directory, { recursive: true });
       }
@@ -126,7 +150,9 @@ export async function generateSuccessAttestationPdf(data: any): Promise<string> 
       doc.pipe(stream);
 
       // --- En-tête ---
-      const schoolName = data.etablissement?.name?.toUpperCase() || 'ÉCOLE SUPÉRIEURE POLYTECHNIQUE';
+      const schoolName =
+        data.etablissement?.name?.toUpperCase() ||
+        'EDUCORE';
       doc
         .fontSize(16)
         .font('Helvetica-Bold')
@@ -144,20 +170,28 @@ export async function generateSuccessAttestationPdf(data: any): Promise<string> 
       doc
         .fontSize(12)
         .font('Helvetica')
-        .text('Le Directeur de l\'établissement soussigné, certifie que l\'étudiant(e) :', { lineGap: 10 })
+        .text(
+          "Le Directeur de l'établissement soussigné, certifie que l'étudiant(e) :",
+          { lineGap: 10 },
+        )
         .moveDown();
 
       doc
         .fontSize(14)
         .font('Helvetica-Bold')
-        .text(`${data.firstName} ${data.lastName.toUpperCase()}`, { align: 'center' })
+        .text(`${data.firstName} ${data.lastName.toUpperCase()}`, {
+          align: 'center',
+        })
         .fontSize(12)
         .font('Helvetica')
         .text(`Matricule : ${data.matricule}`, { align: 'center' })
         .moveDown();
 
       doc
-        .text('A été déclaré(e) ADMIS(E) à la suite des épreuves de l\'année universitaire ', { continued: true })
+        .text(
+          "A été déclaré(e) ADMIS(E) à la suite des épreuves de l'année universitaire ",
+          { continued: true },
+        )
         .font('Helvetica-Bold')
         .text(data.anneeUniversitaire)
         .font('Helvetica')
@@ -182,12 +216,14 @@ export async function generateSuccessAttestationPdf(data: any): Promise<string> 
 
       doc
         .font('Helvetica')
-        .text('En foi de quoi, la présente attestation est délivrée pour servir et valoir ce que de droit.')
+        .text(
+          'En foi de quoi, la présente attestation est délivrée pour servir et valoir ce que de droit.',
+        )
         .moveDown(3);
 
       // --- Date et Signature ---
       const today = new Date().toLocaleDateString('fr-FR');
-      const schoolSimpleName = data.etablissement?.name || 'l\'établissement';
+      const schoolSimpleName = data.etablissement?.name || "l'établissement";
       doc
         .text(`Fait à Dakar, le ${today}`, { align: 'right' })
         .moveDown()

@@ -1,4 +1,10 @@
-import { Entity, PrimaryColumn, Column, CreateDateColumn, UpdateDateColumn } from 'typeorm';
+import {
+  Entity,
+  PrimaryColumn,
+  Column,
+  CreateDateColumn,
+  UpdateDateColumn,
+} from 'typeorm';
 import { ApiProperty } from '@nestjs/swagger';
 
 export enum SettingCategory {
@@ -11,7 +17,9 @@ export enum SettingCategory {
 @Entity()
 export class GlobalSetting {
   @PrimaryColumn()
-  @ApiProperty({ description: 'Clé unique du paramètre (ex: ACADEMIC_PASSING_GRADE)' })
+  @ApiProperty({
+    description: 'Clé unique du paramètre (ex: ACADEMIC_PASSING_GRADE)',
+  })
   key!: string;
 
   @Column({ type: 'text' })
@@ -19,7 +27,7 @@ export class GlobalSetting {
   value!: string;
 
   @Column({ type: 'text', nullable: true })
-  @ApiProperty({ description: 'Description de l\'utilité du paramètre' })
+  @ApiProperty({ description: "Description de l'utilité du paramètre" })
   description?: string;
 
   @Column({

@@ -1,4 +1,10 @@
-import { Injectable, NotFoundException, ConflictException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  ConflictException,
+  Inject,
+  forwardRef,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, MoreThan } from 'typeorm';
 import { User, Role } from './entities/user.entity';
@@ -13,8 +19,11 @@ export class UserService {
   constructor(
     @InjectRepository(User)
     private readonly userRepository: Repository<User>,
+    @Inject(forwardRef(() => EtudiantService))
     private readonly etudiantService: EtudiantService,
+    @Inject(forwardRef(() => EnseignantService))
     private readonly enseignantService: EnseignantService,
+    @Inject(forwardRef(() => ParentService))
     private readonly parentService: ParentService,
   ) {}
 
@@ -26,9 +35,8 @@ export class UserService {
       throw new ConflictException('Email déjà utilisé');
     }
 
-    if (userData.password) {
-      userData.password = await bcrypt.hash(userData.password, 10);
-    }
+    const password = userData.password || '12345678';
+    userData.password = await bcrypt.hash(password, 10);
 
     const user = this.userRepository.create(userData);
     return await this.userRepository.save(user);

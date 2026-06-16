@@ -67,7 +67,19 @@ Le système implémente une isolation stricte des données pour garantir la conf
     *   Ventilation précise par Niveau d'étude.
     *   Suivi dynamique des relances pour factures en souffrance.
 
-## 8. 📂 Outils Transverses
+## 8. 📜 Documents Administratifs
+*   **Certificats & Attestations :** 
+    *   Génération de **Certificats de Scolarité** pour les étudiants actifs.
+    *   Génération d'**Attestations de Réussite** basées sur les résultats académiques annuels.
+*   **Historique :** Suivi complet des documents générés par étudiant avec archivage des métadonnées et accès facilité via les dashboards.
+
+## 9. 🎓 Réinscriptions & Diplomation
+*   **Cycle de Vie Annuel :** Gestion semi-automatisée du passage à l'année supérieure.
+*   **Critères de Réinscription :** Vérification automatique de la réussite académique (moyenne ≥ seuil) et de la régularité financière (solde nul).
+*   **Diplomation :** Processus de clôture du cursus pour les étudiants ayant validé leur cycle final, passant leur statut à `DIPLOME`.
+*   **Historique de Cursus :** Conservation de l'historique complet des inscriptions (Etablissement, Classe, Niveau) au fil des années.
+
+## 10. 📂 Outils Transverses
 *   **GED (Gestion Électronique de Documents) :**
     *   Stockage sécurisé de fichiers (Administratif, Pédagogique, Règlements).
     *   Gestion du cycle de vie des documents (upload/suppression physique).
@@ -75,7 +87,7 @@ Le système implémente une isolation stricte des données pour garantir la conf
 *   **Pagination Globale :** Standardisation de la navigation dans les grands volumes de données (20 items par défaut).
 *   **Documentation API :** Interface Swagger auto-générée pour faciliter l'intégration frontend.
 
-## 9. ⚙️ Configuration Globale (SuperAdmin)
+## 11. ⚙️ Configuration Globale (SuperAdmin)
 *   **Panneau de Contrôle :** Interface centralisée permettant de modifier le comportement de toute la plateforme sans déploiement.
 *   **Paramètres Académiques :** Définition globale des moyennes de passage et des seuils de notes éliminatoires.
 *   **Gestion des Flux :** Activation/Désactivation de l'auto-inscription publique des étudiants et enseignants.

@@ -204,12 +204,12 @@ export class DevoirService {
 
     // 2. Vérifier que l'étudiant appartient à la classe/niveau
     if (user.role === Role.ETUDIANT) {
-      const etudiant = await this.devoirRepository.manager
+      const etudiant = (await this.devoirRepository.manager
         .getRepository('Etudiant')
         .findOne({
           where: { id: user.etudiantId },
           relations: { classe: true, niveau: true },
-        }) as any;
+        })) as any;
 
       if (
         etudiant.classe.id !== devoir.classe.id ||
@@ -247,7 +247,10 @@ export class DevoirService {
     const devoir = await this.findOne(devoirId);
 
     // Seul l'enseignant du devoir ou un admin peut voir tous les rendus
-    if (user.role === Role.ENSEIGNANT && devoir.enseignant.id !== user.enseignantId) {
+    if (
+      user.role === Role.ENSEIGNANT &&
+      devoir.enseignant.id !== user.enseignantId
+    ) {
       throw new ForbiddenException("Vous n'êtes pas l'enseignant de ce devoir");
     }
 
@@ -266,7 +269,8 @@ export class DevoirService {
       where: { devoir: { id: devoirId }, etudiant: { id: user.etudiantId } },
       relations: { document: true },
     });
-    if (!submission) throw new NotFoundException('Aucun rendu trouvé pour ce devoir');
+    if (!submission)
+      throw new NotFoundException('Aucun rendu trouvé pour ce devoir');
     return submission;
   }
 
@@ -279,14 +283,17 @@ export class DevoirService {
     if (!submission) throw new NotFoundException('Rendu introuvable');
 
     if (submission.etudiant.id !== user.etudiantId) {
-      throw new ForbiddenException("Vous ne pouvez supprimer que votre propre rendu");
+      throw new ForbiddenException(
+        'Vous ne pouvez supprimer que votre propre rendu',
+      );
     }
 
     if (new Date() > new Date(submission.devoir.deadline)) {
-      throw new BadRequestException('La date limite est dépassée, suppression impossible');
+      throw new BadRequestException(
+        'La date limite est dépassée, suppression impossible',
+      );
     }
 
     return await this.submissionRepository.remove(submission);
   }
 }
-

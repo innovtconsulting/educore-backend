@@ -5,7 +5,7 @@ export class CreateSubmissionDto {
   @ApiProperty({ example: 1, description: 'ID du document uploadé' })
   @IsNumber()
   @IsNotEmpty()
-  documentId: number;
+  documentId!: number;
 
   @ApiProperty({ example: 'Voici mon rendu pour le TP.', required: false })
   @IsString()

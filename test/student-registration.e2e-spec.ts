@@ -95,26 +95,25 @@ describe('Student Registration (e2e)', () => {
       expect(res.body.data.user.email).toBe('john.doe@test.com'); // De l'étudiant John Doe
     });
 
-    it('should fail if etudiantData is provided for student role', async () => {
+    it('should allow providing etudiantData for a new student registration (unified flow)', async () => {
       const res = await request(app.getHttpServer())
         .post('/api/auth/register')
         .send({
-          email: 'illegal@test.com',
-          password: 'password123',
+          password: 'password-new-stu',
           role: Role.ETUDIANT,
-          matricule: 'MAT-001',
           etudiantData: {
-            firstName: 'Illegal',
-            lastName: 'User',
-            email: 'illegal@test.com',
+            firstName: 'New',
+            lastName: 'Student',
+            email: 'new.student@test.com',
             etablissementId: 1,
             classeId: 1,
-            niveauId: 1
+            niveauId: 1,
+            parentsData: [{ firstName: 'P', lastName: 'S', gender: 'Père', phoneNumber: '999888777' }]
           }
         });
 
-      expect(res.status).toBe(400);
-      expect(res.body.message).toContain("L'auto-inscription ne permet pas la création d'un nouveau profil");
+      expect(res.status).toBe(201);
+      expect(res.body.data.message).toContain('pré-inscription a été enregistrée avec succès');
     });
   });
 

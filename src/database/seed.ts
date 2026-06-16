@@ -6,7 +6,7 @@ import { Matiere } from '../matiere/entities/matiere.entity';
 import { Enseignant } from '../enseignant/entities/enseignant.entity';
 import { Affectation } from '../enseignant/entities/affectation.entity';
 import { EmploiDuTemp } from '../emploi-du-temps/entities/emploi-du-temp.entity';
-import { Etudiant } from '../etudiant/entities/etudiant.entity';
+import { Etudiant, EnrollmentStatus } from '../etudiant/entities/etudiant.entity';
 import { Parent } from '../parent/entities/parent.entity';
 import { Presence } from '../presence/entities/presence.entity';
 import { Sanction, SanctionType } from '../sanction/entities/sanction.entity';
@@ -33,7 +33,10 @@ import {
   Discipline,
   DisciplineCategory,
 } from '../discipline/entities/discipline.entity';
-import { GlobalSetting, SettingCategory } from '../global-setting/entities/global-setting.entity';
+import {
+  GlobalSetting,
+  SettingCategory,
+} from '../global-setting/entities/global-setting.entity';
 import { User, Role } from '../user/entities/user.entity';
 import * as bcrypt from 'bcrypt';
 import { generateReceiptPdf } from '../finance/utils/pdf-generator';
@@ -113,13 +116,40 @@ async function seed() {
 
     // 0. Configuration Globale
     const defaultSettings = [
-      { key: 'ACADEMIC_PASSING_GRADE', value: '10', category: SettingCategory.ACADEMIC, description: 'Moyenne de passage par défaut' },
-      { key: 'ACADEMIC_ELIMINATION_THRESHOLD', value: '4', category: SettingCategory.ACADEMIC, description: 'Note éliminatoire' },
-      { key: 'ENABLE_STUDENT_REGISTRATION', value: 'true', category: SettingCategory.SECURITY, description: 'Autoriser l\'auto-inscription des étudiants' },
-      { key: 'ENABLE_TEACHER_REGISTRATION', value: 'true', category: SettingCategory.SECURITY, description: 'Autoriser l\'auto-inscription des enseignants' },
-      { key: 'FINANCIAL_CURRENCY', value: 'CFA', category: SettingCategory.FINANCIAL, description: 'Devise du système' },
+      {
+        key: 'ACADEMIC_PASSING_GRADE',
+        value: '10',
+        category: SettingCategory.ACADEMIC,
+        description: 'Moyenne de passage par défaut',
+      },
+      {
+        key: 'ACADEMIC_ELIMINATION_THRESHOLD',
+        value: '4',
+        category: SettingCategory.ACADEMIC,
+        description: 'Note éliminatoire',
+      },
+      {
+        key: 'ENABLE_STUDENT_REGISTRATION',
+        value: 'true',
+        category: SettingCategory.SECURITY,
+        description: "Autoriser l'auto-inscription des étudiants",
+      },
+      {
+        key: 'ENABLE_TEACHER_REGISTRATION',
+        value: 'true',
+        category: SettingCategory.SECURITY,
+        description: "Autoriser l'auto-inscription des enseignants",
+      },
+      {
+        key: 'FINANCIAL_CURRENCY',
+        value: 'CFA',
+        category: SettingCategory.FINANCIAL,
+        description: 'Devise du système',
+      },
     ];
-    await globalSettingRepo.save(defaultSettings.map(s => globalSettingRepo.create(s)));
+    await globalSettingRepo.save(
+      defaultSettings.map((s) => globalSettingRepo.create(s)),
+    );
 
     // 0.1 Année Universitaire
     const annee2026 = anneeRepo.create({
@@ -316,12 +346,33 @@ async function seed() {
       niveau: dut1,
       parents: [parent3],
     });
-    await etudiantRepo.save([etudiant1, etudiant2, etudiant3]);
+    const etudiantWait = etudiantRepo.create({
+      firstName: 'Jean',
+      lastName: 'Dupont',
+      email: 'jean.dupont@email.sn',
+      status: EnrollmentStatus.EN_ATTENTE,
+      etablissement: fst,
+      classe: informatique,
+      niveau: l1,
+    });
+    await etudiantRepo.save([etudiant1, etudiant2, etudiant3, etudiantWait]);
 
     // 8.1 Salles
-    const salle101 = salleRepo.create({ name: 'Salle 101', capacity: 40, etablissement: fst });
-    const salle102 = salleRepo.create({ name: 'Salle 102', capacity: 30, etablissement: esp });
-    const laboInfo = salleRepo.create({ name: 'Laboratoire Info', capacity: 25, etablissement: fst });
+    const salle101 = salleRepo.create({
+      name: 'Salle 101',
+      capacity: 40,
+      etablissement: fst,
+    });
+    const salle102 = salleRepo.create({
+      name: 'Salle 102',
+      capacity: 30,
+      etablissement: esp,
+    });
+    const laboInfo = salleRepo.create({
+      name: 'Laboratoire Info',
+      capacity: 25,
+      etablissement: fst,
+    });
     await salleRepo.save([salle101, salle102, laboInfo]);
 
     // 9. Emploi du Temps

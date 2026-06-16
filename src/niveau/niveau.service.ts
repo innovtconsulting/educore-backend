@@ -21,16 +21,24 @@ export class NiveauService {
 
   async findAll(): Promise<Niveau[]> {
     const tenantId = TenantContext.getTenantId();
-    const where = TenantHelper.addTenantFilter({}, tenantId, 'classes.etablissements');
+    const where = TenantHelper.addTenantFilter(
+      {},
+      tenantId,
+      'classes.etablissements',
+    );
 
     return await this.niveauRepository.find({ where });
   }
 
   async findOne(id: number): Promise<Niveau> {
     const tenantId = TenantContext.getTenantId();
-    const where = TenantHelper.addTenantFilter({ id }, tenantId, 'classes.etablissements');
+    const where = TenantHelper.addTenantFilter(
+      { id },
+      tenantId,
+      'classes.etablissements',
+    );
 
-    const niveau = await this.niveauRepository.findOneBy(where as any);
+    const niveau = await this.niveauRepository.findOneBy(where);
     if (!niveau) {
       throw new NotFoundException(
         `Le niveau avec l'ID ${id} n'a pas été trouvé`,

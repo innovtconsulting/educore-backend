@@ -70,15 +70,16 @@ export class MatiereService {
 
     let where: FindOptionsWhere<Matiere> | FindOptionsWhere<Matiere>[] = [];
     if (search) {
-      where = [
-        { name: ILike(`%${search}%`) },
-        { code: ILike(`%${search}%`) },
-      ];
+      where = [{ name: ILike(`%${search}%`) }, { code: ILike(`%${search}%`) }];
     } else {
       where = {};
     }
 
-    where = TenantHelper.addTenantFilter(where, tenantId, 'classes.etablissements');
+    where = TenantHelper.addTenantFilter(
+      where,
+      tenantId,
+      'classes.etablissements',
+    );
 
     const [items, total] = await this.matiereRepository.findAndCount({
       where,
@@ -98,10 +99,14 @@ export class MatiereService {
 
   async findOne(id: number): Promise<Matiere> {
     const tenantId = TenantContext.getTenantId();
-    const where = TenantHelper.addTenantFilter({ id }, tenantId, 'classes.etablissements');
+    const where = TenantHelper.addTenantFilter(
+      { id },
+      tenantId,
+      'classes.etablissements',
+    );
 
     const matiere = await this.matiereRepository.findOne({
-      where: where as any,
+      where: where,
       relations: { classes: true, niveaux: true },
     });
     if (!matiere) {

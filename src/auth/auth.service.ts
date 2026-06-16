@@ -6,7 +6,6 @@ import { EnseignantService } from '../enseignant/enseignant.service';
 import { ParentService } from '../parent/parent.service';
 import { RegisterDto } from './dto/register.dto';
 import { Role } from '../user/entities/user.entity';
-import { EnrollmentStatus } from '../etudiant/entities/etudiant.entity';
 import * as bcrypt from 'bcrypt';
 import * as crypto from 'crypto';
 import { ForgotPasswordDto, ResetPasswordDto } from './dto/password-reset.dto';
@@ -27,7 +26,12 @@ export class AuthService {
 
   async validateUser(email: string, pass: string): Promise<any> {
     const user = await this.userService.findByEmail(email);
-    if (user && user.password && (await bcrypt.compare(pass, user.password))) {
+    if (
+      user &&
+      user.isActive &&
+      user.password &&
+      (await bcrypt.compare(pass, user.password))
+    ) {
       const { password, ...result } = user;
       return result;
     }
@@ -39,7 +43,10 @@ export class AuthService {
       email: user.email,
       sub: user.id,
       role: user.role,
-      etablissementId: user.etablissementId || user.etudiant?.etablissement?.id || user.enseignant?.affectations?.[0]?.etablissement?.id,
+      etablissementId:
+        user.etablissementId ||
+        user.etudiant?.etablissement?.id ||
+        user.enseignant?.affectations?.[0]?.etablissement?.id,
       enseignantId: user.enseignant?.id,
       etudiantId: user.etudiant?.id,
       parentId: user.parent?.id,
@@ -63,20 +70,37 @@ export class AuthService {
     try {
       // 1. Gérer la récupération du profil et de l'email selon le rôle
       if (role === Role.ETUDIANT) {
-        const allowReg = await this.globalSettingService.getValue('ENABLE_STUDENT_REGISTRATION', 'true');
+        const allowReg = await this.globalSettingService.getValue(
+          'ENABLE_STUDENT_REGISTRATION',
+          'true',
+        );
         if (allowReg === 'false') {
-          throw new BadRequestException("L'auto-inscription des étudiants est actuellement désactivée.");
-        }
-
-        if (registerDto.etudiantData) {
           throw new BadRequestException(
-            "L'auto-inscription ne permet pas la création d'un nouveau profil étudiant. Veuillez utiliser uniquement votre matricule.",
+            "L'auto-inscription des étudiants est actuellement désactivée.",
           );
         }
 
+        // Si etudiantData est fourni, c'est une nouvelle pré-inscription
+        if (registerDto.etudiantData) {
+          profile = await this.etudiantService.preRegister({
+            ...registerDto.etudiantData,
+            password: password, // Utiliser le mot de passe fourni dans RegisterDto
+          });
+
+          return {
+            message:
+              'Votre demande de pré-inscription a été enregistrée avec succès. Votre compte sera activé après validation par un administrateur.',
+            user: {
+              email: profile.email,
+              role: Role.ETUDIANT,
+            },
+          };
+        }
+
+        // Sinon, c'est une activation par matricule pour un profil existant
         if (!registerDto.matricule) {
           throw new BadRequestException(
-            "Le matricule est obligatoire pour l'inscription d'un étudiant",
+            "Le matricule ou les données d'inscription sont obligatoires pour un étudiant",
           );
         }
 
@@ -101,9 +125,14 @@ export class AuthService {
           );
         }
       } else if (role === Role.ENSEIGNANT) {
-        const allowReg = await this.globalSettingService.getValue('ENABLE_TEACHER_REGISTRATION', 'true');
+        const allowReg = await this.globalSettingService.getValue(
+          'ENABLE_TEACHER_REGISTRATION',
+          'true',
+        );
         if (allowReg === 'false') {
-          throw new BadRequestException("L'auto-inscription des enseignants est actuellement désactivée.");
+          throw new BadRequestException(
+            "L'auto-inscription des enseignants est actuellement désactivée.",
+          );
         }
 
         if (registerDto.enseignantData) {
@@ -152,7 +181,9 @@ export class AuthService {
         // Pour les parents, l'identifiant (stocké dans le champ email de User) est le numéro de téléphone
         email = registerDto.parentData.phoneNumber;
         profile = await this.parentService.create(registerDto.parentData);
-      } else if ([Role.ADMIN, Role.COMPTABLE, Role.SURVEILLANT].includes(role)) {
+      } else if (
+        [Role.ADMIN, Role.COMPTABLE, Role.SURVEILLANT].includes(role)
+      ) {
         if (!registerDto.id) {
           throw new BadRequestException(
             "L'ID est obligatoire pour l'inscription d'un personnel (Admin, Comptable, Surveillant)",
@@ -183,6 +214,7 @@ export class AuthService {
         // Mise à jour de l'utilisateur existant
         const activatedUser = await this.userService.update(userToActivate.id, {
           password: password,
+          isActive: true, // Activer le compte lors de l'activation par ID
         });
 
         return {
@@ -216,7 +248,10 @@ export class AuthService {
         email: email,
         password: password,
         role: role,
-        etablissement: (role === Role.ETUDIANT || role === Role.ENSEIGNANT) ? profile.etablissement || (profile.affectations?.[0]?.etablissement) : null,
+        etablissement:
+          role === Role.ETUDIANT || role === Role.ENSEIGNANT
+            ? profile.etablissement || profile.affectations?.[0]?.etablissement
+            : null,
         etudiant: role === Role.ETUDIANT ? profile : null,
         enseignant: role === Role.ENSEIGNANT ? profile : null,
         parent: role === Role.PARENT ? profile : null,
@@ -260,7 +295,11 @@ export class AuthService {
     });
 
     // Envoi de l'e-mail réel
-    await this.mailService.sendPasswordResetEmail(user.email, token, user.etablissement?.name);
+    await this.mailService.sendPasswordResetEmail(
+      user.email,
+      token,
+      user.etablissement?.name,
+    );
 
     return {
       message: 'Si cet email existe, un lien de réinitialisation a été envoyé.',

@@ -24,10 +24,14 @@ export class ParentService {
     const { page = 1, limit = 15 } = paginationQuery;
     const skip = (page - 1) * limit;
     const tenantId = TenantContext.getTenantId();
-    const where = TenantHelper.addTenantFilter({}, tenantId, 'etudiants.etablissement');
+    const where = TenantHelper.addTenantFilter(
+      {},
+      tenantId,
+      'etudiants.etablissement',
+    );
 
     const [items, total] = await this.parentRepository.findAndCount({
-      where: where as any,
+      where: where,
       relations: { etudiants: true },
       skip,
       take: limit,
@@ -44,10 +48,14 @@ export class ParentService {
 
   async findOne(id: number): Promise<Parent> {
     const tenantId = TenantContext.getTenantId();
-    const where = TenantHelper.addTenantFilter({ id }, tenantId, 'etudiants.etablissement');
+    const where = TenantHelper.addTenantFilter(
+      { id },
+      tenantId,
+      'etudiants.etablissement',
+    );
 
     const parent = await this.parentRepository.findOne({
-      where: where as any,
+      where: where,
       relations: { etudiants: true },
     });
     if (!parent) throw new NotFoundException(`Parent #${id} introuvable`);

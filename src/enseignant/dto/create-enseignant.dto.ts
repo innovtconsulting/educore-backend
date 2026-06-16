@@ -1,34 +1,50 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsDateString, IsEmail, IsNotEmpty, IsOptional, IsString } from 'class-validator';
+import {
+  IsDateString,
+  IsEmail,
+  IsNotEmpty,
+  IsOptional,
+  IsString,
+} from 'class-validator';
 
 export class CreateEnseignantDto {
   @ApiProperty({ example: 'Jean', description: "Prénom de l'enseignant" })
   @IsString()
   @IsNotEmpty()
-  firstName: string;
+  firstName!: string;
 
   @ApiProperty({ example: 'Dupont', description: "Nom de l'enseignant" })
   @IsString()
   @IsNotEmpty()
-  lastName: string;
+  lastName!: string;
 
-  @ApiProperty({ example: 'jean.dupont@email.com', description: "Email unique de l'enseignant" })
+  @ApiProperty({
+    example: 'jean.dupont@email.com',
+    description: "Email unique de l'enseignant",
+  })
   @IsEmail()
   @IsNotEmpty()
-  email: string;
+  email!: string;
 
-  @ApiProperty({ example: '+221770000000', description: "Téléphone de l'enseignant", required: false })
+  @ApiProperty({
+    example: '+221770000000',
+    description: "Téléphone de l'enseignant",
+    required: false,
+  })
   @IsString()
   @IsOptional()
   phone?: string;
 
-  @ApiProperty({ example: 'ENS-2026-001', description: "Matricule unique de l'enseignant" })
+  @ApiProperty({
+    example: 'ENS-2026-001',
+    description: "Matricule unique de l'enseignant",
+  })
   @IsString()
   @IsNotEmpty()
-  matricule: string;
+  matricule!: string;
 
   @ApiProperty({ example: '2026-06-08', description: "Date d'embauche" })
   @IsDateString()
   @IsNotEmpty()
-  dateEmbauche: string;
+  dateEmbauche!: string;
 }

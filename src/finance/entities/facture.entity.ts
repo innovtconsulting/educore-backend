@@ -9,6 +9,7 @@ import {
 } from 'typeorm';
 import { Etudiant } from '../../etudiant/entities/etudiant.entity';
 import { Paiement } from './paiement.entity';
+import { AnneeUniversitaire } from '../../annee-universitaire/entities/annee-universitaire.entity';
 import { ApiProperty } from '@nestjs/swagger';
 
 export enum InvoiceStatus {
@@ -51,6 +52,10 @@ export class Facture {
   })
   @ApiProperty({ enum: InvoiceStatus })
   status!: InvoiceStatus;
+
+  @ManyToOne(() => AnneeUniversitaire, { nullable: true })
+  @ApiProperty({ type: () => AnneeUniversitaire, required: false })
+  anneeUniversitaire?: AnneeUniversitaire;
 
   @OneToMany(() => Paiement, (paiement) => paiement.facture)
   @ApiProperty({ type: () => [Paiement] })

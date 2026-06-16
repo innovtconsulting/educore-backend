@@ -11,32 +11,32 @@ export class CreateDevoirDto {
   @ApiProperty({ example: 'TP Algorithmique' })
   @IsString()
   @IsNotEmpty()
-  title: string;
+  title!: string;
 
   @ApiProperty({ example: 'Implémenter une liste chaînée en C' })
   @IsString()
   @IsNotEmpty()
-  description: string;
+  description!: string;
 
   @ApiProperty({ example: '2026-06-15T23:59:59Z' })
   @IsDateString()
   @IsNotEmpty()
-  deadline: string;
+  deadline!: string;
 
   @ApiProperty({ example: 1 })
   @IsNumber()
   @IsNotEmpty()
-  matiereId: number;
+  matiereId!: number;
 
   @ApiProperty({ example: 1 })
   @IsNumber()
   @IsNotEmpty()
-  classeId: number;
+  classeId!: number;
 
   @ApiProperty({ example: 1 })
   @IsNumber()
   @IsNotEmpty()
-  niveauId: number;
+  niveauId!: number;
 
   @ApiProperty({ example: [1], required: false })
   @IsOptional()

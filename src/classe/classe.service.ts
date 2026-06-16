@@ -1,4 +1,8 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { In, Repository } from 'typeorm';
 import { TenantContext } from '../common/tenant/tenant.context';
@@ -37,7 +41,9 @@ export class ClasseService {
     });
 
     if (etablissements.length !== etablissementIds.length) {
-      throw new NotFoundException('Un ou plusieurs établissements sont introuvables');
+      throw new NotFoundException(
+        'Un ou plusieurs établissements sont introuvables',
+      );
     }
 
     // Vérifier l'unicité du nom de classe par établissement
@@ -87,7 +93,9 @@ export class ClasseService {
       relations: { etablissements: true, niveaux: true },
     });
     if (!classe) {
-      throw new NotFoundException(`La classe avec l'ID ${id} n'a pas été trouvée`);
+      throw new NotFoundException(
+        `La classe avec l'ID ${id} n'a pas été trouvée`,
+      );
     }
     return classe;
   }
@@ -105,7 +113,9 @@ export class ClasseService {
         id: In(niveauIds),
       });
       if (niveaux.length !== niveauIds.length) {
-        throw new NotFoundException('Un ou plusieurs niveaux sont introuvables');
+        throw new NotFoundException(
+          'Un ou plusieurs niveaux sont introuvables',
+        );
       }
       classe.niveaux = niveaux;
     }
@@ -115,7 +125,9 @@ export class ClasseService {
         id: In(etablissementIds),
       });
       if (etablissements.length !== etablissementIds.length) {
-        throw new NotFoundException('Un ou plusieurs établissements sont introuvables');
+        throw new NotFoundException(
+          'Un ou plusieurs établissements sont introuvables',
+        );
       }
       classe.etablissements = etablissements;
     }

@@ -38,14 +38,17 @@ export class DisciplineService {
     const tenantId = TenantContext.getTenantId();
     const where = TenantHelper.addTenantFilter({ id }, tenantId);
 
-    const discipline = await this.disciplineRepository.findOneBy(where as any);
+    const discipline = await this.disciplineRepository.findOneBy(where);
     if (!discipline) {
       throw new NotFoundException(`Discipline #${id} non trouvée`);
     }
     return discipline;
   }
 
-  async update(id: number, updateDisciplineDto: UpdateDisciplineDto): Promise<Discipline> {
+  async update(
+    id: number,
+    updateDisciplineDto: UpdateDisciplineDto,
+  ): Promise<Discipline> {
     const discipline = await this.findOne(id);
     Object.assign(discipline, updateDisciplineDto);
     return await this.disciplineRepository.save(discipline);

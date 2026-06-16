@@ -26,9 +26,10 @@ export class NiveauController {
 
   @Post()
   @Roles(Role.SUPER_ADMIN, Role.ADMIN)
-  @ApiOperation({ 
-    summary: 'Créer un niveau', 
-    description: 'Ajoute un nouveau niveau d\'étude (Licence 1, Master 2, etc.) dans le système.' 
+  @ApiOperation({
+    summary: 'Créer un niveau',
+    description:
+      "Ajoute un nouveau niveau d'étude (Licence 1, Master 2, etc.) dans le système.",
   })
   async create(@Body() createNiveauDto: CreateNiveauDto) {
     const data = await this.niveauService.create(createNiveauDto);
@@ -39,9 +40,9 @@ export class NiveauController {
   }
 
   @Get()
-  @ApiOperation({ 
-    summary: 'Lister tous les niveaux', 
-    description: 'Récupère la liste complète des niveaux d\'étude disponibles.' 
+  @ApiOperation({
+    summary: 'Lister tous les niveaux',
+    description: "Récupère la liste complète des niveaux d'étude disponibles.",
   })
   async findAll() {
     const data = await this.niveauService.findAll();
@@ -52,9 +53,9 @@ export class NiveauController {
   }
 
   @Get(':id')
-  @ApiOperation({ 
-    summary: 'Récupérer un niveau par ID', 
-    description: 'Affiche les informations d\'un niveau spécifique.' 
+  @ApiOperation({
+    summary: 'Récupérer un niveau par ID',
+    description: "Affiche les informations d'un niveau spécifique.",
   })
   async findOne(@Param('id') id: string) {
     const data = await this.niveauService.findOne(+id);
@@ -66,9 +67,9 @@ export class NiveauController {
 
   @Patch(':id')
   @Roles(Role.SUPER_ADMIN, Role.ADMIN)
-  @ApiOperation({ 
-    summary: 'Modifier un niveau', 
-    description: 'Permet de mettre à jour le libellé d\'un niveau d\'étude.' 
+  @ApiOperation({
+    summary: 'Modifier un niveau',
+    description: "Permet de mettre à jour le libellé d'un niveau d'étude.",
   })
   async update(
     @Param('id') id: string,
@@ -83,9 +84,9 @@ export class NiveauController {
 
   @Delete(':id')
   @Roles(Role.SUPER_ADMIN, Role.ADMIN)
-  @ApiOperation({ 
-    summary: 'Supprimer un niveau', 
-    description: 'Supprime un niveau d\'étude du système.' 
+  @ApiOperation({
+    summary: 'Supprimer un niveau',
+    description: "Supprime un niveau d'étude du système.",
   })
   async remove(@Param('id') id: string) {
     await this.niveauService.remove(+id);

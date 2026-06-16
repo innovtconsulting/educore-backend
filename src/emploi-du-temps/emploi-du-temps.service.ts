@@ -101,7 +101,8 @@ export class EmploiDuTempsService {
 
     let salle: Salle | undefined;
     if (salleId) {
-      salle = await this.salleRepository.findOneBy({ id: salleId }) || undefined;
+      salle =
+        (await this.salleRepository.findOneBy({ id: salleId })) || undefined;
       if (!salle) throw new NotFoundException(`Salle ${salleId} introuvable`);
     }
 
@@ -121,7 +122,14 @@ export class EmploiDuTempsService {
     }
 
     // 3. Vérifier les conflits
-    await this.checkConflicts(start, end, enseignantId, classeId, undefined, salleId);
+    await this.checkConflicts(
+      start,
+      end,
+      enseignantId,
+      classeId,
+      undefined,
+      salleId,
+    );
 
     const newEmploi = this.emploiDuTempRepository.create({
       startTime: start,
@@ -260,16 +268,29 @@ export class EmploiDuTempsService {
     updateEmploiDuTempDto: UpdateEmploiDuTempDto,
   ): Promise<EmploiDuTemp> {
     const emploi = await this.findOne(id);
-    const { startTime, endTime, enseignantId, classeId, salleId, matiereId, niveauId } =
-      updateEmploiDuTempDto;
+    const {
+      startTime,
+      endTime,
+      enseignantId,
+      classeId,
+      salleId,
+      matiereId,
+      niveauId,
+    } = updateEmploiDuTempDto;
 
     const start = startTime ? new Date(startTime) : emploi.startTime;
     const end = endTime ? new Date(endTime) : emploi.endTime;
     const eId = enseignantId || emploi.enseignant.id;
     const cId = classeId || emploi.classe.id;
-    const sId = salleId !== undefined ? (salleId || undefined) : (emploi.salle?.id);
+    const sId = salleId !== undefined ? salleId || undefined : emploi.salle?.id;
 
-    if (startTime || endTime || enseignantId || classeId || salleId !== undefined) {
+    if (
+      startTime ||
+      endTime ||
+      enseignantId ||
+      classeId ||
+      salleId !== undefined
+    ) {
       if (start >= end)
         throw new BadRequestException(
           "L'heure de début doit être avant l'heure de fin",
@@ -286,7 +307,7 @@ export class EmploiDuTempsService {
         where: { id: mId },
         relations: { classes: true, niveaux: true },
       });
-      
+
       if (matiere) {
         const hasClasse = matiere.classes.some((c) => c.id === clId);
         const hasNiveau = matiere.niveaux.some((n) => n.id === nId);

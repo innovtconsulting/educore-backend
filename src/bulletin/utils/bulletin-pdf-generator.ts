@@ -8,7 +8,7 @@ export async function generateBulletinPdf(data: any): Promise<string> {
       const doc = new PDFDocument({ size: 'A4', margin: 50 });
       const filename = `bulletin_${data.etudiant.matricule}_${data.semestre.replace(/\s+/g, '_')}_${Date.now()}.pdf`;
       const directory = path.join(process.cwd(), 'uploads', 'documents');
-      
+
       if (!fs.existsSync(directory)) {
         fs.mkdirSync(directory, { recursive: true });
       }
@@ -19,21 +19,28 @@ export async function generateBulletinPdf(data: any): Promise<string> {
       doc.pipe(stream);
 
       // --- En-tête ---
-      const schoolName = data.etudiant.etablissement?.name?.toUpperCase() || 'ÉCOLE SUPÉRIEURE POLYTECHNIQUE';
+      const schoolName =
+        data.etudiant.etablissement?.name?.toUpperCase() ||
+        'EDUCORE';
       doc
         .fontSize(16)
         .font('Helvetica-Bold')
         .text(schoolName, { align: 'center' })
         .fontSize(10)
         .font('Helvetica')
-        .text('Enseignement Supérieur, Recherche et Innovation', { align: 'center' })
+        .text('Enseignement Supérieur, Recherche et Innovation', {
+          align: 'center',
+        })
         .text(data.etudiant.etablissement?.address || '', { align: 'center' })
         .moveDown();
 
       doc
         .fontSize(16)
         .font('Helvetica-Bold')
-        .text('RELEVÉ DE NOTES ET RÉSULTATS', { align: 'center', underline: true })
+        .text('RELEVÉ DE NOTES ET RÉSULTATS', {
+          align: 'center',
+          underline: true,
+        })
         .moveDown();
 
       // --- Informations Étudiant ---
@@ -59,7 +66,11 @@ export async function generateBulletinPdf(data: any): Promise<string> {
         .font('Helvetica-Bold')
         .text(`CLASSE / NIVEAU :`, startX, currentY)
         .font('Helvetica')
-        .text(`${data.etudiant.classe} / ${data.etudiant.niveau}`, startX + 120, currentY);
+        .text(
+          `${data.etudiant.classe} / ${data.etudiant.niveau}`,
+          startX + 120,
+          currentY,
+        );
 
       currentY += 15;
       doc
@@ -110,15 +121,20 @@ export async function generateBulletinPdf(data: any): Promise<string> {
           .text(item.coefficient.toString(), colCoef, rowY)
           .text(item.moyenne.toFixed(2), colMoyenne, rowY)
           .font(item.isEliminatoire ? 'Helvetica-Bold' : 'Helvetica')
-          .text(item.isEliminatoire ? 'ÉLIMINATOIRE' : (item.moyenne >= 10 ? 'VALIDÉ' : 'À RATTRAPER'), colResultat, rowY);
+          .text(
+            item.isEliminatoire
+              ? 'ÉLIMINATOIRE'
+              : item.moyenne >= 10
+                ? 'VALIDÉ'
+                : 'À RATTRAPER',
+            colResultat,
+            rowY,
+          );
 
         rowY += 20;
       });
 
-      doc
-        .moveTo(50, rowY)
-        .lineTo(550, rowY)
-        .stroke();
+      doc.moveTo(50, rowY).lineTo(550, rowY).stroke();
 
       rowY += 15;
 
@@ -126,20 +142,32 @@ export async function generateBulletinPdf(data: any): Promise<string> {
       doc
         .fontSize(12)
         .font('Helvetica-Bold')
-        .text(`MOYENNE GÉNÉRALE : ${data.moyenneGenerale.toFixed(2)} / 20`, colMatiere, rowY);
+        .text(
+          `MOYENNE GÉNÉRALE : ${data.moyenneGenerale.toFixed(2)} / 20`,
+          colMatiere,
+          rowY,
+        );
 
       rowY += 20;
-      const admissionStatus = data.decisions.isAdmis ? 'ADMIS(E)' : 'NON ADMIS(E)';
-      const warning = data.decisions.hasEliminatoire ? ' (Sous réserve de note éliminatoire)' : '';
+      const admissionStatus = data.decisions.isAdmis
+        ? 'ADMIS(E)'
+        : 'NON ADMIS(E)';
+      const warning = data.decisions.hasEliminatoire
+        ? ' (Sous réserve de note éliminatoire)'
+        : '';
 
       doc
         .fontSize(12)
-        .text(`DÉCISION DU JURY : ${admissionStatus}${warning}`, colMatiere, rowY);
+        .text(
+          `DÉCISION DU JURY : ${admissionStatus}${warning}`,
+          colMatiere,
+          rowY,
+        );
 
       // --- Signatures ---
       doc.moveDown(4);
       const signatureY = doc.y;
-      
+
       doc
         .fontSize(10)
         .font('Helvetica')
