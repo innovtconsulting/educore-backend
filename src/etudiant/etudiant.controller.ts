@@ -40,18 +40,6 @@ import { Public } from '../auth/decorators/public.decorator';
 export class EtudiantController {
   constructor(private readonly etudiantService: EtudiantService) {}
 
-  @Public()
-  @Post('pre-inscription')
-  @ApiOperation({ summary: "Pré-inscription d'un étudiant (Public)" })
-  async preRegister(@Body() createEtudiantDto: CreateEtudiantDto) {
-    const data = await this.etudiantService.preRegister(createEtudiantDto);
-    return {
-      message:
-        'Votre demande de pré-inscription a été enregistrée avec succès. Un administrateur la validera prochainement.',
-      data,
-    };
-  }
-
   @Post()
   @Roles(Role.SUPER_ADMIN, Role.ADMIN)
   @ApiOperation({ summary: 'Créer un nouvel étudiant' })
