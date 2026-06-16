@@ -6,6 +6,7 @@ import { Sanction } from '../sanction/entities/sanction.entity';
 import { DailyReport } from './entities/daily-report.entity';
 import { SubmitDailyReportDto } from './dto/submit-daily-report.dto';
 import { PaginationQueryDto } from '../common/dto/pagination-query.dto';
+import { generateDailyReportPdf } from './utils/daily-report-pdf-generator';
 import { Etudiant } from '../etudiant/entities/etudiant.entity';
 import { Enseignant } from '../enseignant/entities/enseignant.entity';
 import { Classe } from '../classe/entities/classe.entity';
@@ -184,6 +185,19 @@ export class ReportingService {
     report.totalRetards = reportData.summary.totalRetards;
     report.totalSanctions = reportData.summary.totalSanctions;
     report.isSubmitted = true;
+
+    // Génération du PDF
+    const etablissement = tenantId 
+      ? await this.etudiantRepository.manager.getRepository('Etablissement').findOneBy({ id: tenantId }) 
+      : null;
+
+    const pdfUrl = await generateDailyReportPdf({
+      ...reportData,
+      supervisorName: dto.supervisorName,
+      observations: dto.observations,
+      etablissement,
+    });
+    report.pdfUrl = pdfUrl;
 
     return await this.dailyReportRepository.save(report);
   }

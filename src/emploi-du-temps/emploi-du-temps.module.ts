@@ -8,6 +8,7 @@ import { Enseignant } from '../enseignant/entities/enseignant.entity';
 import { Etablissement } from '../etablissement/entities/etablissement.entity';
 import { Classe } from '../classe/entities/classe.entity';
 import { Niveau } from '../niveau/entities/niveau.entity';
+import { Salle } from '../salle/entities/salle.entity';
 import { Affectation } from '../enseignant/entities/affectation.entity';
 
 @Module({
@@ -19,6 +20,7 @@ import { Affectation } from '../enseignant/entities/affectation.entity';
       Etablissement,
       Classe,
       Niveau,
+      Salle,
       Affectation,
     ]),
   ],

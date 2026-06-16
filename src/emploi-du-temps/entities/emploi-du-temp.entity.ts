@@ -11,6 +11,7 @@ import { Enseignant } from '../../enseignant/entities/enseignant.entity';
 import { Etablissement } from '../../etablissement/entities/etablissement.entity';
 import { Classe } from '../../classe/entities/classe.entity';
 import { Niveau } from '../../niveau/entities/niveau.entity';
+import { Salle } from '../../salle/entities/salle.entity';
 
 @Entity()
 export class EmploiDuTemp {
@@ -37,6 +38,9 @@ export class EmploiDuTemp {
 
   @ManyToOne(() => Niveau, { onDelete: 'CASCADE' })
   niveau!: Niveau;
+
+  @ManyToOne(() => Salle, { onDelete: 'SET NULL', nullable: true })
+  salle?: Salle;
 
   @CreateDateColumn()
   createdAt!: Date;

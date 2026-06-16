@@ -27,7 +27,7 @@ export class AuthService {
 
   async validateUser(email: string, pass: string): Promise<any> {
     const user = await this.userService.findByEmail(email);
-    if (user && (await bcrypt.compare(pass, user.password))) {
+    if (user && user.password && (await bcrypt.compare(pass, user.password))) {
       const { password, ...result } = user;
       return result;
     }
@@ -260,7 +260,7 @@ export class AuthService {
     });
 
     // Envoi de l'e-mail réel
-    await this.mailService.sendPasswordResetEmail(user.email, token);
+    await this.mailService.sendPasswordResetEmail(user.email, token, user.etablissement?.name);
 
     return {
       message: 'Si cet email existe, un lien de réinitialisation a été envoyé.',

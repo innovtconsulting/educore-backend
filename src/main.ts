@@ -28,8 +28,8 @@ async function bootstrap() {
 
   // Configuration Swagger
   const config = new DocumentBuilder()
-    .setTitle('ESPM API')
-    .setDescription("Documentation de l'API de gestion ESPM")
+    .setTitle('Educore API')
+    .setDescription("Documentation de l'API de gestion universitaire multi-établissement")
     .setVersion('1.0')
     .addTag('etablissement')
     .addTag('niveau')

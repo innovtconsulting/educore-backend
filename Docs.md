@@ -3,18 +3,29 @@
 Ce document présente une vue d'ensemble exhaustive des capacités du système de gestion universitaire ESPM.
 
 ## 1. 🔐 Authentification & Sécurité
-*   **Gestion des Comptes :** Activation de compte pour Étudiants et Enseignants via matricule pré-existant.
-*   **Authentification :** Sécurisée par JWT (JSON Web Tokens).
-*   **Rôles & Permissions :** Contrôle d'accès granulaire (RBAC) selon le type d'utilisateur (Admin, Comptable, Surveillant, Enseignant, Étudiant, Parent).
+*   **Gestion des Comptes :** Flux d'activation différencié selon le rôle :
+    *   **Étudiants & Enseignants :** Activation par **matricule**.
+    *   **Parents :** Activation par **numéro de téléphone** (identifiant principal).
+    *   **Admins, Comptables, Surveillants :** Activation par **ID utilisateur**.
+*   **Authentification :** Sécurisée par JWT (JSON Web Tokens). L'identifiant peut être un email ou un téléphone (parents).
+*   **Rôles & Permissions :** Contrôle d'accès granulaire (RBAC) selon le type d'utilisateur (SuperAdmin, Admin, Comptable, Surveillant, Enseignant, Étudiant, Parent).
 *   **Profils :** Consultation et mise à jour des informations personnelles avec synchronisation automatique entre le compte utilisateur et le profil métier.
 *   **Photos de Profil :** Système d'upload centralisé pour les avatars.
-*   **Récupération :** Flux complet d'oubli et de réinitialisation de mot de passe par jetons temporaires.
+*   **Récupération :** Flux complet d'oubli et de réinitialisation de mot de passe par jetons temporaires à usage unique.
 
-## 2. 🏛️ Structure Académique
-*   **Multi-Établissements :** Gestion de plusieurs sites ou entités.
-*   **Niveaux & Classes :** Organisation hiérarchique des cursus (ex: Licence 1 Informatique).
+## 2. 🏢 Architecture Multi-tenant
+Le système implémente une isolation stricte des données pour garantir la confidentialité entre les établissements :
+*   **Isolation par Tenant :** Chaque établissement (tenant) possède son propre espace de données.
+*   **Contexte de Requête :** Utilisation d'un `TenantInterceptor` et de `AsyncLocalStorage` pour propager l'ID de l'établissement tout au long du traitement d'une requête.
+*   **Filtrage Automatique :** Les ressources sensibles (Étudiants, Factures, Emplois du Temps, etc.) sont systématiquement filtrées par `etablissementId`.
+*   **Ressources Partagées :** Certaines ressources académiques (Années Universitaires, Classes, Niveaux) peuvent être partagées ou transverses, mais l'accès reste contrôlé par le contexte du tenant.
+*   **Vue Transverse :** Le rôle `SuperAdmin` bénéficie d'une visibilité totale sur l'ensemble des tenants pour la gestion globale.
+
+## 3. 🏛️ Structure Académique
+*   **Multi-Établissements :** Gestion de plusieurs sites ou entités au sein d'une même instance.
+*   **Niveaux & Classes :** Organisation hiérarchique des cursus (ex: Licence 1 Informatique). Une classe peut être rattachée à plusieurs établissements.
 *   **Matières :** Catalogue des unités d'enseignement avec codes uniques et coefficients pour le calcul des moyennes.
-*   **Affectations :** Liaison dynamique entre Enseignants, Matières, Niveaux et Établissements.
+*   **Affectations :** Liaison dynamique entre Enseignants, Matières, Niveaux et Établissements via l'entité `Affectation`.
 
 ## 3. 📅 Gestion Pédagogique (LMD)
 *   **Années Universitaires :** Définition des périodes académiques (ex: 2025-2026). Gestion **globale** centralisée par le SuperAdmin.

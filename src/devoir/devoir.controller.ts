@@ -19,6 +19,7 @@ import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { Role } from '../user/entities/user.entity';
 import { PaginationQueryDto } from '../common/dto/pagination-query.dto';
+import { CreateSubmissionDto } from './dto/create-submission.dto';
 
 @ApiTags('devoirs')
 @ApiBearerAuth()
@@ -35,14 +36,26 @@ export class DevoirController {
   }
 
   @Get()
-  @Roles(Role.SUPER_ADMIN, Role.ADMIN, Role.ENSEIGNANT, Role.ETUDIANT, Role.PARENT)
+  @Roles(
+    Role.SUPER_ADMIN,
+    Role.ADMIN,
+    Role.ENSEIGNANT,
+    Role.ETUDIANT,
+    Role.PARENT,
+  )
   @ApiOperation({ summary: 'Lister les devoirs' })
   findAll(@Query() paginationQuery: PaginationQueryDto, @Request() req: any) {
     return this.devoirService.findAll(paginationQuery, req.user);
   }
 
   @Get('classe/:classeId/niveau/:niveauId')
-  @Roles(Role.SUPER_ADMIN, Role.ADMIN, Role.ENSEIGNANT, Role.ETUDIANT, Role.PARENT)
+  @Roles(
+    Role.SUPER_ADMIN,
+    Role.ADMIN,
+    Role.ENSEIGNANT,
+    Role.ETUDIANT,
+    Role.PARENT,
+  )
   @ApiOperation({ summary: 'Lister les devoirs par classe et niveau' })
   findByClasse(
     @Param('classeId') classeId: string,
@@ -52,7 +65,13 @@ export class DevoirController {
   }
 
   @Get(':id')
-  @Roles(Role.SUPER_ADMIN, Role.ADMIN, Role.ENSEIGNANT, Role.ETUDIANT, Role.PARENT)
+  @Roles(
+    Role.SUPER_ADMIN,
+    Role.ADMIN,
+    Role.ENSEIGNANT,
+    Role.ETUDIANT,
+    Role.PARENT,
+  )
   @ApiOperation({ summary: 'Récupérer un devoir par ID' })
   findOne(@Param('id') id: string) {
     return this.devoirService.findOne(+id);
@@ -75,4 +94,58 @@ export class DevoirController {
   remove(@Param('id') id: string, @Request() req: any) {
     return this.devoirService.remove(+id, req.user);
   }
+
+  // --- Submissions ---
+
+  @Post(':id/soumissions')
+  @Roles(Role.ETUDIANT)
+  @ApiOperation({ summary: 'Soumettre un rendu pour un devoir' })
+  async createSubmission(
+    @Param('id') id: string,
+    @Body() createSubmissionDto: CreateSubmissionDto,
+    @Request() req: any,
+  ) {
+    const data = await this.devoirService.createSubmission(
+      +id,
+      createSubmissionDto,
+      req.user,
+    );
+    return {
+      message: 'Rendu soumis avec succès',
+      data,
+    };
+  }
+
+  @Get(':id/soumissions')
+  @Roles(Role.SUPER_ADMIN, Role.ADMIN, Role.ENSEIGNANT)
+  @ApiOperation({ summary: 'Lister tous les rendus pour un devoir' })
+  async findAllSubmissions(@Param('id') id: string, @Request() req: any) {
+    const data = await this.devoirService.findAllSubmissions(+id, req.user);
+    return {
+      message: 'Liste des rendus récupérée avec succès',
+      data,
+    };
+  }
+
+  @Get(':id/soumissions/me')
+  @Roles(Role.ETUDIANT)
+  @ApiOperation({ summary: 'Récupérer mon rendu pour un devoir spécifique' })
+  async findMySubmission(@Param('id') id: string, @Request() req: any) {
+    const data = await this.devoirService.findMySubmission(+id, req.user);
+    return {
+      message: 'Votre rendu a été récupéré avec succès',
+      data,
+    };
+  }
+
+  @Delete('soumissions/:id')
+  @Roles(Role.ETUDIANT)
+  @ApiOperation({ summary: 'Supprimer une soumission' })
+  async removeSubmission(@Param('id') id: string, @Request() req: any) {
+    await this.devoirService.removeSubmission(+id, req.user);
+    return {
+      message: 'Rendu supprimé avec succès',
+    };
+  }
 }
+

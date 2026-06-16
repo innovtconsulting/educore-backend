@@ -2,24 +2,29 @@ import {
   ForbiddenException,
   Injectable,
   NotFoundException,
+  BadRequestException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, In } from 'typeorm';
 import { CreateDevoirDto } from './dto/create-devoir.dto';
 import { UpdateDevoirDto } from './dto/update-devoir.dto';
 import { Devoir } from './entities/devoir.entity';
+import { Submission } from './entities/submission.entity';
 import { EnseignantService } from '../enseignant/enseignant.service';
 import { Role } from '../user/entities/user.entity';
 import { Document } from '../document/entities/document.entity';
 import { Classe } from '../classe/entities/classe.entity';
 import { PaginationQueryDto } from '../common/dto/pagination-query.dto';
 import { TenantContext } from '../common/tenant/tenant.context';
+import { CreateSubmissionDto } from './dto/create-submission.dto';
 
 @Injectable()
 export class DevoirService {
   constructor(
     @InjectRepository(Devoir)
     private readonly devoirRepository: Repository<Devoir>,
+    @InjectRepository(Submission)
+    private readonly submissionRepository: Repository<Submission>,
     @InjectRepository(Document)
     private readonly documentRepository: Repository<Document>,
     private readonly enseignantService: EnseignantService,
@@ -182,4 +187,106 @@ export class DevoirService {
     }
     return await this.devoirRepository.remove(devoir);
   }
+
+  // --- Submissions ---
+
+  async createSubmission(
+    devoirId: number,
+    createSubmissionDto: CreateSubmissionDto,
+    user: any,
+  ) {
+    const devoir = await this.findOne(devoirId);
+
+    // 1. Vérifier la deadline
+    if (new Date() > new Date(devoir.deadline)) {
+      throw new BadRequestException('La date limite est dépassée');
+    }
+
+    // 2. Vérifier que l'étudiant appartient à la classe/niveau
+    if (user.role === Role.ETUDIANT) {
+      const etudiant = await this.devoirRepository.manager
+        .getRepository('Etudiant')
+        .findOne({
+          where: { id: user.etudiantId },
+          relations: { classe: true, niveau: true },
+        }) as any;
+
+      if (
+        etudiant.classe.id !== devoir.classe.id ||
+        etudiant.niveau.id !== devoir.niveau.id
+      ) {
+        throw new ForbiddenException(
+          "Vous n'êtes pas autorisé à soumettre pour ce devoir",
+        );
+      }
+    }
+
+    const { documentId, comment } = createSubmissionDto;
+
+    // 3. Gérer la soumission existante (Update si déjà soumis)
+    let submission = await this.submissionRepository.findOne({
+      where: { devoir: { id: devoirId }, etudiant: { id: user.etudiantId } },
+    });
+
+    if (submission) {
+      submission.comment = comment;
+      submission.document = { id: documentId } as Document;
+    } else {
+      submission = this.submissionRepository.create({
+        devoir: { id: devoirId },
+        etudiant: { id: user.etudiantId },
+        document: { id: documentId },
+        comment,
+      });
+    }
+
+    return await this.submissionRepository.save(submission);
+  }
+
+  async findAllSubmissions(devoirId: number, user: any) {
+    const devoir = await this.findOne(devoirId);
+
+    // Seul l'enseignant du devoir ou un admin peut voir tous les rendus
+    if (user.role === Role.ENSEIGNANT && devoir.enseignant.id !== user.enseignantId) {
+      throw new ForbiddenException("Vous n'êtes pas l'enseignant de ce devoir");
+    }
+
+    return await this.submissionRepository.find({
+      where: { devoir: { id: devoirId } },
+      relations: {
+        etudiant: true,
+        document: true,
+      },
+      order: { submittedAt: 'DESC' },
+    });
+  }
+
+  async findMySubmission(devoirId: number, user: any) {
+    const submission = await this.submissionRepository.findOne({
+      where: { devoir: { id: devoirId }, etudiant: { id: user.etudiantId } },
+      relations: { document: true },
+    });
+    if (!submission) throw new NotFoundException('Aucun rendu trouvé pour ce devoir');
+    return submission;
+  }
+
+  async removeSubmission(id: number, user: any) {
+    const submission = await this.submissionRepository.findOne({
+      where: { id },
+      relations: { devoir: true, etudiant: true },
+    });
+
+    if (!submission) throw new NotFoundException('Rendu introuvable');
+
+    if (submission.etudiant.id !== user.etudiantId) {
+      throw new ForbiddenException("Vous ne pouvez supprimer que votre propre rendu");
+    }
+
+    if (new Date() > new Date(submission.devoir.deadline)) {
+      throw new BadRequestException('La date limite est dépassée, suppression impossible');
+    }
+
+    return await this.submissionRepository.remove(submission);
+  }
 }
+

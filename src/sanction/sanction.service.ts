@@ -21,7 +21,10 @@ export class SanctionService {
   async create(createSanctionDto: CreateSanctionDto): Promise<Sanction> {
     const { etudiantId, ...rest } = createSanctionDto;
 
-    const etudiant = await this.etudiantRepository.findOneBy({ id: etudiantId });
+    const etudiant = await this.etudiantRepository.findOne({
+      where: { id: etudiantId },
+      relations: { parents: true, etablissement: true },
+    });
     if (!etudiant) {
       throw new NotFoundException(`Étudiant #${etudiantId} introuvable`);
     }

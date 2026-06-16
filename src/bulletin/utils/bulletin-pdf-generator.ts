@@ -19,13 +19,15 @@ export async function generateBulletinPdf(data: any): Promise<string> {
       doc.pipe(stream);
 
       // --- En-tête ---
+      const schoolName = data.etudiant.etablissement?.name?.toUpperCase() || 'ÉCOLE SUPÉRIEURE POLYTECHNIQUE';
       doc
-        .fontSize(20)
+        .fontSize(16)
         .font('Helvetica-Bold')
-        .text('ESPM - ÉCOLE SUPÉRIEURE POLYTECHNIQUE DE MADAGASCAR', { align: 'center' })
+        .text(schoolName, { align: 'center' })
         .fontSize(10)
         .font('Helvetica')
         .text('Enseignement Supérieur, Recherche et Innovation', { align: 'center' })
+        .text(data.etudiant.etablissement?.address || '', { align: 'center' })
         .moveDown();
 
       doc

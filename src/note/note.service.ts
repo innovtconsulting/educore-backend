@@ -10,6 +10,7 @@ import { EnseignantService } from '../enseignant/enseignant.service';
 import { Role } from '../user/entities/user.entity';
 import { TenantContext } from '../common/tenant/tenant.context';
 import { TenantHelper } from '../common/tenant/tenant.helper';
+import { BulkCreateNoteDto } from './dto/bulk-create-note.dto';
 
 @Injectable()
 export class NoteService {
@@ -49,12 +50,79 @@ export class NoteService {
       }
     }
 
-    const note = this.noteRepository.create({
-      ...data,
-      etudiant: { id: etudiantId },
-      evaluation: { id: evaluationId },
+    // Gérer l'unicité Étudiant/Évaluation
+    let note = await this.noteRepository.findOne({
+      where: {
+        etudiant: { id: etudiantId },
+        evaluation: { id: evaluationId },
+      },
     });
+
+    if (note) {
+      Object.assign(note, data);
+    } else {
+      note = this.noteRepository.create({
+        ...data,
+        etudiant: { id: etudiantId },
+        evaluation: { id: evaluationId },
+      });
+    }
+
     return await this.noteRepository.save(note);
+  }
+
+  async bulkCreate(dto: BulkCreateNoteDto, user: any) {
+    const { evaluationId, items } = dto;
+
+    const evaluation = await this.evaluationRepository.findOne({
+      where: { id: evaluationId },
+      relations: { 
+        matiere: true, 
+        niveau: true,
+        classe: { etablissements: true }
+      },
+    });
+    if (!evaluation) throw new NotFoundException('Évaluation introuvable');
+
+    if (user.role === Role.ENSEIGNANT) {
+      const etablissementIds = evaluation.classe.etablissements.map(e => e.id);
+      const isResponsible = await this.enseignantService.isResponsibleFor(
+        user.enseignantId,
+        evaluation.matiere.id,
+        evaluation.niveau.id,
+        etablissementIds,
+      );
+      if (!isResponsible) {
+        throw new ForbiddenException(
+          "Vous n'êtes pas responsable de la matière de cette évaluation",
+        );
+      }
+    }
+
+    const savedNotes: Note[] = [];
+    for (const item of items) {
+      let note = await this.noteRepository.findOne({
+        where: {
+          etudiant: { id: item.etudiantId },
+          evaluation: { id: evaluationId },
+        },
+      });
+
+      if (note) {
+        note.value = item.value;
+        note.remark = item.remark;
+      } else {
+        note = this.noteRepository.create({
+          value: item.value,
+          remark: item.remark,
+          etudiant: { id: item.etudiantId },
+          evaluation: { id: evaluationId },
+        });
+      }
+      savedNotes.push(await this.noteRepository.save(note));
+    }
+
+    return savedNotes;
   }
 
   async findAll(paginationQuery: PaginationQueryDto, user?: any) {

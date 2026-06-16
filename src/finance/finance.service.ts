@@ -104,7 +104,11 @@ export class FinanceService {
     // Si la facture est créée directement comme payée, on génère la quittance
     if (savedFacture.status === InvoiceStatus.PAYE) {
       try {
-        const quittancePath = await generateQuittancePdf(savedFacture);
+        const factureWithEtab = await this.factureRepository.findOne({
+          where: { id: savedFacture.id },
+          relations: { etudiant: { etablissement: true } },
+        });
+        const quittancePath = await generateQuittancePdf(factureWithEtab || savedFacture);
         savedFacture.quittancePath = quittancePath;
         await this.factureRepository.save(savedFacture);
       } catch (error) {
@@ -184,7 +188,11 @@ export class FinanceService {
 
     // Générer le reçu PDF
     try {
-      const recuPath = await generateReceiptPdf(savedPaiement);
+      const paiementWithEtab = await this.paiementRepository.findOne({
+        where: { id: savedPaiement.id },
+        relations: { etudiant: { etablissement: true } },
+      });
+      const recuPath = await generateReceiptPdf(paiementWithEtab || savedPaiement);
       savedPaiement.recuPath = recuPath;
       await this.paiementRepository.save(savedPaiement);
     } catch (error) {
@@ -217,7 +225,11 @@ export class FinanceService {
       facture.status = InvoiceStatus.PAYE;
       // Générer la quittance finale
       try {
-        const quittancePath = await generateQuittancePdf(facture);
+        const factureWithEtab = await this.factureRepository.findOne({
+          where: { id: facture.id },
+          relations: { etudiant: { etablissement: true } },
+        });
+        const quittancePath = await generateQuittancePdf(factureWithEtab || facture);
         facture.quittancePath = quittancePath;
       } catch (error) {
         console.error('Erreur lors de la génération de la quittance:', error);
@@ -351,7 +363,7 @@ export class FinanceService {
 
     const paiement = await this.paiementRepository.findOne({
       where: where as any,
-      relations: { etudiant: true, facture: true },
+      relations: { etudiant: { etablissement: true }, facture: true },
     });
     if (!paiement)
       throw new NotFoundException(`Paiement #${paiementId} introuvable`);
@@ -373,7 +385,7 @@ export class FinanceService {
 
     const facture = await this.factureRepository.findOne({
       where: where as any,
-      relations: { etudiant: true },
+      relations: { etudiant: { etablissement: true } },
     });
     if (!facture)
       throw new NotFoundException(`Facture #${factureId} introuvable`);

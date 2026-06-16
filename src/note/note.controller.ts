@@ -19,6 +19,7 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { Role } from '../user/entities/user.entity';
+import { BulkCreateNoteDto } from './dto/bulk-create-note.dto';
 
 @ApiTags('note')
 @ApiBearerAuth()
@@ -35,6 +36,16 @@ export class NoteController {
   })
   create(@Body() createNoteDto: CreateNoteDto, @Request() req: any) {
     return this.noteService.create(createNoteDto, req.user);
+  }
+
+  @Post('bulk')
+  @Roles(Role.SUPER_ADMIN, Role.ADMIN, Role.ENSEIGNANT)
+  @ApiOperation({ 
+    summary: 'Enregistrer des notes en masse', 
+    description: 'Permet à un enseignant ou administrateur de saisir les notes de plusieurs étudiants pour une évaluation.' 
+  })
+  bulkCreate(@Body() bulkCreateNoteDto: BulkCreateNoteDto, @Request() req: any) {
+    return this.noteService.bulkCreate(bulkCreateNoteDto, req.user);
   }
 
   @Get()

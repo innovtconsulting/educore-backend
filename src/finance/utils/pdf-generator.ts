@@ -21,8 +21,12 @@ export async function generateReceiptPdf(paiement: Paiement): Promise<string> {
       doc.pipe(stream);
 
       // Header
+      const schoolName = paiement.etudiant.etablissement?.name?.toUpperCase() || 'REÇU DE PAIEMENT';
       doc
-        .fontSize(20)
+        .fontSize(18)
+        .font('Helvetica-Bold')
+        .text(schoolName, { align: 'center' })
+        .fontSize(14)
         .text('REÇU DE PAIEMENT', { align: 'center' })
         .moveDown();
 
@@ -91,8 +95,12 @@ export async function generateQuittancePdf(facture: Facture): Promise<string> {
       doc.pipe(stream);
 
       // Header
+      const schoolName = facture.etudiant.etablissement?.name?.toUpperCase() || 'QUITTANCE DE PAIEMENT DÉFINITIVE';
       doc
-        .fontSize(20)
+        .fontSize(18)
+        .font('Helvetica-Bold')
+        .text(schoolName, { align: 'center' })
+        .fontSize(14)
         .text('QUITTANCE DE PAIEMENT DÉFINITIVE', { align: 'center' })
         .moveDown();
 

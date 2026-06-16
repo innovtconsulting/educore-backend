@@ -22,7 +22,7 @@ export class BulletinService {
   async getStudentBulletin(etudiantId: number, semestreId: number) {
     const etudiant = await this.etudiantRepository.findOne({
       where: { id: etudiantId },
-      relations: { classe: true, niveau: true },
+      relations: { classe: true, niveau: true, etablissement: true },
     });
     if (!etudiant) throw new NotFoundException('Étudiant non trouvé');
 
@@ -107,6 +107,7 @@ export class BulletinService {
         matricule: etudiant.matricule,
         classe: etudiant.classe.name,
         niveau: etudiant.niveau.name,
+        etablissement: etudiant.etablissement,
       },
       semestre: semestre.name,
       moyenneGenerale: parseFloat(moyenneGenerale.toFixed(2)),

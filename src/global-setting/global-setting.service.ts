@@ -31,7 +31,7 @@ export class GlobalSettingService implements OnModuleInit {
       
       // SYSTEM
       { key: 'SYSTEM_MAX_UPLOAD_SIZE_MB', value: '10', category: SettingCategory.SYSTEM, description: 'Taille max des uploads en Mo' },
-      { key: 'SYSTEM_EMAIL_SENDER_NAME', value: 'ESPM Administration', category: SettingCategory.SYSTEM, description: 'Nom de l\'expéditeur des emails' },
+      { key: 'SYSTEM_EMAIL_SENDER_NAME', value: 'Administration Scolaire', category: SettingCategory.SYSTEM, description: 'Nom de l\'expéditeur des emails' },
     ];
 
     for (const setting of defaultSettings) {

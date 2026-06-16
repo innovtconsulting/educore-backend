@@ -46,6 +46,10 @@ export class DailyReport {
   @ApiProperty()
   isSubmitted!: boolean;
 
+  @Column({ nullable: true })
+  @ApiProperty({ required: false })
+  pdfUrl?: string;
+
   @ManyToOne(() => Etablissement, { nullable: true })
   @JoinColumn({ name: 'etablissementId' })
   etablissement!: Etablissement;

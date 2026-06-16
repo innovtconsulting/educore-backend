@@ -32,7 +32,7 @@ export class PresenceService {
 
     const emploi = await this.emploiRepo.findOne({
       where: TenantHelper.addTenantFilter({ id: emploiDuTempId }, tenantId) as any,
-      relations: { classe: true, niveau: true },
+      relations: { classe: true, niveau: true, matiere: true },
     });
     if (!emploi)
       throw new NotFoundException(`Créneau #${emploiDuTempId} introuvable`);
@@ -42,7 +42,7 @@ export class PresenceService {
     for (const item of items) {
       const etudiant = await this.etudiantRepo.findOne({
         where: TenantHelper.addTenantFilter({ id: item.etudiantId }, tenantId) as any,
-        relations: { classe: true, niveau: true },
+        relations: { classe: true, niveau: true, parents: true, etablissement: true },
       });
 
       if (!etudiant) {
@@ -77,7 +77,8 @@ export class PresenceService {
           remark: item.remark,
         });
       }
-      results.push(await this.presenceRepository.save(presence));
+      const savedPresence = await this.presenceRepository.save(presence);
+      results.push(savedPresence);
     }
 
     return results;

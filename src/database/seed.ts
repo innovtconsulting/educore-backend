@@ -24,6 +24,8 @@ import {
 } from '../evaluation/entities/evaluation.entity';
 import { Note } from '../note/entities/note.entity';
 import { Devoir } from '../devoir/entities/devoir.entity';
+import { Submission } from '../devoir/entities/submission.entity';
+import { Salle } from '../salle/entities/salle.entity';
 import { Frais, FeeType } from '../finance/entities/frais.entity';
 import { Facture, InvoiceStatus } from '../finance/entities/facture.entity';
 import { Paiement, PaymentMethod } from '../finance/entities/paiement.entity';
@@ -72,6 +74,8 @@ const dataSource = new DataSource({
     Discipline,
     User,
     Devoir,
+    Submission,
+    Salle,
     GlobalSetting,
   ],
   synchronize: true,
@@ -103,6 +107,8 @@ async function seed() {
     const factureRepo = dataSource.getRepository(Facture);
     const paiementRepo = dataSource.getRepository(Paiement);
     const devoirRepo = dataSource.getRepository(Devoir);
+    const submissionRepo = dataSource.getRepository(Submission);
+    const salleRepo = dataSource.getRepository(Salle);
     const globalSettingRepo = dataSource.getRepository(GlobalSetting);
 
     // 0. Configuration Globale
@@ -312,6 +318,12 @@ async function seed() {
     });
     await etudiantRepo.save([etudiant1, etudiant2, etudiant3]);
 
+    // 8.1 Salles
+    const salle101 = salleRepo.create({ name: 'Salle 101', capacity: 40, etablissement: fst });
+    const salle102 = salleRepo.create({ name: 'Salle 102', capacity: 30, etablissement: esp });
+    const laboInfo = salleRepo.create({ name: 'Laboratoire Info', capacity: 25, etablissement: fst });
+    await salleRepo.save([salle101, salle102, laboInfo]);
+
     // 9. Emploi du Temps
     const cours1 = emploiRepo.create({
       startTime: new Date('2026-06-08T08:00:00Z'),
@@ -321,6 +333,7 @@ async function seed() {
       etablissement: fst,
       classe: informatique,
       niveau: l1,
+      salle: salle101,
     });
     await emploiRepo.save(cours1);
 
@@ -613,7 +626,27 @@ async function seed() {
       niveau: l2,
       enseignant: profDiallo,
     });
-    await devoirRepo.save([devoir1, devoir2]);
+    const savedDevoirs = await devoirRepo.save([devoir1, devoir2]);
+
+    // 19. Submissions
+    const docRendu = documentRepo.create({
+      title: 'Rendu TP Liste Chaînée - Ousmane Sow',
+      description: 'Mon code source C et le compte-rendu.',
+      category: DocumentCategory.PEDAGOGIQUE,
+      filePath: 'uploads/documents/rendu_tp1_ousmane.pdf',
+      originalName: 'rendu_tp1_ousmane.pdf',
+      mimeType: 'application/pdf',
+      fileSize: 1024 * 150,
+    });
+    const savedDocRendu = await documentRepo.save(docRendu);
+
+    const submission1 = submissionRepo.create({
+      devoir: savedDevoirs[0],
+      etudiant: etudiant1,
+      document: savedDocRendu,
+      comment: "Voici mon travail pour le TP 1. J'ai ajouté les bonus.",
+    });
+    await submissionRepo.save(submission1);
 
     console.log('Seeding terminé avec succès !');
   } catch (error) {
