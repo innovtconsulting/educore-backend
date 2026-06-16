@@ -461,14 +461,15 @@ export class FinanceService {
       const numero = `FACT-${etudiant.id}-${Date.now()}-${frais.id}`;
       const facture = this.factureRepository.create({
         numero,
-        designation: `Frais de ${frais.type} - Année Académique`,
-        montantTotal: frais.montant,
+        notes: `Frais de ${frais.type} - Année Académique`,
+        montantTotal: frais.amount,
         dateEmission: new Date(),
         status: InvoiceStatus.VALIDE,
-        etudiant: etudiant
+        etudiant: etudiant,
       });
 
-      createdFactures.push(await this.factureRepository.save(facture));
+      const savedFacture = await this.factureRepository.save(facture);
+      createdFactures.push(savedFacture);
     }
 
     return createdFactures;

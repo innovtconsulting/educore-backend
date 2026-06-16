@@ -18,6 +18,7 @@ import { Facture, InvoiceStatus } from '../finance/entities/facture.entity';
 import { Frais } from '../finance/entities/frais.entity';
 import { BulletinService } from '../bulletin/bulletin.service';
 import { GlobalSettingService } from '../global-setting/global-setting.service';
+import { TenantContext } from '../common/tenant/tenant.context';
 
 @Injectable()
 export class InscriptionService {
