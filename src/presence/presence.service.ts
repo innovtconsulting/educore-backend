@@ -5,7 +5,7 @@ import {
   ForbiddenException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Between, Repository } from 'typeorm';
 import { Presence, PresenceStatus } from './entities/presence.entity';
 import { BulkRecordPresenceDto } from './dto/record-presence.dto';
 import { EmploiDuTemp } from '../emploi-du-temps/entities/emploi-du-temp.entity';
@@ -153,5 +153,27 @@ export class PresenceService {
       retards,
       history: presences,
     };
+  }
+
+  async getStudentAbsencesToday(etudiantId: number): Promise<Presence[]> {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+
+    const tenantId = TenantContext.getTenantId();
+    const where: any = {
+      etudiant: { id: etudiantId },
+      status: PresenceStatus.ABSENT,
+      emploiDuTemp: {
+        startTime: Between(today, tomorrow),
+      },
+    };
+    if (tenantId) where.etudiant = { etablissement: { id: tenantId } };
+
+    return await this.presenceRepository.find({
+      where,
+      relations: { emploiDuTemp: { matiere: true } },
+    });
   }
 }

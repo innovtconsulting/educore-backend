@@ -16,6 +16,13 @@ export class MailService {
   }
 
   async sendMail(to: string, subject: string, html: string) {
+    // Vérifier si le destinataire est un email valide
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(to)) {
+      console.warn(`[MAIL SKIP] Skipping email send to non-email address: ${to}`);
+      return;
+    }
+
     try {
       await this.transporter.sendMail({
         from: `"Educore Administration" <${process.env.MAIL_USER}>`,

@@ -7,6 +7,7 @@ import {
   MinLength,
   IsOptional,
   ValidateNested,
+  IsNumber,
 } from 'class-validator';
 import { Type } from 'class-transformer';
 import { Role } from '../../user/entities/user.entity';
@@ -19,9 +20,9 @@ export class RegisterDto {
     example: 'user@example.com',
     required: false,
     description:
-      "Optionnel pour Etudiant/Enseignant (récupéré via matricule). Obligatoire pour les autres.",
+      "Optionnel pour Etudiant/Enseignant (récupéré via matricule). Pour les parents, le numéro de téléphone est utilisé.",
   })
-  @IsEmail()
+  @IsString()
   @IsOptional()
   email?: string;
 
@@ -34,7 +35,7 @@ export class RegisterDto {
   @ApiProperty({
     enum: Role,
     example: Role.ETUDIANT,
-    description: "Rôle de l'utilisateur (Etudiant, Enseignant, Parent)",
+    description: "Rôle de l'utilisateur (Etudiant, Enseignant, Parent, Admin, Comptable, Surveillant)",
   })
   @IsEnum(Role)
   @IsNotEmpty()
@@ -43,11 +44,20 @@ export class RegisterDto {
   @ApiProperty({
     example: 'ETU-2026-001',
     required: false,
-    description: "Obligatoire pour les rôles Etudiant et Enseignant. Sert à l'activation du compte.",
+    description: "Obligatoire pour les rôles Etudiant et Enseignant (matricule).",
   })
   @IsString()
   @IsOptional()
   matricule?: string;
+
+  @ApiProperty({
+    example: 1,
+    required: false,
+    description: "Obligatoire pour les rôles Admin, Comptable, Surveillant (ID de l'utilisateur).",
+  })
+  @IsNumber()
+  @IsOptional()
+  id?: number;
 
   @ApiProperty({
     type: CreateEtudiantDto,

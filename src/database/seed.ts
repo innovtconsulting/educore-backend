@@ -556,6 +556,12 @@ async function seed() {
         password: passwordHash,
         role: Role.ADMIN,
       }),
+      // Utilisateur Admin prêt à être activé (pas de mot de passe)
+      userRepo.create({
+        email: 'activation.admin@espm.sn',
+        role: Role.ADMIN,
+        isActive: false,
+      }),
       userRepo.create({
         email: 'comptable@espm.sn',
         password: passwordHash,
@@ -578,8 +584,9 @@ async function seed() {
         role: Role.ETUDIANT,
         etudiant: etudiant1,
       }),
+      // Parent avec numéro de téléphone comme identifiant
       userRepo.create({
-        email: 'modou.sow@espm.sn',
+        email: parent1.phoneNumber,
         password: passwordHash,
         role: Role.PARENT,
         parent: parent1,

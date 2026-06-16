@@ -35,9 +35,9 @@ export class User {
   @ApiProperty()
   email!: string;
 
-  @Column()
+  @Column({ nullable: true })
   @Exclude()
-  password!: string;
+  password?: string;
 
   @Column({
     type: 'enum',

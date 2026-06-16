@@ -139,17 +139,60 @@ export class AuthService {
           );
         }
       } else if (role === Role.PARENT) {
-        if (!email) {
-          throw new BadRequestException(
-            "L'email est obligatoire pour l'inscription d'un parent",
-          );
-        }
         if (!registerDto.parentData) {
           throw new BadRequestException(
-            'Les données du parent sont manquantes',
+            "Les données du profil parent sont obligatoires pour l'inscription.",
           );
         }
+        if (!registerDto.parentData.phoneNumber) {
+          throw new BadRequestException(
+            "Le numéro de téléphone est obligatoire et sert d'identifiant pour le compte parent.",
+          );
+        }
+        // Pour les parents, l'identifiant (stocké dans le champ email de User) est le numéro de téléphone
+        email = registerDto.parentData.phoneNumber;
         profile = await this.parentService.create(registerDto.parentData);
+      } else if ([Role.ADMIN, Role.COMPTABLE, Role.SURVEILLANT].includes(role)) {
+        if (!registerDto.id) {
+          throw new BadRequestException(
+            "L'ID est obligatoire pour l'inscription d'un personnel (Admin, Comptable, Surveillant)",
+          );
+        }
+
+        const userToActivate = await this.userService.findOne(registerDto.id);
+        if (!userToActivate) {
+          throw new BadRequestException(
+            `Aucun utilisateur trouvé avec l'ID ${registerDto.id}.`,
+          );
+        }
+
+        if (userToActivate.role !== role) {
+          throw new BadRequestException(
+            `Le rôle demandé (${role}) ne correspond pas au rôle du compte trouvé (${userToActivate.role}).`,
+          );
+        }
+
+        // Si l'utilisateur a déjà un mot de passe, on considère qu'il est déjà activé
+        // Note: Selon les besoins, on pourrait permettre la ré-activation ou rediriger vers forgot-password
+        if (userToActivate.password) {
+          throw new BadRequestException(
+            'Ce compte est déjà activé. Veuillez vous connecter ou réinitialiser votre mot de passe.',
+          );
+        }
+
+        // Mise à jour de l'utilisateur existant
+        const activatedUser = await this.userService.update(userToActivate.id, {
+          password: password,
+        });
+
+        return {
+          message: 'Activation du compte réussie.',
+          user: {
+            id: activatedUser.id,
+            email: activatedUser.email,
+            role: activatedUser.role,
+          },
+        };
       } else {
         throw new BadRequestException(
           "Rôle non supporté pour l'auto-inscription",

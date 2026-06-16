@@ -6,6 +6,7 @@ import { Evaluation, EvaluationSession, EvaluationType } from '../evaluation/ent
 import { Etudiant } from '../etudiant/entities/etudiant.entity';
 import { Matiere } from '../matiere/entities/matiere.entity';
 import { Semestre } from '../semestre/entities/semestre.entity';
+import { generateBulletinPdf } from './utils/bulletin-pdf-generator';
 
 @Injectable()
 export class BulletinService {
@@ -115,6 +116,11 @@ export class BulletinService {
       },
       details: results,
     };
+  }
+
+  async getStudentBulletinPdf(etudiantId: number, semestreId: number) {
+    const data = await this.getStudentBulletin(etudiantId, semestreId);
+    return await generateBulletinPdf(data);
   }
 
   private calculateWeightedAverage(notes: Note[]): number {

@@ -93,12 +93,19 @@ export class UserService {
     // Mettre à jour l'utilisateur (User)
     if (email && email !== user.email) {
       const existing = await this.findByEmail(email);
-      if (existing) throw new ConflictException('Email déjà utilisé');
+      if (existing) throw new ConflictException('Email ou numéro de téléphone déjà utilisé');
       user.email = email;
     }
 
     if (password) {
       user.password = await bcrypt.hash(password, 10);
+    }
+
+    // Pour les parents, si le numéro de téléphone change, on met à jour l'identifiant si non déjà fait
+    if (user.role === Role.PARENT && phoneNumber && phoneNumber !== user.email && !email) {
+      const existing = await this.findByEmail(phoneNumber);
+      if (existing) throw new ConflictException('Numéro de téléphone déjà utilisé');
+      user.email = phoneNumber;
     }
 
     // Mettre à jour le profil lié (Etudiant, Enseignant ou Parent)

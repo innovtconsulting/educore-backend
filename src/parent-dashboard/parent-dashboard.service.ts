@@ -40,12 +40,19 @@ export class ParentDashboardService {
 
     const childrenData = await Promise.all(
       parent.etudiants.map(async (etudiant) => {
-        const [notes, presenceStats, invoices, sanctions] = await Promise.all([
+        const [notes, presenceStats, absencesToday, invoices, sanctions] = await Promise.all([
           this.noteService.findAll({ page: 1, limit: 5 }, { etudiantId: etudiant.id }),
           this.presenceService.getStudentStats(etudiant.id, { etudiantId: etudiant.id }),
+          this.presenceService.getStudentAbsencesToday(etudiant.id),
           this.financeService.findByEtudiant(etudiant.id),
           this.sanctionService.findByEtudiant(etudiant.id),
         ]);
+
+        const totalRemaining = invoices.reduce((acc, inv) => {
+          const total = Number(inv.montantTotal) || 0;
+          const paid = (inv.paiements || []).reduce((sum, p) => sum + (Number(p.montant) || 0), 0);
+          return acc + (total - paid);
+        }, 0);
 
         return {
           id: etudiant.id,
@@ -55,19 +62,18 @@ export class ParentDashboardService {
           niveau: etudiant.niveau.name,
           recentNotes: notes.items,
           presence: {
-            absents: presenceStats.absents,
-            retards: presenceStats.retards,
+            absentsTotal: presenceStats.absents,
+            retardsTotal: presenceStats.retards,
+            absencesToday: absencesToday.map(p => ({
+              matiere: p.emploiDuTemp.matiere.name,
+              startTime: p.emploiDuTemp.startTime,
+              remark: p.remark
+            })),
           },
           finances: {
             totalInvoices: invoices.length,
-            unpaidInvoices: invoices.filter((f) => f.status !== 'Payée'),
-            totalRemaining: invoices.reduce((acc, inv) => {
-              if (inv.status !== 'Payée') {
-                const paid = inv.paiements.reduce((sum, p) => sum + Number(p.montant), 0);
-                return acc + (Number(inv.montantTotal) - paid);
-              }
-              return acc;
-            }, 0),
+            unpaidInvoicesCount: invoices.filter((f) => f.status !== 'Payée').length,
+            totalRemaining: totalRemaining,
           },
           recentSanctions: sanctions.slice(0, 3),
         };
