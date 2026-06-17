@@ -1,4 +1,4 @@
-import { AppDataSource } from '../data-source';
+import { DataSource } from 'typeorm';
 import { Etablissement } from '../etablissement/entities/etablissement.entity';
 import { Niveau } from '../niveau/entities/niveau.entity';
 import { Classe } from '../classe/entities/classe.entity';
@@ -40,8 +40,6 @@ import {
 import { User, Role } from '../user/entities/user.entity';
 import { Inscription } from '../etudiant/entities/inscription.entity';
 import { GeneratedDocument } from '../certificate/entities/generated-document.entity';
-import { Role as AclRole } from '../acl/entities/role.entity';
-import { Permission } from '../acl/entities/permission.entity';
 import * as bcrypt from 'bcrypt';
 import { generateReceiptPdf } from '../finance/utils/pdf-generator';
 import * as dotenv from 'dotenv';
@@ -50,39 +48,75 @@ import * as path from 'path';
 
 dotenv.config();
 
+const dataSource = new DataSource({
+  type: 'postgres',
+  host: process.env.DB_HOST || 'localhost',
+  port: parseInt(process.env.DB_PORT || '5432', 10),
+  username: process.env.DB_USER || 'postgres',
+  password: process.env.DB_PASSWORD || 'postgres',
+  database: process.env.DB_NAME || 'postgres',
+  entities: [
+    Etablissement,
+    Niveau,
+    Classe,
+    Matiere,
+    Enseignant,
+    Affectation,
+    EmploiDuTemp,
+    Etudiant,
+    Inscription,
+    GeneratedDocument,
+    Parent,
+    Presence,
+    Sanction,
+    DailyReport,
+    Document,
+    AnneeUniversitaire,
+    Semestre,
+    Evaluation,
+    Note,
+    Frais,
+    Facture,
+    Paiement,
+    Discipline,
+    User,
+    Devoir,
+    Submission,
+    Salle,
+    GlobalSetting,
+  ],
+  synchronize: true,
+});
+
 async function seed() {
   try {
-    await AppDataSource.initialize();
+    await dataSource.initialize();
     console.log('Connexion établie pour le seeding...');
 
-    const etablissementRepo = AppDataSource.getRepository(Etablissement);
-    const niveauRepo = AppDataSource.getRepository(Niveau);
-    const classeRepo = AppDataSource.getRepository(Classe);
-    const matiereRepo = AppDataSource.getRepository(Matiere);
-    const enseignantRepo = AppDataSource.getRepository(Enseignant);
-    const affectationRepo = AppDataSource.getRepository(Affectation);
-    const parentRepo = AppDataSource.getRepository(Parent);
-    const etudiantRepo = AppDataSource.getRepository(Etudiant);
-    const emploiRepo = AppDataSource.getRepository(EmploiDuTemp);
-    const presenceRepo = AppDataSource.getRepository(Presence);
-    const sanctionRepo = AppDataSource.getRepository(Sanction);
-    const dailyReportRepo = AppDataSource.getRepository(DailyReport);
-    const documentRepo = AppDataSource.getRepository(Document);
-    const anneeRepo = AppDataSource.getRepository(AnneeUniversitaire);
-    const semestreRepo = AppDataSource.getRepository(Semestre);
-    const evaluationRepo = AppDataSource.getRepository(Evaluation);
-    const noteRepo = AppDataSource.getRepository(Note);
-    const fraisRepo = AppDataSource.getRepository(Frais);
-    const factureRepo = AppDataSource.getRepository(Facture);
-    const paiementRepo = AppDataSource.getRepository(Paiement);
-    const devoirRepo = AppDataSource.getRepository(Devoir);
-    const submissionRepo = AppDataSource.getRepository(Submission);
-    const salleRepo = AppDataSource.getRepository(Salle);
-    const globalSettingRepo = AppDataSource.getRepository(GlobalSetting);
-    const inscriptionRepo = AppDataSource.getRepository(Inscription);
-    const userRepo = AppDataSource.getRepository(User);
-    const roleAclRepo = AppDataSource.getRepository(AclRole);
-    const permissionRepo = AppDataSource.getRepository(Permission);
+    const etablissementRepo = dataSource.getRepository(Etablissement);
+    const niveauRepo = dataSource.getRepository(Niveau);
+    const classeRepo = dataSource.getRepository(Classe);
+    const matiereRepo = dataSource.getRepository(Matiere);
+    const enseignantRepo = dataSource.getRepository(Enseignant);
+    const affectationRepo = dataSource.getRepository(Affectation);
+    const parentRepo = dataSource.getRepository(Parent);
+    const etudiantRepo = dataSource.getRepository(Etudiant);
+    const emploiRepo = dataSource.getRepository(EmploiDuTemp);
+    const presenceRepo = dataSource.getRepository(Presence);
+    const sanctionRepo = dataSource.getRepository(Sanction);
+    const dailyReportRepo = dataSource.getRepository(DailyReport);
+    const documentRepo = dataSource.getRepository(Document);
+    const anneeRepo = dataSource.getRepository(AnneeUniversitaire);
+    const semestreRepo = dataSource.getRepository(Semestre);
+    const evaluationRepo = dataSource.getRepository(Evaluation);
+    const noteRepo = dataSource.getRepository(Note);
+    const fraisRepo = dataSource.getRepository(Frais);
+    const factureRepo = dataSource.getRepository(Facture);
+    const paiementRepo = dataSource.getRepository(Paiement);
+    const devoirRepo = dataSource.getRepository(Devoir);
+    const submissionRepo = dataSource.getRepository(Submission);
+    const salleRepo = dataSource.getRepository(Salle);
+    const globalSettingRepo = dataSource.getRepository(GlobalSetting);
 
     // 0. Configuration Globale
     const defaultSettings = [
@@ -120,39 +154,6 @@ async function seed() {
     await globalSettingRepo.save(
       defaultSettings.map((s) => globalSettingRepo.create(s)),
     );
-
-    // 0.0 Permissions et Rôles ACL
-    const perms = [
-      { name: 'STUDENT_VIEW', description: 'Voir les étudiants' },
-      { name: 'STUDENT_CREATE', description: 'Créer un étudiant' },
-      { name: 'STUDENT_EDIT', description: 'Modifier un étudiant' },
-      { name: 'FINANCE_VIEW', description: 'Voir les finances' },
-      { name: 'FINANCE_MANAGE', description: 'Gérer les finances' },
-      { name: 'ACADEMIC_MANAGE', description: 'Gérer les notes et évaluations' },
-    ];
-    const savedPerms = await permissionRepo.save(perms.map(p => permissionRepo.create(p)));
-
-    const roleAdminAcl = roleAclRepo.create({
-      name: 'Admin',
-      description: 'Administrateur d\'établissement',
-      permissions: savedPerms,
-    });
-    const roleComptableAcl = roleAclRepo.create({
-      name: 'Comptable',
-      description: 'Gestionnaire financier',
-      permissions: savedPerms.filter(p => p.name.startsWith('FINANCE')),
-    });
-    const roleSurveillantAcl = roleAclRepo.create({
-      name: 'Surveillant',
-      description: 'Gestionnaire de la vie scolaire',
-      permissions: savedPerms.filter(p => p.name.startsWith('STUDENT')),
-    });
-    const roleEnseignantAcl = roleAclRepo.create({
-      name: 'Enseignant',
-      description: 'Personnel académique',
-      permissions: savedPerms.filter(p => p.name === 'ACADEMIC_MANAGE' || p.name === 'STUDENT_VIEW'),
-    });
-    await roleAclRepo.save([roleAdminAcl, roleComptableAcl, roleSurveillantAcl, roleEnseignantAcl]);
 
     // 0.1 Année Universitaire
     const annee2026 = anneeRepo.create({
@@ -593,7 +594,7 @@ async function seed() {
     await noteRepo.save(noteRattrapage);
 
     // 16. Discipline et Règlement Intérieur
-    const disciplineRepo = AppDataSource.getRepository(Discipline);
+    const disciplineRepo = dataSource.getRepository(Discipline);
     const reglement1 = disciplineRepo.create({
       title: 'Tenue Vestimentaire',
       content:
@@ -609,66 +610,51 @@ async function seed() {
     await disciplineRepo.save([reglement1, reglement2]);
 
     // 17. Utilisateurs
+    const userRepo = dataSource.getRepository(User);
     const passwordHash = await bcrypt.hash('password123', 10);
 
     const users = [
       userRepo.create({
         email: 'superadmin@espm.sn',
-        username: 'superadmin',
         password: passwordHash,
         role: Role.SUPER_ADMIN,
-        photoPath: 'uploads/profiles/default-admin.png',
       }),
       userRepo.create({
         email: 'admin@espm.sn',
-        username: 'admin',
         password: passwordHash,
         role: Role.ADMIN,
-        aclRole: roleAdminAcl,
       }),
       // Utilisateur Admin prêt à être activé (pas de mot de passe)
       userRepo.create({
         email: 'activation.admin@espm.sn',
-        username: 'activation_admin',
         role: Role.ADMIN,
         isActive: false,
-        aclRole: roleAdminAcl,
       }),
       userRepo.create({
         email: 'comptable@espm.sn',
-        username: 'comptable',
         password: passwordHash,
         role: Role.COMPTABLE,
-        aclRole: roleComptableAcl,
       }),
       userRepo.create({
         email: 'surveillant@espm.sn',
-        username: 'surveillant',
         password: passwordHash,
         role: Role.SURVEILLANT,
-        aclRole: roleSurveillantAcl,
       }),
       userRepo.create({
         email: 'prof.diallo@espm.sn',
-        username: profDiallo.firstName,
         password: passwordHash,
         role: Role.ENSEIGNANT,
         enseignant: profDiallo,
-        photoPath: 'uploads/profiles/prof-diallo.png',
-        aclRole: roleEnseignantAcl,
       }),
       userRepo.create({
         email: 'ousmane.sow@espm.sn',
-        username: etudiant1.firstName,
         password: passwordHash,
         role: Role.ETUDIANT,
         etudiant: etudiant1,
-        photoPath: 'uploads/profiles/ousmane-sow.png',
       }),
       // Parent avec numéro de téléphone comme identifiant
       userRepo.create({
         email: parent1.phoneNumber,
-        username: parent1.firstName,
         password: passwordHash,
         role: Role.PARENT,
         parent: parent1,
@@ -721,7 +707,7 @@ async function seed() {
   } catch (error) {
     console.error('Erreur lors du seeding :', error);
   } finally {
-    await AppDataSource.destroy();
+    await dataSource.destroy();
   }
 }
 
