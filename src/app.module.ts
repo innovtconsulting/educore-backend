@@ -106,7 +106,10 @@ import { InscriptionModule } from './inscription/inscription.module';
         GlobalSetting,
       ],
       synchronize: process.env.NODE_ENV !== 'production',
-      ssl: process.env.DATABASE_URL ? { rejectUnauthorized: false } : false,
+      ssl:
+        process.env.DB_HOST === 'localhost' || !process.env.DATABASE_URL
+          ? false
+          : { rejectUnauthorized: false },
     }),
     EtablissementModule,
     ClasseModule,

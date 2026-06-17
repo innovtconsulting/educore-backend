@@ -71,7 +71,10 @@ export const AppDataSource = new DataSource({
     Inscription,
     GlobalSetting,
   ],
-  ssl: process.env.DATABASE_URL ? { rejectUnauthorized: false } : false,
+  ssl:
+    process.env.DB_HOST === 'localhost' || !process.env.DATABASE_URL
+      ? false
+      : { rejectUnauthorized: false },
   subscribers: [],
   migrations: [process.env.NODE_ENV === 'production' ? 'dist/migrations/*.js' : 'src/migrations/*.ts'],
 });

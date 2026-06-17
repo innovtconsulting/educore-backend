@@ -1,4 +1,4 @@
-import { DataSource } from 'typeorm';
+import { AppDataSource } from '../data-source';
 import { Etablissement } from '../etablissement/entities/etablissement.entity';
 import { Niveau } from '../niveau/entities/niveau.entity';
 import { Classe } from '../classe/entities/classe.entity';
@@ -48,75 +48,37 @@ import * as path from 'path';
 
 dotenv.config();
 
-const dataSource = new DataSource({
-  type: 'postgres',
-  host: process.env.DB_HOST || 'localhost',
-  port: parseInt(process.env.DB_PORT || '5432', 10),
-  username: process.env.DB_USER || 'postgres',
-  password: process.env.DB_PASSWORD || 'postgres',
-  database: process.env.DB_NAME || 'postgres',
-  entities: [
-    Etablissement,
-    Niveau,
-    Classe,
-    Matiere,
-    Enseignant,
-    Affectation,
-    EmploiDuTemp,
-    Etudiant,
-    Inscription,
-    GeneratedDocument,
-    Parent,
-    Presence,
-    Sanction,
-    DailyReport,
-    Document,
-    AnneeUniversitaire,
-    Semestre,
-    Evaluation,
-    Note,
-    Frais,
-    Facture,
-    Paiement,
-    Discipline,
-    User,
-    Devoir,
-    Submission,
-    Salle,
-    GlobalSetting,
-  ],
-  synchronize: true,
-});
-
 async function seed() {
   try {
-    await dataSource.initialize();
+    await AppDataSource.initialize();
     console.log('Connexion établie pour le seeding...');
 
-    const etablissementRepo = dataSource.getRepository(Etablissement);
-    const niveauRepo = dataSource.getRepository(Niveau);
-    const classeRepo = dataSource.getRepository(Classe);
-    const matiereRepo = dataSource.getRepository(Matiere);
-    const enseignantRepo = dataSource.getRepository(Enseignant);
-    const affectationRepo = dataSource.getRepository(Affectation);
-    const parentRepo = dataSource.getRepository(Parent);
-    const etudiantRepo = dataSource.getRepository(Etudiant);
-    const emploiRepo = dataSource.getRepository(EmploiDuTemp);
-    const presenceRepo = dataSource.getRepository(Presence);
-    const sanctionRepo = dataSource.getRepository(Sanction);
-    const dailyReportRepo = dataSource.getRepository(DailyReport);
-    const documentRepo = dataSource.getRepository(Document);
-    const anneeRepo = dataSource.getRepository(AnneeUniversitaire);
-    const semestreRepo = dataSource.getRepository(Semestre);
-    const evaluationRepo = dataSource.getRepository(Evaluation);
-    const noteRepo = dataSource.getRepository(Note);
-    const fraisRepo = dataSource.getRepository(Frais);
-    const factureRepo = dataSource.getRepository(Facture);
-    const paiementRepo = dataSource.getRepository(Paiement);
-    const devoirRepo = dataSource.getRepository(Devoir);
-    const submissionRepo = dataSource.getRepository(Submission);
-    const salleRepo = dataSource.getRepository(Salle);
-    const globalSettingRepo = dataSource.getRepository(GlobalSetting);
+    const etablissementRepo = AppDataSource.getRepository(Etablissement);
+    const niveauRepo = AppDataSource.getRepository(Niveau);
+    const classeRepo = AppDataSource.getRepository(Classe);
+    const matiereRepo = AppDataSource.getRepository(Matiere);
+    const enseignantRepo = AppDataSource.getRepository(Enseignant);
+    const affectationRepo = AppDataSource.getRepository(Affectation);
+    const parentRepo = AppDataSource.getRepository(Parent);
+    const etudiantRepo = AppDataSource.getRepository(Etudiant);
+    const emploiRepo = AppDataSource.getRepository(EmploiDuTemp);
+    const presenceRepo = AppDataSource.getRepository(Presence);
+    const sanctionRepo = AppDataSource.getRepository(Sanction);
+    const dailyReportRepo = AppDataSource.getRepository(DailyReport);
+    const documentRepo = AppDataSource.getRepository(Document);
+    const anneeRepo = AppDataSource.getRepository(AnneeUniversitaire);
+    const semestreRepo = AppDataSource.getRepository(Semestre);
+    const evaluationRepo = AppDataSource.getRepository(Evaluation);
+    const noteRepo = AppDataSource.getRepository(Note);
+    const fraisRepo = AppDataSource.getRepository(Frais);
+    const factureRepo = AppDataSource.getRepository(Facture);
+    const paiementRepo = AppDataSource.getRepository(Paiement);
+    const devoirRepo = AppDataSource.getRepository(Devoir);
+    const submissionRepo = AppDataSource.getRepository(Submission);
+    const salleRepo = AppDataSource.getRepository(Salle);
+    const globalSettingRepo = AppDataSource.getRepository(GlobalSetting);
+    const inscriptionRepo = AppDataSource.getRepository(Inscription);
+    const userRepo = AppDataSource.getRepository(User);
 
     // 0. Configuration Globale
     const defaultSettings = [
@@ -594,7 +556,7 @@ async function seed() {
     await noteRepo.save(noteRattrapage);
 
     // 16. Discipline et Règlement Intérieur
-    const disciplineRepo = dataSource.getRepository(Discipline);
+    const disciplineRepo = AppDataSource.getRepository(Discipline);
     const reglement1 = disciplineRepo.create({
       title: 'Tenue Vestimentaire',
       content:
@@ -610,7 +572,6 @@ async function seed() {
     await disciplineRepo.save([reglement1, reglement2]);
 
     // 17. Utilisateurs
-    const userRepo = dataSource.getRepository(User);
     const passwordHash = await bcrypt.hash('password123', 10);
 
     const users = [
@@ -707,7 +668,7 @@ async function seed() {
   } catch (error) {
     console.error('Erreur lors du seeding :', error);
   } finally {
-    await dataSource.destroy();
+    await AppDataSource.destroy();
   }
 }
 
