@@ -17,11 +17,18 @@ import { Semestre } from '../semestre/entities/semestre.entity';
 import { Evaluation } from '../evaluation/entities/evaluation.entity';
 import { Note } from '../note/entities/note.entity';
 import { Devoir } from '../devoir/entities/devoir.entity';
+import { Submission } from '../devoir/entities/submission.entity';
+import { Salle } from '../salle/entities/salle.entity';
 import { User } from '../user/entities/user.entity';
 import { Frais } from '../finance/entities/frais.entity';
 import { Facture } from '../finance/entities/facture.entity';
 import { Paiement } from '../finance/entities/paiement.entity';
 import { Discipline } from '../discipline/entities/discipline.entity';
+import { Inscription } from '../etudiant/entities/inscription.entity'; // Correction du nom si nécessaire, mais glob a dit inscription.entity.ts
+import { GeneratedDocument } from '../certificate/entities/generated-document.entity';
+import {
+  GlobalSetting,
+} from '../global-setting/entities/global-setting.entity';
 import * as dotenv from 'dotenv';
 
 dotenv.config();
@@ -42,6 +49,8 @@ const dataSource = new DataSource({
     Affectation,
     EmploiDuTemp,
     Etudiant,
+    Inscription,
+    GeneratedDocument,
     Parent,
     Presence,
     Sanction,
@@ -56,7 +65,10 @@ const dataSource = new DataSource({
     Paiement,
     Discipline,
     Devoir,
+    Submission,
+    Salle,
     User,
+    GlobalSetting,
   ],
   synchronize: false,
 });

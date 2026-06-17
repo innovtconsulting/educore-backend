@@ -69,6 +69,7 @@ import { InscriptionModule } from './inscription/inscription.module';
     }),
     TypeOrmModule.forRoot({
       type: 'postgres',
+      url: process.env.DATABASE_URL,
       host: process.env.DB_HOST || 'localhost',
       port: parseInt(process.env.DB_PORT || '5432', 10),
       username: process.env.DB_USER || 'postgres',
@@ -104,7 +105,8 @@ import { InscriptionModule } from './inscription/inscription.module';
         Inscription,
         GlobalSetting,
       ],
-      synchronize: true,
+      synchronize: process.env.NODE_ENV !== 'production',
+      ssl: process.env.DATABASE_URL ? { rejectUnauthorized: false } : false,
     }),
     EtablissementModule,
     ClasseModule,

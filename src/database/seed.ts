@@ -38,6 +38,8 @@ import {
   SettingCategory,
 } from '../global-setting/entities/global-setting.entity';
 import { User, Role } from '../user/entities/user.entity';
+import { Inscription } from '../etudiant/entities/inscription.entity';
+import { GeneratedDocument } from '../certificate/entities/generated-document.entity';
 import * as bcrypt from 'bcrypt';
 import { generateReceiptPdf } from '../finance/utils/pdf-generator';
 import * as dotenv from 'dotenv';
@@ -62,6 +64,8 @@ const dataSource = new DataSource({
     Affectation,
     EmploiDuTemp,
     Etudiant,
+    Inscription,
+    GeneratedDocument,
     Parent,
     Presence,
     Sanction,
