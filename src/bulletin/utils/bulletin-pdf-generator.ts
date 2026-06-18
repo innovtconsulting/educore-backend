@@ -20,8 +20,7 @@ export async function generateBulletinPdf(data: any): Promise<string> {
 
       // --- En-tête ---
       const schoolName =
-        data.etudiant.etablissement?.name?.toUpperCase() ||
-        'EDUCORE';
+        data.etudiant.etablissement?.name?.toUpperCase() || 'EDUCORE';
       doc
         .fontSize(16)
         .font('Helvetica-Bold')

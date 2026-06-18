@@ -11,7 +11,9 @@ import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Controller('parent-dashboard')
 export class ParentDashboardController {
-  constructor(private readonly parentDashboardService: ParentDashboardService) {}
+  constructor(
+    private readonly parentDashboardService: ParentDashboardService,
+  ) {}
 
   @Get()
   @Roles(Role.PARENT)

@@ -30,8 +30,15 @@ import { EtudiantFilterDto } from './dto/etudiant-filter.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
+import { Permissions } from '../auth/decorators/permissions.decorator';
 import { Role } from '../user/entities/user.entity';
 import { Public } from '../auth/decorators/public.decorator';
+
+import {
+  CheckImportResultDto,
+  RunImportDto,
+  ImportReportDto,
+} from './dto/import-student.dto';
 
 @ApiTags('etudiants')
 @ApiBearerAuth()
@@ -41,7 +48,7 @@ export class EtudiantController {
   constructor(private readonly etudiantService: EtudiantService) {}
 
   @Post()
-  @Roles(Role.SUPER_ADMIN, Role.ADMIN)
+  @Permissions('STUDENT_CREATE')
   @ApiOperation({ summary: 'Créer un nouvel étudiant' })
   async create(@Body() createEtudiantDto: CreateEtudiantDto) {
     const data = await this.etudiantService.create(createEtudiantDto);
@@ -52,7 +59,7 @@ export class EtudiantController {
   }
 
   @Get()
-  @Roles(Role.SUPER_ADMIN, Role.ADMIN, Role.SURVEILLANT)
+  @Permissions('STUDENT_VIEW')
   @ApiOperation({ summary: 'Récupérer tous les étudiants' })
   async findAll(@Query() filterDto: EtudiantFilterDto) {
     const data = await this.etudiantService.findAll(filterDto);
@@ -63,7 +70,7 @@ export class EtudiantController {
   }
 
   @Get(':id')
-  @Roles(Role.SUPER_ADMIN, Role.ADMIN, Role.SURVEILLANT)
+  @Permissions('STUDENT_VIEW')
   @ApiOperation({ summary: 'Récupérer un étudiant par son ID' })
   async findOne(@Param('id') id: string) {
     const data = await this.etudiantService.findOne(+id);
@@ -74,7 +81,7 @@ export class EtudiantController {
   }
 
   @Patch(':id')
-  @Roles(Role.SUPER_ADMIN, Role.ADMIN)
+  @Permissions('STUDENT_EDIT')
   @ApiOperation({
     summary: "Modifier un étudiant (Validation d'inscription inclus)",
   })
@@ -90,7 +97,7 @@ export class EtudiantController {
   }
 
   @Patch(':id/validate')
-  @Roles(Role.SUPER_ADMIN, Role.ADMIN)
+  @Permissions('STUDENT_VALIDATE')
   @ApiOperation({ summary: "Valider l'inscription d'un étudiant" })
   async validate(
     @Param('id') id: string,
@@ -107,7 +114,7 @@ export class EtudiantController {
   }
 
   @Delete(':id')
-  @Roles(Role.SUPER_ADMIN, Role.ADMIN)
+  @Permissions('STUDENT_DELETE')
   @ApiOperation({ summary: 'Supprimer un étudiant' })
   async remove(@Param('id') id: string) {
     await this.etudiantService.remove(+id);
@@ -117,7 +124,7 @@ export class EtudiantController {
   }
 
   @Post(':id/profile-picture')
-  @Roles(Role.SUPER_ADMIN, Role.ADMIN)
+  @Permissions('STUDENT_EDIT')
   @ApiOperation({ summary: "Mettre à jour la photo de profil de l'étudiant" })
   @ApiConsumes('multipart/form-data')
   @ApiBody({
@@ -169,6 +176,110 @@ export class EtudiantController {
     );
     return {
       message: 'Photo de profil mise à jour avec succès',
+      data,
+    };
+  }
+
+  @Post('import/validate')
+  @Permissions('STUDENT_CREATE')
+  @ApiOperation({ summary: 'Valider un fichier Excel avant importation' })
+  @ApiConsumes('multipart/form-data')
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        file: {
+          type: 'string',
+          format: 'binary',
+        },
+      },
+    },
+  })
+  @UseInterceptors(FileInterceptor('file'))
+  async validateImport(
+    @UploadedFile() file: Express.Multer.File,
+    @Query('sheetName') sheetName?: string,
+  ) {
+    if (!file) throw new BadRequestException('Fichier Excel manquant');
+    const data = await this.etudiantService.validateImport(
+      file.buffer,
+      sheetName,
+    );
+    return {
+      message: 'Validation terminée',
+      data,
+    };
+  }
+
+  @Post('import/confirm')
+  @Permissions('STUDENT_CREATE')
+  @ApiOperation({
+    summary: "Confirmer l'importation des étudiants (ancienne version)",
+  })
+  async confirmImport(@Body() confirmDto: any) {
+    const data = await this.etudiantService.confirmImport(confirmDto.students);
+    return {
+      message: 'Importation terminée',
+      data,
+    };
+  }
+
+  @Post('import/v2/check')
+  @Permissions('STUDENT_CREATE')
+  @ApiOperation({ summary: 'Vérifier un fichier Excel avant importation (v2)' })
+  @ApiConsumes('multipart/form-data')
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        file: { type: 'string', format: 'binary' },
+      },
+    },
+  })
+  @UseInterceptors(FileInterceptor('file'))
+  async checkImportV2(
+    @UploadedFile() file: Express.Multer.File,
+  ): Promise<{ message: string; data: CheckImportResultDto }> {
+    if (!file) throw new BadRequestException('Fichier Excel manquant');
+    const data = await this.etudiantService.checkImport(file.buffer);
+    return {
+      message: 'Vérification terminée',
+      data,
+    };
+  }
+
+  @Post('import/v2/run')
+  @Permissions('STUDENT_CREATE')
+  @ApiOperation({ summary: "Exécuter l'importation des étudiants (v2)" })
+  @ApiConsumes('multipart/form-data')
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        file: { type: 'string', format: 'binary' },
+        data: { type: 'string' },
+      },
+    },
+  })
+  @UseInterceptors(FileInterceptor('file'))
+  async runImportV2(
+    @UploadedFile() file: Express.Multer.File,
+    @Body('data') dataStr?: string,
+  ): Promise<{ message: string; data: ImportReportDto }> {
+    if (!file) throw new BadRequestException('Fichier Excel manquant');
+
+    let runDto: RunImportDto = {};
+    if (dataStr) {
+      try {
+        runDto = JSON.parse(dataStr);
+      } catch (e) {
+        throw new BadRequestException('Données JSON invalides');
+      }
+    }
+
+    const data = await this.etudiantService.runImport(file.buffer, runDto);
+    return {
+      message: 'Importation terminée',
       data,
     };
   }

@@ -28,22 +28,31 @@ describe('Certificate Module (e2e)', () => {
 
     // Setup SuperAdmin
     const hashedPassword = await bcrypt.hash('admin123', 10);
-    await dataSource.query(`INSERT INTO "user" (email, password, role) VALUES ('admin_cert@test.com', '${hashedPassword}', '${Role.SUPER_ADMIN}')`);
+    await dataSource.query(
+      `INSERT INTO "user" (email, password, role) VALUES ('admin_cert@test.com', '${hashedPassword}', '${Role.SUPER_ADMIN}')`,
+    );
 
     const loginRes = await request(app.getHttpServer())
       .post('/api/auth/login')
       .send({ email: 'admin_cert@test.com', password: 'admin123' });
-    
+
     accessToken = loginRes.body.data.access_token;
 
     // 1. Année Universitaire
-    await dataSource.query(`INSERT INTO annee_universitaire (label, "startDate", "endDate", "isActive") VALUES ('2025-2026', '2025-10-01', '2026-07-31', true)`);
+    await dataSource.query(
+      `INSERT INTO annee_universitaire (label, "startDate", "endDate", "isActive") VALUES ('2025-2026', '2025-10-01', '2026-07-31', true)`,
+    );
 
     // 2. Etab
     const etab = await request(app.getHttpServer())
       .post('/api/etablissement')
       .set('Authorization', `Bearer ${accessToken}`)
-      .send({ name: 'Cert Etab', address: 'Dakar', email: 'cert@test.com', phone: '123' });
+      .send({
+        name: 'Cert Etab',
+        address: 'Dakar',
+        email: 'cert@test.com',
+        phone: '123',
+      });
     const etabId = etab.body.data.id;
 
     // 3. Niveau
@@ -57,7 +66,11 @@ describe('Certificate Module (e2e)', () => {
     const cls = await request(app.getHttpServer())
       .post('/api/classe')
       .set('Authorization', `Bearer ${accessToken}`)
-      .send({ name: 'Classe Cert', etablissementIds: [etabId], niveauIds: [nivId] });
+      .send({
+        name: 'Classe Cert',
+        etablissementIds: [etabId],
+        niveauIds: [nivId],
+      });
     const clsId = cls.body.data.id;
 
     // 5. Etudiant
@@ -75,7 +88,7 @@ describe('Certificate Module (e2e)', () => {
         classeId: clsId,
         niveauId: nivId,
         parentsData: [
-          { firstName: 'P', lastName: 'P', gender: 'Père', phoneNumber: '000' }
+          { firstName: 'P', lastName: 'P', gender: 'Père', phoneNumber: '000' },
         ],
       });
     etudiantId = etu.body.data.id;
@@ -85,7 +98,9 @@ describe('Certificate Module (e2e)', () => {
     const entities = dataSource.entityMetadatas;
     for (const entity of entities) {
       const repository = dataSource.getRepository(entity.name);
-      await repository.query(`TRUNCATE "${entity.tableName}" RESTART IDENTITY CASCADE;`);
+      await repository.query(
+        `TRUNCATE "${entity.tableName}" RESTART IDENTITY CASCADE;`,
+      );
     }
     await app.close();
   });
@@ -95,7 +110,7 @@ describe('Certificate Module (e2e)', () => {
       .get(`/api/certificates/scolarity/${etudiantId}`)
       .set('Authorization', `Bearer ${accessToken}`)
       .expect(200);
-    
+
     expect(res.body.data.pdfUrl).toBeDefined();
     expect(res.body.data.pdfUrl).toContain('certificat_scolarite_MAT-CERT-001');
   });
@@ -105,28 +120,28 @@ describe('Certificate Module (e2e)', () => {
       .get(`/api/certificates/success/${etudiantId}`)
       .set('Authorization', `Bearer ${accessToken}`)
       .expect(200);
-    
+
     expect(res.body.data.pdfUrl).toBeDefined();
     expect(res.body.data.pdfUrl).toContain('attestation_reussite_MAT-CERT-001');
   });
 
-  it('3. Consultation de l\'historique (Admin)', async () => {
+  it("3. Consultation de l'historique (Admin)", async () => {
     const res = await request(app.getHttpServer())
       .get('/api/certificates/history')
       .set('Authorization', `Bearer ${accessToken}`)
       .expect(200);
-    
+
     expect(res.body.data.items.length).toBeGreaterThanOrEqual(2);
     expect(res.body.data.items[0].type).toBeDefined();
     expect(res.body.data.items[0].etudiant.id).toBe(etudiantId);
   });
 
-  it('4. Consultation de l\'historique par étudiant (Admin)', async () => {
+  it("4. Consultation de l'historique par étudiant (Admin)", async () => {
     const res = await request(app.getHttpServer())
       .get(`/api/certificates/history?etudiantId=${etudiantId}`)
       .set('Authorization', `Bearer ${accessToken}`)
       .expect(200);
-    
+
     expect(res.body.data.items.length).toBeGreaterThanOrEqual(2);
   });
 

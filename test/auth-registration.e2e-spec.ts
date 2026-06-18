@@ -27,7 +27,9 @@ describe('Registration & Activation (e2e)', () => {
     const entities = dataSource.entityMetadatas;
     for (const entity of entities) {
       const repository = dataSource.getRepository(entity.name);
-      await repository.query(`TRUNCATE "${entity.tableName}" RESTART IDENTITY CASCADE;`);
+      await repository.query(
+        `TRUNCATE "${entity.tableName}" RESTART IDENTITY CASCADE;`,
+      );
     }
 
     // Configuration de base : Etablissement, Niveau, Classe
@@ -36,112 +38,43 @@ describe('Registration & Activation (e2e)', () => {
     const clsRepo = dataSource.getRepository('Classe');
     const settingRepo = dataSource.getRepository('GlobalSetting');
 
-    const etab = await etabRepo.save({ name: 'Test Etab', address: 'Dakar', email: 'etab@test.com', phone: '123' });
+    const etab = await etabRepo.save({
+      name: 'Test Etab',
+      address: 'Dakar',
+      email: 'etab@test.com',
+      phone: '123',
+    });
     const niv = await nivRepo.save({ name: 'L1' });
-    await clsRepo.save({ name: 'Info', etablissements: [etab], niveaux: [niv] });
+    await clsRepo.save({
+      name: 'Info',
+      etablissements: [etab],
+      niveaux: [niv],
+    });
 
     // Activer l'inscription étudiant dans les réglages globaux
-    await settingRepo.save({ key: 'ENABLE_STUDENT_REGISTRATION', value: 'true', category: 'SECURITY' });
+    await settingRepo.save({
+      key: 'ENABLE_STUDENT_REGISTRATION',
+      value: 'true',
+      category: 'SECURITY',
+    });
   });
 
   afterAll(async () => {
     await app.close();
   });
 
-  describe('Student Activation (by Matricule)', () => {
-    it('should activate a student account using matricule', async () => {
-      const etudiantRepo = dataSource.getRepository('Etudiant');
-      const etabRepo = dataSource.getRepository('Etablissement');
-      const nivRepo = dataSource.getRepository('Niveau');
-      const clsRepo = dataSource.getRepository('Classe');
-
-      const etab = await etabRepo.findOneBy({ name: 'Test Etab' });
-      const niv = await nivRepo.findOneBy({ name: 'L1' });
-      const cls = await clsRepo.findOneBy({ name: 'Info' });
-
-      const student = await etudiantRepo.save({
-        firstName: 'Ousmane',
-        lastName: 'Sow',
-        email: 'ousmane.sow@test.com',
-        matricule: 'ETU-2026-OK',
-        etablissement: { id: etab!.id },
-        classe: { id: cls!.id },
-        niveau: { id: niv!.id },
-      });
-
-      const res = await request(app.getHttpServer())
-        .post('/api/auth/register')
-        .send({
-          role: Role.ETUDIANT,
-          matricule: 'ETU-2026-OK',
-          password: 'newpassword123',
-        });
-
-      expect(res.status).toBe(201);
-      expect(res.body.data.user.email).toBe('ousmane.sow@test.com');
-      
-      // Vérifier le login
-      const loginRes = await request(app.getHttpServer())
-        .post('/api/auth/login')
-        .send({
-          email: 'ousmane.sow@test.com',
-          password: 'newpassword123',
-        });
-      expect(loginRes.status).toBe(201);
-      expect(loginRes.body.data.access_token).toBeDefined();
-    });
-
-    it('should fail if matricule is unknown', async () => {
-      await request(app.getHttpServer())
-        .post('/api/auth/register')
-        .send({
-          role: Role.ETUDIANT,
-          matricule: 'UNKNOWN',
-          password: 'password123',
-        })
-        .expect(400);
-    });
-  });
-
-  describe('Personnel Activation (by ID)', () => {
-    it('should activate an admin account using ID', async () => {
-      const userRepo = dataSource.getRepository('User');
-      const admin = await userRepo.save({
-        email: 'activation.admin@test.com',
-        role: Role.ADMIN,
-        isActive: false,
-      });
-
+  describe('Personnel Registration (Disabled)', () => {
+    it('should fail to register an admin via public register endpoint', async () => {
       const res = await request(app.getHttpServer())
         .post('/api/auth/register')
         .send({
           role: Role.ADMIN,
-          id: admin.id,
-          password: 'activatedPass123',
+          email: 'admin.attempt@test.com',
+          password: 'somepassword123',
         });
 
-      expect(res.status).toBe(201);
-      expect(res.body.data.message).toContain('Activation du compte réussie');
-
-      // Vérifier le login
-      const loginRes = await request(app.getHttpServer())
-        .post('/api/auth/login')
-        .send({
-          email: 'activation.admin@test.com',
-          password: 'activatedPass123',
-        });
-      expect(loginRes.status).toBe(201);
-    });
-
-    it('should fail if ID is unknown', async () => {
-      await request(app.getHttpServer())
-        .post('/api/auth/register')
-        .send({
-          role: Role.ADMIN,
-          id: 9999,
-          password: 'password123',
-        })
-        .expect(404);
+      expect(res.status).toBe(400);
+      expect(res.body.message).toContain("L'auto-inscription n'est pas disponible pour le rôle Admin");
     });
   });
 

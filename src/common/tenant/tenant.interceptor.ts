@@ -14,12 +14,14 @@ export class TenantInterceptor implements NestInterceptor {
     const user = request.user;
 
     if (user && user.etablissementId) {
+      console.log('Setting tenant ID:', user.etablissementId);
       return new Observable((subscriber) => {
         TenantContext.run(user.etablissementId, () => {
           next.handle().subscribe(subscriber);
         });
       });
     }
+    console.log('No etablissementId in user or no user');
 
     return next.handle();
   }

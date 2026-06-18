@@ -17,6 +17,7 @@ import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
+import { Permissions } from '../auth/decorators/permissions.decorator';
 import { Role } from '../user/entities/user.entity';
 import { PaginationQueryDto } from '../common/dto/pagination-query.dto';
 import { CreateSubmissionDto } from './dto/create-submission.dto';
@@ -29,33 +30,23 @@ export class DevoirController {
   constructor(private readonly devoirService: DevoirService) {}
 
   @Post()
-  @Roles(Role.SUPER_ADMIN, Role.ADMIN, Role.ENSEIGNANT)
+  @Permissions('ACADEMIC_MANAGE')
   @ApiOperation({ summary: 'Créer un nouveau devoir' })
   create(@Body() createDevoirDto: CreateDevoirDto, @Request() req: any) {
     return this.devoirService.create(createDevoirDto, req.user);
   }
 
   @Get()
-  @Roles(
-    Role.SUPER_ADMIN,
-    Role.ADMIN,
-    Role.ENSEIGNANT,
-    Role.ETUDIANT,
-    Role.PARENT,
-  )
+  @Roles(Role.ETUDIANT, Role.PARENT)
+  @Permissions('ACADEMIC_VIEW')
   @ApiOperation({ summary: 'Lister les devoirs' })
   findAll(@Query() paginationQuery: PaginationQueryDto, @Request() req: any) {
     return this.devoirService.findAll(paginationQuery, req.user);
   }
 
   @Get('classe/:classeId/niveau/:niveauId')
-  @Roles(
-    Role.SUPER_ADMIN,
-    Role.ADMIN,
-    Role.ENSEIGNANT,
-    Role.ETUDIANT,
-    Role.PARENT,
-  )
+  @Roles(Role.ETUDIANT, Role.PARENT)
+  @Permissions('ACADEMIC_VIEW')
   @ApiOperation({ summary: 'Lister les devoirs par classe et niveau' })
   findByClasse(
     @Param('classeId') classeId: string,
@@ -65,20 +56,15 @@ export class DevoirController {
   }
 
   @Get(':id')
-  @Roles(
-    Role.SUPER_ADMIN,
-    Role.ADMIN,
-    Role.ENSEIGNANT,
-    Role.ETUDIANT,
-    Role.PARENT,
-  )
+  @Roles(Role.ETUDIANT, Role.PARENT)
+  @Permissions('ACADEMIC_VIEW')
   @ApiOperation({ summary: 'Récupérer un devoir par ID' })
   findOne(@Param('id') id: string) {
     return this.devoirService.findOne(+id);
   }
 
   @Patch(':id')
-  @Roles(Role.SUPER_ADMIN, Role.ADMIN, Role.ENSEIGNANT)
+  @Permissions('ACADEMIC_MANAGE')
   @ApiOperation({ summary: 'Modifier un devoir' })
   update(
     @Param('id') id: string,
@@ -89,7 +75,7 @@ export class DevoirController {
   }
 
   @Delete(':id')
-  @Roles(Role.SUPER_ADMIN, Role.ADMIN, Role.ENSEIGNANT)
+  @Permissions('ACADEMIC_MANAGE')
   @ApiOperation({ summary: 'Supprimer un devoir' })
   remove(@Param('id') id: string, @Request() req: any) {
     return this.devoirService.remove(+id, req.user);
@@ -117,7 +103,7 @@ export class DevoirController {
   }
 
   @Get(':id/soumissions')
-  @Roles(Role.SUPER_ADMIN, Role.ADMIN, Role.ENSEIGNANT)
+  @Permissions('ACADEMIC_MANAGE')
   @ApiOperation({ summary: 'Lister tous les rendus pour un devoir' })
   async findAllSubmissions(@Param('id') id: string, @Request() req: any) {
     const data = await this.devoirService.findAllSubmissions(+id, req.user);

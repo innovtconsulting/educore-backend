@@ -61,6 +61,7 @@ export class EnseignantService {
     // Création automatique du compte utilisateur avec mot de passe par défaut
     await this.userService.create({
       email: email,
+      username: createEnseignantDto.firstName,
       password: '12345678',
       role: Role.ENSEIGNANT,
       enseignant: savedEnseignant,
@@ -173,7 +174,16 @@ export class EnseignantService {
     }
 
     Object.assign(enseignant, updateEnseignantDto);
-    return await this.enseignantRepository.save(enseignant);
+    const savedEnseignant = await this.enseignantRepository.save(enseignant);
+
+    // Synchroniser le username si le prénom a changé
+    if (updateEnseignantDto.firstName && enseignant.user) {
+      await this.userService.update(enseignant.user.id, {
+        username: updateEnseignantDto.firstName,
+      });
+    }
+
+    return savedEnseignant;
   }
 
   async remove(id: number): Promise<void> {

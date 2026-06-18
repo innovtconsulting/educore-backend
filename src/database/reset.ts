@@ -26,9 +26,9 @@ import { Paiement } from '../finance/entities/paiement.entity';
 import { Discipline } from '../discipline/entities/discipline.entity';
 import { Inscription } from '../etudiant/entities/inscription.entity'; // Correction du nom si nécessaire, mais glob a dit inscription.entity.ts
 import { GeneratedDocument } from '../certificate/entities/generated-document.entity';
-import {
-  GlobalSetting,
-} from '../global-setting/entities/global-setting.entity';
+import { GlobalSetting } from '../global-setting/entities/global-setting.entity';
+import { Role as AclRole } from '../acl/entities/role.entity';
+import { Permission } from '../acl/entities/permission.entity';
 import * as dotenv from 'dotenv';
 
 dotenv.config();
@@ -69,6 +69,8 @@ const dataSource = new DataSource({
     Salle,
     User,
     GlobalSetting,
+    AclRole,
+    Permission,
   ],
   synchronize: false,
 });

@@ -30,7 +30,9 @@ describe('School Life Supervisor (e2e)', () => {
     const entities = dataSource.entityMetadatas;
     for (const entity of entities) {
       const repository = dataSource.getRepository(entity.name);
-      await repository.query(`TRUNCATE "${entity.tableName}" RESTART IDENTITY CASCADE;`);
+      await repository.query(
+        `TRUNCATE "${entity.tableName}" RESTART IDENTITY CASCADE;`,
+      );
     }
 
     const passwordHash = await bcrypt.hash('password123', 10);
@@ -40,23 +42,45 @@ describe('School Life Supervisor (e2e)', () => {
     const nivRepo = dataSource.getRepository('Niveau');
     const clsRepo = dataSource.getRepository('Classe');
 
-    const etab = await etabRepo.save({ name: 'FST', address: 'Dakar', email: 'fst@test.com', phone: '123' });
+    const etab = await etabRepo.save({
+      name: 'FST',
+      address: 'Dakar',
+      email: 'fst@test.com',
+      phone: '123',
+    });
     const niv = await nivRepo.save({ name: 'L1' });
     const cls = await clsRepo.save({ name: 'Informatique' });
-    await dataSource.createQueryBuilder().relation('Classe', 'etablissements').of(cls.id).add(etab.id);
-    await dataSource.createQueryBuilder().relation('Classe', 'niveaux').of(cls.id).add(niv.id);
+    await dataSource
+      .createQueryBuilder()
+      .relation('Classe', 'etablissements')
+      .of(cls.id)
+      .add(etab.id);
+    await dataSource
+      .createQueryBuilder()
+      .relation('Classe', 'niveaux')
+      .of(cls.id)
+      .add(niv.id);
 
     const etu = await etuRepo.save({
-      firstName: 'Ousmane', lastName: 'Sow', email: 'ous@test.com', matricule: 'E001',
-      etablissement: { id: etab.id }, classe: { id: cls.id }, niveau: { id: niv.id }
+      firstName: 'Ousmane',
+      lastName: 'Sow',
+      email: 'ous@test.com',
+      matricule: 'E001',
+      etablissement: { id: etab.id },
+      classe: { id: cls.id },
+      niveau: { id: niv.id },
     });
     etudiantId = etu.id;
 
     await userRepo.save({
-      email: 'supervisor@test.com', password: passwordHash, role: Role.SURVEILLANT
+      email: 'supervisor@test.com',
+      password: passwordHash,
+      role: Role.SURVEILLANT,
     });
 
-    const login = await request(app.getHttpServer()).post('/api/auth/login').send({ email: 'supervisor@test.com', password: 'password123' });
+    const login = await request(app.getHttpServer())
+      .post('/api/auth/login')
+      .send({ email: 'supervisor@test.com', password: 'password123' });
     surveillantToken = login.body.data.access_token;
   });
 
@@ -79,20 +103,20 @@ describe('School Life Supervisor (e2e)', () => {
         etudiantId,
         type: 'Avertissement',
         motif: 'Retard répété',
-        dateDecision: '2026-06-11'
+        dateDecision: '2026-06-11',
       })
       .expect(201);
   });
 
   it('Supervisor can record attendance (Presence)', async () => {
-    // Note: Needs an emploiDuTemp entry to be fully valid if we check logic, 
+    // Note: Needs an emploiDuTemp entry to be fully valid if we check logic,
     // but the controller role check is what we want here.
     // Let's just check the 404/400 because of missing data vs 403 Forbidden.
     const res = await request(app.getHttpServer())
       .post('/api/presence/bulk')
       .set('Authorization', `Bearer ${surveillantToken}`)
       .send({ emploiDuTempId: 999, items: [] });
-    
+
     expect(res.status).not.toBe(403);
   });
 

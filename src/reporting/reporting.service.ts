@@ -44,16 +44,24 @@ export class ReportingService {
         where: TenantHelper.addTenantFilter({}, tenantId) as any,
       }),
       this.enseignantRepository.count({
-        where: tenantId ? { affectations: { etablissement: { id: tenantId } } } : {},
+        where: tenantId
+          ? { affectations: { etablissement: { id: tenantId } } }
+          : {},
       }),
       this.classeRepository.count({
-        where: TenantHelper.addTenantFilter({}, tenantId, 'etablissements') as any,
+        where: TenantHelper.addTenantFilter(
+          {},
+          tenantId,
+          'etablissements',
+        ) as any,
       }),
     ]);
 
     const financialQuery = this.factureRepository.createQueryBuilder('f');
     if (tenantId) {
-      financialQuery.innerJoin('f.etudiant', 'e').andWhere('e.etablissementId = :tenantId', { tenantId });
+      financialQuery
+        .innerJoin('f.etudiant', 'e')
+        .andWhere('e.etablissementId = :tenantId', { tenantId });
     }
     const financialStats = await financialQuery
       .select('SUM(f.montantTotal)', 'totalInvoiced')
@@ -61,7 +69,9 @@ export class ReportingService {
 
     const paymentQuery = this.paiementRepository.createQueryBuilder('p');
     if (tenantId) {
-      paymentQuery.innerJoin('p.etudiant', 'e').andWhere('e.etablissementId = :tenantId', { tenantId });
+      paymentQuery
+        .innerJoin('p.etudiant', 'e')
+        .andWhere('e.etablissementId = :tenantId', { tenantId });
     }
     const paymentStats = await paymentQuery
       .select('SUM(p.montant)', 'totalCollected')
@@ -76,7 +86,9 @@ export class ReportingService {
       finance: {
         totalInvoiced: parseFloat(financialStats.totalInvoiced || 0),
         totalCollected: parseFloat(paymentStats.totalCollected || 0),
-        pending: parseFloat(financialStats.totalInvoiced || 0) - parseFloat(paymentStats.totalCollected || 0),
+        pending:
+          parseFloat(financialStats.totalInvoiced || 0) -
+          parseFloat(paymentStats.totalCollected || 0),
       },
     };
   }
@@ -121,7 +133,7 @@ export class ReportingService {
 
     // Vérifier si un rapport est déjà soumis
     const savedReport = await this.dailyReportRepository.findOne({
-      where: TenantHelper.addTenantFilter({ date }, tenantId) as any,
+      where: TenantHelper.addTenantFilter({ date }, tenantId),
     });
 
     return {
@@ -169,7 +181,7 @@ export class ReportingService {
     const reportData = await this.getDailySupervisorReport(dto.date);
 
     let report = await this.dailyReportRepository.findOne({
-      where: TenantHelper.addTenantFilter({ date: dto.date }, tenantId) as any,
+      where: TenantHelper.addTenantFilter({ date: dto.date }, tenantId),
     });
 
     if (!report) {
@@ -187,8 +199,10 @@ export class ReportingService {
     report.isSubmitted = true;
 
     // Génération du PDF
-    const etablissement = tenantId 
-      ? await this.etudiantRepository.manager.getRepository('Etablissement').findOneBy({ id: tenantId }) 
+    const etablissement = tenantId
+      ? await this.etudiantRepository.manager
+          .getRepository('Etablissement')
+          .findOneBy({ id: tenantId })
       : null;
 
     const pdfUrl = await generateDailyReportPdf({
@@ -208,7 +222,7 @@ export class ReportingService {
     const skip = (page - 1) * limit;
 
     const [items, total] = await this.dailyReportRepository.findAndCount({
-      where: TenantHelper.addTenantFilter({}, tenantId) as any,
+      where: TenantHelper.addTenantFilter({}, tenantId),
       skip,
       take: limit,
       order: { date: 'DESC' },
@@ -225,7 +239,7 @@ export class ReportingService {
   async getDailyReportById(id: number) {
     const tenantId = TenantContext.getTenantId();
     const report = await this.dailyReportRepository.findOne({
-      where: TenantHelper.addTenantFilter({ id }, tenantId) as any,
+      where: TenantHelper.addTenantFilter({ id }, tenantId),
     });
     if (!report) {
       throw new NotFoundException(

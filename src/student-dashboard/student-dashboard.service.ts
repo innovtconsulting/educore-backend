@@ -32,17 +32,30 @@ export class StudentDashboardService {
     });
     if (!etudiant) throw new NotFoundException('Profil étudiant non trouvé');
 
-    const [notes, presenceStats, upcomingHomework, schedule, invoices, sanctions] = await Promise.all([
+    const [
+      notes,
+      presenceStats,
+      upcomingHomework,
+      schedule,
+      invoices,
+      sanctions,
+    ] = await Promise.all([
       this.noteService.findAll({ page: 1, limit: 5 }, user),
       this.presenceService.getStudentStats(etudiantId, user),
       this.devoirService.findByClasse(etudiant.classe.id, etudiant.niveau.id),
-      this.emploiService.findAll({ page: 1, limit: 10 }, etudiant.classe.id, etudiant.niveau.id),
+      this.emploiService.findAll(
+        { page: 1, limit: 10 },
+        etudiant.classe.id,
+        etudiant.niveau.id,
+      ),
       this.financeService.findByEtudiant(etudiantId),
       this.sanctionService.findByEtudiant(etudiantId),
     ]);
 
     // Certificat de scolarité
-    const scolarityCertificate = await this.certificateService.getScolarityCertificate(etudiantId).catch(() => null);
+    const scolarityCertificate = await this.certificateService
+      .getScolarityCertificate(etudiantId)
+      .catch(() => null);
 
     return {
       student: {
@@ -56,15 +69,19 @@ export class StudentDashboardService {
         absents: presenceStats.absents,
         retards: presenceStats.retards,
       },
-      upcomingHomework: upcomingHomework.filter(d => new Date(d.deadline) > new Date()).slice(0, 5),
+      upcomingHomework: upcomingHomework
+        .filter((d) => new Date(d.deadline) > new Date())
+        .slice(0, 5),
       todaySchedule: schedule.items,
       finances: {
         totalInvoices: invoices.length,
-        unpaidInvoices: invoices.filter(f => f.status !== 'Payée'),
+        unpaidInvoices: invoices.filter((f) => f.status !== 'Payée'),
       },
       recentSanctions: sanctions.slice(0, 3),
       documents: {
-        scolarityCertificate: scolarityCertificate ? scolarityCertificate.pdfUrl : null,
+        scolarityCertificate: scolarityCertificate
+          ? scolarityCertificate.pdfUrl
+          : null,
       },
     };
   }

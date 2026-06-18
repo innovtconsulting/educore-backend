@@ -7,9 +7,7 @@ import { EmploiDuTemp } from '../emploi-du-temps/entities/emploi-du-temp.entity'
 import { Etudiant } from '../etudiant/entities/etudiant.entity';
 
 @Module({
-  imports: [
-    TypeOrmModule.forFeature([Presence, EmploiDuTemp, Etudiant]),
-  ],
+  imports: [TypeOrmModule.forFeature([Presence, EmploiDuTemp, Etudiant])],
   controllers: [PresenceController],
   providers: [PresenceService],
   exports: [PresenceService],

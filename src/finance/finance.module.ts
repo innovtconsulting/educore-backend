@@ -11,7 +11,14 @@ import { Niveau } from '../niveau/entities/niveau.entity';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([Frais, Facture, Paiement, Etudiant, Classe, Niveau]),
+    TypeOrmModule.forFeature([
+      Frais,
+      Facture,
+      Paiement,
+      Etudiant,
+      Classe,
+      Niveau,
+    ]),
   ],
   controllers: [FinanceController],
   providers: [FinanceService],

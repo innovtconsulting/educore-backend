@@ -17,6 +17,7 @@ import { CertificateService } from './certificate.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
+import { Permissions } from '../auth/decorators/permissions.decorator';
 import { Role } from '../user/entities/user.entity';
 import { PaginationQueryDto } from '../common/dto/pagination-query.dto';
 
@@ -28,7 +29,8 @@ export class CertificateController {
   constructor(private readonly certificateService: CertificateService) {}
 
   @Get('scolarity/:etudiantId')
-  @Roles(Role.SUPER_ADMIN, Role.ADMIN, Role.ETUDIANT)
+  @Roles(Role.ETUDIANT)
+  @Permissions('STUDENT_VIEW')
   @ApiOperation({
     summary: 'Générer un certificat de scolarité pour un étudiant',
   })
@@ -47,7 +49,8 @@ export class CertificateController {
   }
 
   @Get('success/:etudiantId')
-  @Roles(Role.SUPER_ADMIN, Role.ADMIN, Role.ETUDIANT)
+  @Roles(Role.ETUDIANT)
+  @Permissions('ACADEMIC_VIEW')
   @ApiOperation({
     summary: 'Générer une attestation de réussite pour un étudiant',
   })
@@ -73,7 +76,7 @@ export class CertificateController {
   }
 
   @Get('history')
-  @Roles(Role.SUPER_ADMIN, Role.ADMIN)
+  @Permissions('STUDENT_VIEW')
   @ApiOperation({ summary: "Consulter l'historique des documents générés" })
   @ApiQuery({
     name: 'etudiantId',

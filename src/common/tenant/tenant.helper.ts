@@ -24,7 +24,7 @@ export class TenantHelper {
 
     if (Array.isArray(where)) {
       if (where.length === 0) return [filter];
-      return where.map((w) => ({ ...w, ...filter } as FindOptionsWhere<T>));
+      return where.map((w) => ({ ...w, ...filter }) as FindOptionsWhere<T>);
     }
 
     return { ...where, ...filter } as FindOptionsWhere<T>;

@@ -6,23 +6,40 @@ import {
   forwardRef,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import {
+  Repository,
+  ILike,
+  FindOptionsWhere,
+  DataSource,
+  QueryRunner,
+} from 'typeorm';
 import { CreateEtudiantDto } from './dto/create-etudiant.dto';
 import { UpdateEtudiantDto } from './dto/update-etudiant.dto';
-import { ValidateEtudiantDto } from './dto/validate-etudiant.dto';
 import { Etudiant, EnrollmentStatus } from './entities/etudiant.entity';
 import { Etablissement } from '../etablissement/entities/etablissement.entity';
 import { Classe } from '../classe/entities/classe.entity';
 import { Niveau } from '../niveau/entities/niveau.entity';
 import { Parent, ParentGender } from '../parent/entities/parent.entity';
-import { In, ILike, FindOptionsWhere } from 'typeorm';
-import { unlink } from 'fs/promises';
-import { existsSync } from 'fs';
-import { join } from 'path';
 import { PaginationQueryDto } from '../common/dto/pagination-query.dto';
 import { TenantContext } from '../common/tenant/tenant.context';
 import { UserService } from '../user/user.service';
-import { Role } from '../user/entities/user.entity';
+import { User, UserRole, Role } from '../user/entities/user.entity';
+import { ValidateEtudiantDto } from './dto/validate-etudiant.dto';
+import { unlink } from 'fs/promises';
+import { join } from 'path';
+import { existsSync } from 'fs';
+import * as ExcelJS from 'exceljs';
+import { ClasseService } from '../classe/classe.service';
+import { NiveauService } from '../niveau/niveau.service';
+import {
+  CheckImportResultDto,
+  CheckImportResultSheetDto,
+  RunImportDto,
+  ImportReportDto,
+  ImportReportSheetDto,
+  StudentImportRowDto,
+  ConfirmImportDto,
+} from './dto/import-student.dto';
 
 @Injectable()
 export class EtudiantService {
@@ -39,114 +56,53 @@ export class EtudiantService {
     private readonly parentRepository: Repository<Parent>,
     @Inject(forwardRef(() => UserService))
     private readonly userService: UserService,
+    private readonly classeService: ClasseService,
+    private readonly niveauService: NiveauService,
+    private readonly dataSource: DataSource,
   ) {}
 
-  async preRegister(createEtudiantDto: CreateEtudiantDto): Promise<Etudiant> {
-    const {
-      etablissementId,
-      classeId,
-      niveauId,
-      parentsData,
-      password,
-      ...rest
-    } = createEtudiantDto;
+  async preRegister(data: any): Promise<Etudiant> {
+    const { password, ...etudiantData } = data;
 
-    // Pour une pré-inscription, on force le statut EN_ATTENTE et on ignore le matricule
-    const status = EnrollmentStatus.EN_ATTENTE;
-    delete rest.matricule;
-
-    if (!password) {
-      throw new BadRequestException(
-        'Le mot de passe est obligatoire pour la pré-inscription',
-      );
-    }
-
-    const etablissement = await this.etablissementRepository.findOneBy({
-      id: etablissementId,
+    // Créer le profil étudiant en attente
+    const etudiant = await this.create({
+      ...etudiantData,
+      status: EnrollmentStatus.EN_ATTENTE,
     });
-    if (!etablissement)
-      throw new NotFoundException(
-        `Établissement #${etablissementId} introuvable`,
-      );
 
-    const classe = await this.classeRepository.findOneBy({ id: classeId });
-    if (!classe) throw new NotFoundException(`Classe #${classeId} introuvable`);
+    // Créer le compte utilisateur inactif
+    await this.userService.create({
+      email: etudiant.email,
+      password: password,
+      role: UserRole.ETUDIANT,
+      isActive: false,
+      username: etudiant.firstName,
+    });
 
-    const niveau = await this.niveauRepository.findOneBy({ id: niveauId });
-    if (!niveau) throw new NotFoundException(`Niveau #${niveauId} introuvable`);
-
-    const parents: Parent[] = [];
-    if (parentsData && parentsData.length > 0) {
-      for (const pData of parentsData) {
-        let parent = await this.parentRepository.findOne({
-          where: [
-            { phoneNumber: pData.phoneNumber },
-            ...(pData.email ? [{ email: pData.email }] : []),
-          ],
-        });
-
-        if (!parent) {
-          parent = this.parentRepository.create(pData);
-          parent = await this.parentRepository.save(parent);
-        }
-        parents.push(parent);
-
-        // Créer un compte utilisateur pour le parent s'il n'existe pas
-        const parentUserEmail = pData.phoneNumber; // Identifiant parent = téléphone
-        const existingParentUser =
-          await this.userService.findByEmail(parentUserEmail);
-        if (!existingParentUser) {
+    // Créer les comptes parents si nécessaire
+    if (etudiant.parents) {
+      for (const parent of etudiant.parents) {
+        const existingUser = await this.userService.findByEmail(
+          parent.phoneNumber,
+        );
+        if (!existingUser) {
           await this.userService.create({
-            email: parentUserEmail,
-            password: '12345678',
-            role: Role.PARENT,
-            isActive: false, // Sera activé lors de la validation de l'étudiant
-            parent: parent,
+            email: parent.phoneNumber,
+            role: UserRole.PARENT,
+            isActive: false,
+            username: parent.firstName,
           });
         }
       }
-    } else {
-      throw new BadRequestException(
-        'Un étudiant doit avoir au moins un parent ou tuteur',
-      );
     }
 
-    const existingEmail = await this.etudiantRepository.findOne({
-      where: { email: rest.email },
-    });
-    if (existingEmail) {
-      throw new BadRequestException("L'email existe déjà");
-    }
-
-    const etudiant = this.etudiantRepository.create({
-      ...rest,
-      status,
-      etablissement,
-      classe,
-      niveau,
-      parents,
-    });
-
-    const savedEtudiant = await this.etudiantRepository.save(etudiant);
-
-    // Créer le compte utilisateur pour l'étudiant
-    await this.userService.create({
-      email: rest.email,
-      password: password,
-      role: Role.ETUDIANT,
-      isActive: false, // Sera activé lors de la validation
-      etudiant: savedEtudiant,
-      etablissement: etablissement,
-    });
-
-    return savedEtudiant;
+    return etudiant;
   }
 
   async create(createEtudiantDto: CreateEtudiantDto): Promise<Etudiant> {
     const { etablissementId, classeId, niveauId, parentsData, ...rest } =
       createEtudiantDto;
 
-    // Vérifier l'existence des relations de base
     const etablissement = await this.etablissementRepository.findOneBy({
       id: etablissementId,
     });
@@ -163,8 +119,12 @@ export class EtudiantService {
 
     const parents: Parent[] = [];
     if (parentsData && parentsData.length > 0) {
+      let hasTuteur = false;
       for (const pData of parentsData) {
-        // Chercher si le parent existe déjà par téléphone ou email
+        if (pData.gender === ParentGender.TUTEUR) {
+          hasTuteur = true;
+        }
+
         let parent = await this.parentRepository.findOne({
           where: [
             { phoneNumber: pData.phoneNumber },
@@ -173,30 +133,10 @@ export class EtudiantService {
         });
 
         if (!parent) {
-          // Créer le parent s'il n'existe pas
           parent = this.parentRepository.create(pData);
           parent = await this.parentRepository.save(parent);
         }
         parents.push(parent);
-      }
-
-      // Validation des règles métier pour les parents
-      if (parents.length > 2) {
-        throw new BadRequestException(
-          'Un étudiant ne peut pas avoir plus de 2 parents',
-        );
-      }
-
-      const hasPere = parents.some((p) => p.gender === ParentGender.PERE);
-      const hasMere = parents.some((p) => p.gender === ParentGender.MERE);
-      const hasTuteur = parents.some((p) => p.gender === ParentGender.TUTEUR);
-
-      if (parents.length === 2) {
-        if (!hasPere || !hasMere) {
-          throw new BadRequestException(
-            "Si l'étudiant a 2 parents, ce doit être un père et une mère",
-          );
-        }
       }
 
       if (hasTuteur && parents.length > 1) {
@@ -205,50 +145,54 @@ export class EtudiantService {
         );
       }
     } else {
+      // Pour l'import, on peut vouloir rendre les parents optionnels
+      // On garde cette vérification pour la création manuelle, mais on l'assouplira pour l'import
       throw new BadRequestException(
         'Un étudiant doit avoir au moins un parent ou tuteur',
       );
     }
 
-    // Vérifier l'unicité du matricule (si fourni) et de l'email
-    const matricule = rest.matricule;
-    if (matricule) {
-      const existingMatricule = await this.etudiantRepository.findOne({
-        where: { matricule },
+    // Vérifier l'unicité de l'email si fourni
+    if (rest.email) {
+      const existingEmail = await this.etudiantRepository.findOne({
+        where: { email: rest.email },
       });
-      if (existingMatricule) {
-        throw new BadRequestException('Le matricule existe déjà');
+      if (existingEmail) {
+        throw new BadRequestException("L'email existe déjà");
       }
-    }
-
-    const existingEmail = await this.etudiantRepository.findOne({
-      where: { email: rest.email },
-    });
-    if (existingEmail) {
-      throw new BadRequestException("L'email existe déjà");
     }
 
     const etudiant = this.etudiantRepository.create({
       ...rest,
+      email: rest.email || null,
       status: rest.status || EnrollmentStatus.ACTIF,
       etablissement,
       classe,
       niveau,
       parents,
-    });
+    }) as Etudiant;
 
     return await this.etudiantRepository.save(etudiant);
   }
 
   async findAll(
-    paginationQuery: PaginationQueryDto & { status?: EnrollmentStatus },
+    paginationQuery: PaginationQueryDto & {
+      status?: EnrollmentStatus;
+      etablissementId?: number;
+    },
   ): Promise<{
     items: Etudiant[];
     total: number;
     page: number;
     limit: number;
   }> {
-    const { page = 1, limit = 15, search, status } = paginationQuery;
+    const {
+      page = 1,
+      limit = 15,
+      search,
+      status,
+      etablissementId,
+    } = paginationQuery;
     const skip = (page - 1) * limit;
 
     const tenantId = TenantContext.getTenantId();
@@ -257,6 +201,8 @@ export class EtudiantService {
     const baseWhere: any = {};
     if (status) baseWhere.status = status;
     if (tenantId) baseWhere.etablissement = { id: tenantId };
+    if (etablissementId && !tenantId)
+      baseWhere.etablissement = { id: etablissementId };
 
     if (search) {
       where.push(
@@ -331,17 +277,6 @@ export class EtudiantService {
     const { etablissementId, classeId, niveauId, parentsData, ...rest } =
       updateEtudiantDto;
 
-    // Règle métier : Pour passer à l'état ACTIF, le matricule est OBLIGATOIRE
-    if (
-      rest.status === EnrollmentStatus.ACTIF &&
-      !etudiant.matricule &&
-      !rest.matricule
-    ) {
-      throw new BadRequestException(
-        "Un matricule doit être attribué pour activer l'inscription de l'étudiant",
-      );
-    }
-
     if (etablissementId) {
       const etablissement = await this.etablissementRepository.findOneBy({
         id: etablissementId,
@@ -386,17 +321,17 @@ export class EtudiantService {
       etudiant.parents = parents;
     }
 
-    if (rest.matricule && rest.matricule !== etudiant.matricule) {
-      const existing = await this.etudiantRepository.findOne({
-        where: { matricule: rest.matricule },
+    Object.assign(etudiant, rest);
+    const savedEtudiant = await this.etudiantRepository.save(etudiant);
+
+    // Synchroniser le username si le prénom a changé
+    if (rest.firstName && etudiant.user) {
+      await this.userService.update(etudiant.user.id, {
+        username: rest.firstName,
       });
-      if (existing) {
-        throw new BadRequestException('Ce matricule est déjà utilisé');
-      }
     }
 
-    Object.assign(etudiant, rest);
-    return await this.etudiantRepository.save(etudiant);
+    return savedEtudiant;
   }
 
   async validateEnrollment(
@@ -470,5 +405,643 @@ export class EtudiantService {
     // Normaliser le chemin (remplacer \ par / pour compatibilité web)
     etudiant.photoPath = filePath.replace(/\\/g, '/');
     return await this.etudiantRepository.save(etudiant);
+  }
+
+  async validateImport(
+    fileBuffer: Buffer,
+    sheetName?: string,
+  ): Promise<{
+    validStudents: StudentImportRowDto[];
+    errors: { line: number; message: string }[];
+  }> {
+    const workbook = new ExcelJS.Workbook();
+    await workbook.xlsx.load(fileBuffer as any);
+
+    let worksheet: ExcelJS.Worksheet | undefined;
+    if (sheetName) {
+      worksheet = workbook.getWorksheet(sheetName);
+    } else {
+      worksheet = workbook.getWorksheet(1);
+    }
+
+    const tenantId = TenantContext.getTenantId();
+
+    if (!tenantId) {
+      console.log('Tenant ID missing in EtudiantService');
+      throw new BadRequestException("ID d'établissement manquant");
+    }
+    if (!worksheet) {
+      throw new BadRequestException(
+        sheetName
+          ? `Feuille "${sheetName}" introuvable`
+          : 'Fiche de calcul introuvable',
+      );
+    }
+
+    const validStudents: StudentImportRowDto[] = [];
+    const errors: { line: number; message: string }[] = [];
+
+    const rowCount = worksheet.rowCount;
+    for (let i = 2; i <= rowCount; i++) {
+      const row = worksheet.getRow(i);
+      if (!row.hasValues) continue;
+
+      try {
+        const lastName = row.getCell(3).text?.trim();
+        const firstName = row.getCell(4).text?.trim();
+        const gender = row.getCell(5).text?.trim();
+        const birthDateValue = row.getCell(6).value;
+        const className = row.getCell(7).text?.trim();
+        const levelName = row.getCell(8).text?.trim();
+        const phoneNumber = row.getCell(11).text?.trim()?.toString();
+        const email = row.getCell(12).text?.trim();
+
+        if (!lastName || !firstName || !className || !levelName) {
+          throw new Error(
+            'Champs obligatoires manquants (Nom, Prénom, Classe, Niveau)',
+          );
+        }
+
+        const studentEmail = email || undefined;
+
+        if (studentEmail) {
+          const existing = await this.etudiantRepository.findOne({
+            where: { email: studentEmail },
+          });
+          if (existing)
+            throw new Error(
+              `L'étudiant avec l'email ${studentEmail} existe déjà`,
+            );
+        }
+
+        const classe = await this.classeService.findByName(className);
+        if (!classe) throw new Error(`Classe "${className}" introuvable`);
+
+        const niveau = await this.niveauService.findByName(levelName);
+        if (!niveau) throw new Error(`Niveau "${levelName}" introuvable`);
+
+        let birthDateStr: string | undefined;
+        if (birthDateValue instanceof Date) {
+          birthDateStr = birthDateValue.toISOString().split('T')[0];
+        } else if (typeof birthDateValue === 'string') {
+          birthDateStr = new Date(birthDateValue).toISOString().split('T')[0];
+        }
+
+        validStudents.push({
+          lastName,
+          firstName,
+          gender,
+          birthDate: birthDateStr,
+          className,
+          levelName,
+          phoneNumber,
+          email: studentEmail,
+        });
+      } catch (error) {
+        errors.push({ line: i, message: error.message });
+      }
+    }
+
+    return { validStudents, errors };
+  }
+
+  async confirmImport(
+    students: StudentImportRowDto[],
+  ): Promise<{ success: number; failed: number }> {
+    const tenantId = TenantContext.getTenantId();
+    if (!tenantId) throw new BadRequestException("ID d'établissement manquant");
+
+    const queryRunner = this.dataSource.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
+
+    let successCount = 0;
+    let failedCount = 0;
+
+    try {
+      const etablissement = await this.etablissementRepository.findOneBy({
+        id: tenantId,
+      });
+      if (!etablissement) throw new Error('Établissement introuvable');
+
+      for (const s of students) {
+        try {
+          const classe = await this.classeService.findByName(s.className);
+          const niveau = await this.niveauService.findByName(s.levelName);
+
+          if (!classe || !niveau) {
+            throw new Error(`Classe ou Niveau introuvable pour ${s.email}`);
+          }
+
+          const etudiant = this.etudiantRepository.create({
+            lastName: s.lastName,
+            firstName: s.firstName,
+            gender: s.gender,
+            birthDate: s.birthDate ? new Date(s.birthDate) : undefined,
+            email: s.email || null,
+            phoneNumber: s.phoneNumber,
+            status: EnrollmentStatus.EN_ATTENTE,
+            etablissement,
+            classe,
+            niveau,
+          }) as Etudiant;
+
+          const savedEtudiant = (await queryRunner.manager.save(
+            etudiant,
+          )) as Etudiant;
+
+          await this.userService.createWithRunner(queryRunner, {
+            email: savedEtudiant.email,
+            password: 'password123',
+            role: UserRole.ETUDIANT,
+            isActive: false,
+            username: savedEtudiant.firstName,
+            etudiant: savedEtudiant,
+          });
+
+          successCount++;
+        } catch (innerError) {
+          console.error(`Erreur import étudiant ${s.email}:`, innerError);
+          failedCount++;
+        }
+      }
+
+      await queryRunner.commitTransaction();
+    } catch (err) {
+      await queryRunner.rollbackTransaction();
+      throw err;
+    } finally {
+      await queryRunner.release();
+    }
+
+    return { success: successCount, failed: failedCount };
+  }
+
+  // Column alias mapping
+  private getColumnAliases(): Record<string, string[]> {
+    return {
+      matricule: [
+        'matricule',
+        'matricule étudiant',
+        'numero matricule',
+        'matricule_etudiant',
+      ],
+      nom: ['nom', 'nom de famille', 'lastname', 'last name', 'nom_famille'],
+      prenom: [
+        'prenom',
+        'prénom',
+        'firstname',
+        'first name',
+        'prenom_etudiant',
+      ],
+      nomprenom: ['nom et prénom', 'nomprenom', 'nom et prenom', 'nom_prenom'],
+      telephone: [
+        'telephone',
+        'téléphone',
+        'tel',
+        'phone',
+        'numero telephone',
+        'numéro téléphone',
+      ],
+      datenaissance: [
+        'datenaissance',
+        'date de naissance',
+        'date_naissance',
+        'birthdate',
+        'birth date',
+      ],
+      lieunaissance: [
+        'lieunaissance',
+        'lieu de naissance',
+        'lieu_naissance',
+        'birthplace',
+        'birth place',
+      ],
+      sexe: ['sexe', 'genre', 'gender'],
+      email: ['email', 'mail', 'adresse email', 'adresse mail', 'e-mail'],
+      classe: ['classe', 'class'],
+      niveau: ['niveau', 'level', 'grade'],
+      parcours: ['parcours', 'filière', 'filiere', 'course', 'program'],
+    };
+  }
+
+  // Normalize column name
+  private normalizeColumnName(colName: string): string {
+    return colName
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/[^a-z0-9]/g, '')
+      .trim();
+  }
+
+  // Map raw headers to normalized fields
+  private mapHeaders(headers: string[]): Record<string, number> {
+    const aliases = this.getColumnAliases();
+    const headerMap: Record<string, number> = {};
+
+    headers.forEach((header, index) => {
+      const normalizedHeader = this.normalizeColumnName(header);
+      for (const [field, aliasList] of Object.entries(aliases)) {
+        if (
+          aliasList.some(
+            (alias) => this.normalizeColumnName(alias) === normalizedHeader,
+          )
+        ) {
+          headerMap[field] = index;
+          break;
+        }
+      }
+    });
+
+    return headerMap;
+  }
+
+  // Clean phone number
+  private cleanPhoneNumber(phone: any): string {
+    let cleaned = String(phone).replace(/\s/g, '');
+    if (/^\d{9}$/.test(cleaned)) {
+      cleaned = '0' + cleaned;
+    }
+    return cleaned;
+  }
+
+  // Split multiple phones
+  private splitPhones(phoneStr: any): {
+    main: string;
+    supplementary: string[];
+  } {
+    if (!phoneStr) return { main: '', supplementary: [] };
+    const phones = String(phoneStr)
+      .split(/[\/,;]/)
+      .map((p) => this.cleanPhoneNumber(p))
+      .filter((p) => p);
+    return {
+      main: phones[0] || '',
+      supplementary: phones.slice(1),
+    };
+  }
+
+  // Generate unique matricule
+  private async generateMatricule(
+    acronyme: string,
+    queryRunner?: QueryRunner,
+  ): Promise<string> {
+    const year = new Date().getFullYear();
+    const prefix = `${acronyme.toUpperCase()}-${year}-`;
+
+    const repo = queryRunner
+      ? queryRunner.manager.getRepository(Etudiant)
+      : this.etudiantRepository;
+    const lastMatricule = await repo.findOne({
+      where: { matricule: ILike(`${prefix}%`) },
+      order: { matricule: 'DESC' },
+    });
+
+    let nextNum = 1;
+    if (lastMatricule && lastMatricule.matricule) {
+      const match = lastMatricule.matricule.match(/-(\d{4})$/);
+      if (match) {
+        nextNum = parseInt(match[1], 10) + 1;
+      }
+    }
+
+    return `${prefix}${String(nextNum).padStart(4, '0')}`;
+  }
+
+  // Find or create Niveau
+  private async findOrCreateNiveau(
+    nom: string,
+    etablissement: Etablissement,
+    queryRunner: QueryRunner,
+  ): Promise<Niveau> {
+    const repo = queryRunner.manager.getRepository(Niveau);
+    let niveau = await repo.findOne({ where: { name: nom } });
+    if (!niveau) {
+      niveau = repo.create({ name: nom });
+      niveau = await repo.save(niveau);
+    }
+    return niveau;
+  }
+
+  // Find or create Classe (Parcours)
+  private async findOrCreateClasse(
+    nom: string,
+    niveau: Niveau,
+    etablissement: Etablissement,
+    estGenereParDefaut: boolean,
+    queryRunner: QueryRunner,
+  ): Promise<Classe> {
+    const repo = queryRunner.manager.getRepository(Classe);
+    let classe = await repo.findOne({
+      where: { name: nom },
+      relations: { niveaux: true, etablissements: true },
+    });
+
+    if (!classe) {
+      classe = repo.create({
+        name: nom,
+        niveaux: [niveau],
+        etablissements: [etablissement],
+      });
+      classe = await repo.save(classe);
+    } else {
+      // Ensure relations are present
+      if (!classe.niveaux.find((n) => n.id === niveau.id)) {
+        classe.niveaux.push(niveau);
+        classe = await repo.save(classe);
+      }
+      if (!classe.etablissements.find((e) => e.id === etablissement.id)) {
+        classe.etablissements.push(etablissement);
+        classe = await repo.save(classe);
+      }
+    }
+    return classe;
+  }
+
+  // Resolve or create default Classe (Parcours) for Niveau
+  private async resolveOrCreateDefaultClasseForNiveau(
+    niveau: Niveau,
+    etablissement: Etablissement,
+    queryRunner: QueryRunner,
+  ): Promise<Classe> {
+    const defaultName = `${niveau.name} - Parcours unique`;
+    return await this.findOrCreateClasse(
+      defaultName,
+      niveau,
+      etablissement,
+      true,
+      queryRunner,
+    );
+  }
+
+  // Check import (validate file without saving)
+  async checkImport(fileBuffer: Buffer): Promise<CheckImportResultDto> {
+    const workbook = new ExcelJS.Workbook();
+    await workbook.xlsx.load(fileBuffer as any);
+    const sheets: CheckImportResultSheetDto[] = [];
+
+    for (const worksheet of workbook.worksheets) {
+      const acronyme = worksheet.name;
+      const existingEtab = await this.etablissementRepository.findOne({
+        where: { acronyme },
+      });
+
+      // Get headers
+      const headerRow = worksheet.getRow(1);
+      const headers: string[] = [];
+      headerRow.eachCell((cell, colNumber) => {
+        headers.push(cell.text?.trim() || `Colonne ${colNumber}`);
+      });
+
+      // Count data rows
+      let nombreLignes = 0;
+      for (let i = 2; i <= worksheet.rowCount; i++) {
+        const row = worksheet.getRow(i);
+        if (row.hasValues) nombreLignes++;
+      }
+
+      sheets.push({
+        acronyme,
+        existeDeja: !!existingEtab,
+        nombreLignes,
+        headers,
+      });
+    }
+
+    return { sheets };
+  }
+
+  // Run import
+  async runImport(
+    fileBuffer: Buffer,
+    runDto: RunImportDto,
+  ): Promise<ImportReportDto> {
+    const workbook = new ExcelJS.Workbook();
+    await workbook.xlsx.load(fileBuffer as any);
+    const queryRunner = this.dataSource.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
+
+    const feuilles: ImportReportSheetDto[] = [];
+    let totalEtudiantsImportes = 0;
+    let totalErreurs = 0;
+
+    try {
+      // First, create any new establishments
+      const etabMap = new Map<string, Etablissement>();
+
+      // Load existing establishments
+      const existingEtabs = await this.etablissementRepository.find();
+      existingEtabs.forEach((etab) => {
+        if (etab.acronyme) etabMap.set(etab.acronyme, etab);
+      });
+
+      // Create new establishments
+      if (runDto.etablissementsACreer) {
+        for (const etabToCreate of runDto.etablissementsACreer) {
+          if (!etabMap.has(etabToCreate.acronyme)) {
+            const newEtab = queryRunner.manager
+              .getRepository(Etablissement)
+              .create({
+                name: etabToCreate.name,
+                acronyme: etabToCreate.acronyme,
+                address: 'À définir',
+                email: `contact@${etabToCreate.acronyme.toLowerCase()}.edu`,
+              });
+            const savedEtab = await queryRunner.manager.save(newEtab);
+            etabMap.set(etabToCreate.acronyme, savedEtab);
+          }
+        }
+      }
+
+      // Process each sheet
+      for (const worksheet of workbook.worksheets) {
+        const acronyme = worksheet.name;
+        const sheetReport: ImportReportSheetDto = {
+          acronyme,
+          nombreEtudiantsImportes: 0,
+          nombreErreurs: 0,
+          erreurs: [],
+          aEteCree:
+            !existingEtabs.find((e) => e.acronyme === acronyme) &&
+            !!runDto.etablissementsACreer?.find((e) => e.acronyme === acronyme),
+        };
+
+        const etablissement = etabMap.get(acronyme);
+        if (!etablissement) {
+          sheetReport.erreurs.push(
+            `Établissement "${acronyme}" non trouvé et non marqué pour création`,
+          );
+          feuilles.push(sheetReport);
+          continue;
+        }
+
+        // Get and map headers
+        const headerRow = worksheet.getRow(1);
+        const headers: string[] = [];
+        headerRow.eachCell((cell) => {
+          headers.push(cell.text?.trim() || '');
+        });
+        const headerMap = this.mapHeaders(headers);
+
+        // Determine mode (with or without parcours)
+        const hasParcours = 'parcours' in headerMap;
+        const hasClasse = 'classe' in headerMap;
+        const hasNiveau = 'niveau' in headerMap;
+
+        // Process each student row
+        for (let i = 2; i <= worksheet.rowCount; i++) {
+          const row = worksheet.getRow(i);
+          if (!row.hasValues) continue;
+
+          try {
+            // Extract data from row
+            const getCellValue = (field: string) => {
+              if (!(field in headerMap)) return undefined;
+              const cell = row.getCell(headerMap[field] + 1);
+              return cell.value;
+            };
+
+            const getCellText = (field: string) => {
+              const val = getCellValue(field);
+              return val ? String(val).trim() : undefined;
+            };
+
+            let nom = getCellText('nom');
+            let prenom = getCellText('prenom');
+            const nomprenom = getCellText('nomprenom');
+
+            if (!nom && !prenom && nomprenom) {
+              // Split combined name (heuristic: first word = nom, rest = prenom)
+              const parts = nomprenom.split(/\s+/);
+              nom = parts[0];
+              prenom = parts.slice(1).join(' ');
+            }
+
+            if (!nom || !prenom) {
+              throw new Error(`Ligne ${i}: Nom et prénom obligatoires`);
+            }
+
+            const matricule = getCellText('matricule');
+            const telephoneRaw = getCellValue('telephone');
+            const {
+              main: telephone,
+              supplementary: telephonesSupplementaires,
+            } = this.splitPhones(telephoneRaw);
+            const email = getCellText('email');
+            const sexe = getCellText('sexe');
+            const dateNaissanceRaw = getCellValue('datenaissance');
+            let dateNaissance: Date | undefined;
+
+            if (dateNaissanceRaw) {
+              if (dateNaissanceRaw instanceof Date) {
+                dateNaissance = dateNaissanceRaw;
+              } else {
+                dateNaissance = new Date(String(dateNaissanceRaw));
+                if (isNaN(dateNaissance.getTime())) dateNaissance = undefined;
+              }
+            }
+
+            // Resolve niveau
+            let niveauName = getCellText('niveau');
+            if (!niveauName && hasClasse && !hasParcours) {
+              niveauName = getCellText('classe');
+            }
+            if (!niveauName) {
+              throw new Error(`Ligne ${i}: Niveau ou classe obligatoire`);
+            }
+
+            const niveau = await this.findOrCreateNiveau(
+              niveauName,
+              etablissement,
+              queryRunner,
+            );
+
+            // Resolve classe (parcours)
+            let classe: Classe;
+            if (hasParcours) {
+              const parcoursName = getCellText('parcours');
+              if (!parcoursName)
+                throw new Error(`Ligne ${i}: Parcours obligatoire`);
+              classe = await this.findOrCreateClasse(
+                parcoursName,
+                niveau,
+                etablissement,
+                false,
+                queryRunner,
+              );
+            } else {
+              classe = await this.resolveOrCreateDefaultClasseForNiveau(
+                niveau,
+                etablissement,
+                queryRunner,
+              );
+            }
+
+            // Check for existing student by matricule
+            let finalMatricule = matricule;
+            if (finalMatricule) {
+              const existingStudent = await queryRunner.manager
+                .getRepository(Etudiant)
+                .findOne({
+                  where: { matricule: finalMatricule },
+                });
+              if (existingStudent) {
+                throw new Error(
+                  `Ligne ${i}: Matricule ${finalMatricule} déjà existant`,
+                );
+              }
+            } else {
+              finalMatricule = await this.generateMatricule(
+                acronyme,
+                queryRunner,
+              );
+            }
+
+            // Create student
+            const etudiant = queryRunner.manager
+              .getRepository(Etudiant)
+              .create({
+                matricule: finalMatricule,
+                lastName: nom,
+                firstName: prenom,
+                gender: sexe,
+                birthDate: dateNaissance,
+                email: email || null,
+                phoneNumber: telephone,
+                telephonesSupplementaires,
+                status: EnrollmentStatus.ACTIF,
+                etablissement,
+                classe,
+                niveau,
+              });
+
+            await queryRunner.manager.save(etudiant);
+            sheetReport.nombreEtudiantsImportes++;
+            totalEtudiantsImportes++;
+          } catch (error) {
+            sheetReport.nombreErreurs++;
+            sheetReport.erreurs.push(error.message || `Erreur ligne ${i}`);
+            totalErreurs++;
+          }
+        }
+
+        feuilles.push(sheetReport);
+      }
+
+      await queryRunner.commitTransaction();
+    } catch (error) {
+      await queryRunner.rollbackTransaction();
+      throw error;
+    } finally {
+      await queryRunner.release();
+    }
+
+    return {
+      feuilles,
+      totalEtudiantsImportes,
+      totalErreurs,
+    };
   }
 }

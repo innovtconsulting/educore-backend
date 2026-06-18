@@ -15,11 +15,6 @@ import { EnrollmentStatus } from '../entities/etudiant.entity';
 import { CreateParentDto } from '../../parent/dto/create-parent.dto';
 
 export class CreateEtudiantDto {
-  @ApiProperty({ example: 'ETU-2026-001', required: false })
-  @IsString()
-  @IsOptional()
-  matricule?: string;
-
   @ApiProperty({ example: 'Sow' })
   @IsString()
   @IsNotEmpty()
@@ -45,10 +40,10 @@ export class CreateEtudiantDto {
   @IsOptional()
   gender?: string;
 
-  @ApiProperty({ example: 'ousmane.sow@email.sn' })
+  @ApiProperty({ example: 'ousmane.sow@email.sn', required: false })
   @IsEmail()
-  @IsNotEmpty()
-  email!: string;
+  @IsOptional()
+  email?: string;
 
   @ApiProperty({ example: 'password123', required: false })
   @IsString()

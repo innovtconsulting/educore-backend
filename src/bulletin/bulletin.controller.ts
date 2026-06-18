@@ -11,6 +11,7 @@ import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
+import { Permissions } from '../auth/decorators/permissions.decorator';
 import { Role } from '../user/entities/user.entity';
 import { Response } from 'express';
 import * as path from 'path';
@@ -23,14 +24,8 @@ export class BulletinController {
   constructor(private readonly bulletinService: BulletinService) {}
 
   @Get('etudiant/:etudiantId/semestre/:semestreId')
-  @Roles(
-    Role.SUPER_ADMIN,
-    Role.ADMIN,
-    Role.ENSEIGNANT,
-    Role.SURVEILLANT,
-    Role.PARENT,
-    Role.ETUDIANT,
-  )
+  @Roles(Role.PARENT, Role.ETUDIANT)
+  @Permissions('ACADEMIC_VIEW')
   @ApiOperation({
     summary:
       "Générer le bulletin de notes d'un étudiant pour un semestre (JSON)",
@@ -50,14 +45,8 @@ export class BulletinController {
   }
 
   @Get('etudiant/:etudiantId/semestre/:semestreId/pdf')
-  @Roles(
-    Role.SUPER_ADMIN,
-    Role.ADMIN,
-    Role.ENSEIGNANT,
-    Role.SURVEILLANT,
-    Role.PARENT,
-    Role.ETUDIANT,
-  )
+  @Roles(Role.PARENT, Role.ETUDIANT)
+  @Permissions('ACADEMIC_VIEW')
   @ApiOperation({
     summary:
       "Générer le bulletin de notes d'un étudiant pour un semestre (PDF)",

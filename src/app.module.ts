@@ -42,6 +42,8 @@ import { GlobalSetting } from './global-setting/entities/global-setting.entity';
 import { Submission } from './devoir/entities/submission.entity';
 import { Salle } from './salle/entities/salle.entity';
 import { Inscription } from './etudiant/entities/inscription.entity';
+import { Role as AclRole } from './acl/entities/role.entity';
+import { Permission as AclPermission } from './acl/entities/permission.entity';
 import { ReportingModule } from './reporting/reporting.module';
 import { DocumentModule } from './document/document.module';
 import { EvaluationModule } from './evaluation/evaluation.module';
@@ -61,6 +63,7 @@ import { GlobalSettingModule } from './global-setting/global-setting.module';
 import { CertificateModule } from './certificate/certificate.module';
 import { SalleModule } from './salle/salle.module';
 import { InscriptionModule } from './inscription/inscription.module';
+import { AclModule } from './acl/acl.module';
 
 @Module({
   imports: [
@@ -76,6 +79,8 @@ import { InscriptionModule } from './inscription/inscription.module';
       password: process.env.DB_PASSWORD || 'postgres',
       database: process.env.DB_NAME || 'postgres',
       entities: [
+        AclRole,
+        AclPermission,
         Etablissement,
         Niveau,
         Classe,
@@ -106,7 +111,10 @@ import { InscriptionModule } from './inscription/inscription.module';
         GlobalSetting,
       ],
       synchronize: process.env.NODE_ENV !== 'production',
-      ssl: process.env.DATABASE_URL ? { rejectUnauthorized: false } : false,
+      ssl:
+        process.env.DB_HOST === 'localhost' || !process.env.DATABASE_URL
+          ? false
+          : { rejectUnauthorized: false },
     }),
     EtablissementModule,
     ClasseModule,
@@ -138,6 +146,7 @@ import { InscriptionModule } from './inscription/inscription.module';
     CertificateModule,
     SalleModule,
     InscriptionModule,
+    AclModule,
   ],
   controllers: [AppController],
   providers: [AppService],

@@ -16,6 +16,7 @@ import { PaginationQueryDto } from '../common/dto/pagination-query.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
+import { Permissions } from '../auth/decorators/permissions.decorator';
 import { Role } from '../user/entities/user.entity';
 
 @ApiTags('presence')
@@ -26,7 +27,7 @@ export class PresenceController {
   constructor(private readonly presenceService: PresenceService) {}
 
   @Post('bulk')
-  @Roles(Role.SUPER_ADMIN, Role.ADMIN, Role.SURVEILLANT, Role.ENSEIGNANT)
+  @Permissions('ATTENDANCE_MANAGE')
   @ApiOperation({
     summary: 'Enregistrer les présences pour une session (en masse)',
   })
@@ -35,7 +36,7 @@ export class PresenceController {
   }
 
   @Get()
-  @Roles(Role.SUPER_ADMIN, Role.ADMIN, Role.SURVEILLANT)
+  @Permissions('ATTENDANCE_MANAGE')
   @ApiOperation({ summary: 'Liste de toutes les présences' })
   async findAll(@Query() paginationQuery: PaginationQueryDto) {
     const data = await this.presenceService.findAll(paginationQuery);
@@ -46,14 +47,15 @@ export class PresenceController {
   }
 
   @Get('session/:id')
-  @Roles(Role.SUPER_ADMIN, Role.ADMIN, Role.SURVEILLANT, Role.ENSEIGNANT)
+  @Permissions('ATTENDANCE_MANAGE')
   @ApiOperation({ summary: "Récupérer les présences d'un créneau spécifique" })
   findBySession(@Param('id', ParseIntPipe) id: number) {
     return this.presenceService.findBySession(id);
   }
 
   @Get('etudiant/:id')
-  @Roles(Role.SUPER_ADMIN, Role.ADMIN, Role.SURVEILLANT, Role.PARENT, Role.ETUDIANT)
+  @Roles(Role.PARENT, Role.ETUDIANT)
+  @Permissions('ATTENDANCE_MANAGE')
   @ApiOperation({
     summary: "Statistiques et historique de présence d'un étudiant",
   })

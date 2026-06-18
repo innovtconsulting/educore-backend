@@ -7,9 +7,7 @@ import { Sanction } from '../sanction/entities/sanction.entity';
 import { DailyReport } from '../reporting/entities/daily-report.entity';
 
 @Module({
-  imports: [
-    TypeOrmModule.forFeature([Presence, Sanction, DailyReport]),
-  ],
+  imports: [TypeOrmModule.forFeature([Presence, Sanction, DailyReport])],
   controllers: [LifeDashboardController],
   providers: [LifeDashboardService],
 })

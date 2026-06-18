@@ -15,6 +15,7 @@ import { UpdateEtablissementDto } from './dto/update-etablissement.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
+import { Permissions } from '../auth/decorators/permissions.decorator';
 import { Role } from '../user/entities/user.entity';
 
 @ApiTags('etablissement')
@@ -25,7 +26,7 @@ export class EtablissementController {
   constructor(private readonly etablissementService: EtablissementService) {}
 
   @Post()
-  @Roles(Role.SUPER_ADMIN)
+  @Permissions('CONFIG_MANAGE')
   @ApiOperation({
     summary: 'Créer un établissement',
     description:
@@ -40,6 +41,7 @@ export class EtablissementController {
   }
 
   @Get()
+  @Permissions('ACADEMIC_VIEW')
   @ApiOperation({
     summary: 'Lister tous les établissements',
     description: 'Récupère la liste complète des établissements enregistrés.',
@@ -50,6 +52,7 @@ export class EtablissementController {
   }
 
   @Get(':id')
+  @Permissions('ACADEMIC_VIEW')
   @ApiOperation({
     summary: 'Récupérer un établissement par ID',
     description:
@@ -64,7 +67,7 @@ export class EtablissementController {
   }
 
   @Patch(':id')
-  @Roles(Role.SUPER_ADMIN)
+  @Permissions('CONFIG_MANAGE')
   @ApiOperation({
     summary: 'Modifier un établissement',
     description: "Met à jour les coordonnées ou le nom d'un établissement.",
@@ -84,7 +87,7 @@ export class EtablissementController {
   }
 
   @Delete(':id')
-  @Roles(Role.SUPER_ADMIN)
+  @Permissions('CONFIG_MANAGE')
   @ApiOperation({
     summary: 'Supprimer un établissement',
     description: 'Supprime un établissement du système.',

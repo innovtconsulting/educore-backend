@@ -14,6 +14,7 @@ import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
+import { Permissions } from '../auth/decorators/permissions.decorator';
 import { Role } from '../user/entities/user.entity';
 
 @ApiTags('inscriptions')
@@ -24,28 +25,28 @@ export class InscriptionController {
   constructor(private readonly inscriptionService: InscriptionService) {}
 
   @Post('reinscrire')
-  @Roles(Role.SUPER_ADMIN, Role.ADMIN)
+  @Permissions('STUDENT_VALIDATE')
   @ApiOperation({ summary: 'Réinscrire un étudiant pour une nouvelle année' })
   reinscrire(@Body() createInscriptionDto: CreateInscriptionDto) {
     return this.inscriptionService.reinscrire(createInscriptionDto);
   }
 
   @Post('diplomer/:etudiantId')
-  @Roles(Role.SUPER_ADMIN, Role.ADMIN)
+  @Permissions('STUDENT_VALIDATE')
   @ApiOperation({ summary: 'Marquer un étudiant comme diplômé' })
   graduate(@Param('etudiantId') etudiantId: string) {
     return this.inscriptionService.graduate(+etudiantId);
   }
 
   @Get('rapport-diplomes')
-  @Roles(Role.SUPER_ADMIN, Role.ADMIN)
+  @Permissions('STUDENT_VIEW')
   @ApiOperation({ summary: 'Obtenir le rapport des diplômés par année' })
   getGraduatesReport() {
     return this.inscriptionService.getGraduatesReport();
   }
 
   @Get('eligibilite/:etudiantId')
-  @Roles(Role.SUPER_ADMIN, Role.ADMIN)
+  @Permissions('STUDENT_VIEW')
   @ApiOperation({
     summary: "Vérifier l'éligibilité d'un étudiant à la réinscription",
   })
@@ -54,7 +55,8 @@ export class InscriptionController {
   }
 
   @Get('etudiant/:etudiantId')
-  @Roles(Role.SUPER_ADMIN, Role.ADMIN, Role.ETUDIANT)
+  @Roles(Role.ETUDIANT)
+  @Permissions('STUDENT_VIEW')
   @ApiOperation({
     summary: "Consulter l'historique des inscriptions d'un étudiant",
   })

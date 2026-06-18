@@ -47,17 +47,19 @@ export class SanctionService {
 
     let where: FindOptionsWhere<Sanction> | FindOptionsWhere<Sanction>[] = [];
     if (search) {
-      where = [
-        { motif: ILike(`%${search}%`) },
-      ];
+      where = [{ motif: ILike(`%${search}%`) }];
     } else {
       where = {};
     }
 
-    where = TenantHelper.addTenantFilter(where, tenantId, 'etudiant.etablissement');
+    where = TenantHelper.addTenantFilter(
+      where,
+      tenantId,
+      'etudiant.etablissement',
+    );
 
     const [items, total] = await this.sanctionRepository.findAndCount({
-      where: where as any,
+      where: where,
       relations: { etudiant: true },
       order: { dateDecision: 'DESC' },
       skip,
@@ -74,10 +76,14 @@ export class SanctionService {
 
   async findByEtudiant(etudiantId: number): Promise<Sanction[]> {
     const tenantId = TenantContext.getTenantId();
-    const where = TenantHelper.addTenantFilter({ etudiant: { id: etudiantId } }, tenantId, 'etudiant.etablissement');
+    const where = TenantHelper.addTenantFilter(
+      { etudiant: { id: etudiantId } },
+      tenantId,
+      'etudiant.etablissement',
+    );
 
     return await this.sanctionRepository.find({
-      where: where as any,
+      where: where,
       relations: { etudiant: true },
       order: { dateDecision: 'DESC' },
     });
@@ -85,10 +91,14 @@ export class SanctionService {
 
   async findOne(id: number): Promise<Sanction> {
     const tenantId = TenantContext.getTenantId();
-    const where = TenantHelper.addTenantFilter({ id }, tenantId, 'etudiant.etablissement');
+    const where = TenantHelper.addTenantFilter(
+      { id },
+      tenantId,
+      'etudiant.etablissement',
+    );
 
     const sanction = await this.sanctionRepository.findOne({
-      where: where as any,
+      where: where,
       relations: { etudiant: true },
     });
     if (!sanction) {
@@ -97,12 +107,17 @@ export class SanctionService {
     return sanction;
   }
 
-  async update(id: number, updateSanctionDto: UpdateSanctionDto): Promise<Sanction> {
+  async update(
+    id: number,
+    updateSanctionDto: UpdateSanctionDto,
+  ): Promise<Sanction> {
     const sanction = await this.findOne(id);
     const { etudiantId, ...rest } = updateSanctionDto;
 
     if (etudiantId) {
-      const etudiant = await this.etudiantRepository.findOneBy({ id: etudiantId });
+      const etudiant = await this.etudiantRepository.findOneBy({
+        id: etudiantId,
+      });
       if (!etudiant) {
         throw new NotFoundException(`Étudiant #${etudiantId} introuvable`);
       }

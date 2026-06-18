@@ -8,7 +8,7 @@ export async function generateDailyReportPdf(data: any): Promise<string> {
       const doc = new PDFDocument({ size: 'A4', margin: 50 });
       const filename = `rapport_quotidien_${data.date}_${Date.now()}.pdf`;
       const directory = path.join(process.cwd(), 'uploads', 'documents');
-      
+
       if (!fs.existsSync(directory)) {
         fs.mkdirSync(directory, { recursive: true });
       }
@@ -19,7 +19,9 @@ export async function generateDailyReportPdf(data: any): Promise<string> {
       doc.pipe(stream);
 
       // --- En-tête ---
-      const schoolName = data.etablissement?.name?.toUpperCase() || 'ÉCOLE SUPÉRIEURE POLYTECHNIQUE';
+      const schoolName =
+        data.etablissement?.name?.toUpperCase() ||
+        'ÉCOLE SUPÉRIEURE POLYTECHNIQUE';
       doc
         .fontSize(16)
         .font('Helvetica-Bold')
@@ -74,7 +76,9 @@ export async function generateDailyReportPdf(data: any): Promise<string> {
             .font('Helvetica-Bold')
             .text(`${a.etudiant} (${a.classe})`, { continued: true })
             .font('Helvetica')
-            .text(` - Matière : ${a.matiere} - Remarque : ${a.remarque || 'N/A'}`);
+            .text(
+              ` - Matière : ${a.matiere} - Remarque : ${a.remarque || 'N/A'}`,
+            );
         });
         doc.moveDown();
       }
@@ -93,7 +97,9 @@ export async function generateDailyReportPdf(data: any): Promise<string> {
             .font('Helvetica-Bold')
             .text(`${r.etudiant} (${r.classe})`, { continued: true })
             .font('Helvetica')
-            .text(` - Matière : ${r.matiere} - Remarque : ${r.remarque || 'N/A'}`);
+            .text(
+              ` - Matière : ${r.matiere} - Remarque : ${r.remarque || 'N/A'}`,
+            );
         });
         doc.moveDown();
       }
@@ -121,7 +127,12 @@ export async function generateDailyReportPdf(data: any): Promise<string> {
       const footerY = 750;
       doc
         .fontSize(8)
-        .text('Document généré automatiquement par le système de gestion.', 50, footerY, { align: 'center' });
+        .text(
+          'Document généré automatiquement par le système de gestion.',
+          50,
+          footerY,
+          { align: 'center' },
+        );
 
       doc.end();
 

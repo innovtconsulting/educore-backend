@@ -10,12 +10,19 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { ReportingService } from './reporting.service';
-import { ApiTags, ApiOperation, ApiQuery, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiQuery,
+  ApiResponse,
+  ApiBearerAuth,
+} from '@nestjs/swagger';
 import { SubmitDailyReportDto } from './dto/submit-daily-report.dto';
 import { PaginationQueryDto } from '../common/dto/pagination-query.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
+import { Permissions } from '../auth/decorators/permissions.decorator';
 import { Role } from '../user/entities/user.entity';
 
 @ApiTags('reporting')
@@ -26,7 +33,7 @@ export class ReportingController {
   constructor(private readonly reportingService: ReportingService) {}
 
   @Get('global-stats')
-  @Roles(Role.SUPER_ADMIN, Role.ADMIN)
+  @Permissions('ACADEMIC_VIEW')
   @ApiOperation({ summary: 'Consulter les statistiques globales du système' })
   async getGlobalStats() {
     const data = await this.reportingService.getGlobalStats();
@@ -37,7 +44,7 @@ export class ReportingController {
   }
 
   @Get('supervisor-daily')
-  @Roles(Role.SUPER_ADMIN, Role.ADMIN, Role.SURVEILLANT)
+  @Permissions('REPORT_DAILY_MANAGE')
   @ApiOperation({
     summary:
       'Aperçu du rapport quotidien (absences, retards, sanctions) pour une date donnée',
@@ -58,7 +65,7 @@ export class ReportingController {
   }
 
   @Post('submit-daily')
-  @Roles(Role.SURVEILLANT, Role.SUPER_ADMIN)
+  @Permissions('REPORT_DAILY_MANAGE')
   @ApiOperation({ summary: 'Soumettre le rapport quotidien du surveillant' })
   @ApiResponse({ status: 201, description: 'Rapport soumis avec succès' })
   async submitDailyReport(@Body() dto: SubmitDailyReportDto) {
@@ -70,12 +77,13 @@ export class ReportingController {
   }
 
   @Get('daily-reports')
-  @Roles(Role.SUPER_ADMIN, Role.ADMIN)
+  @Permissions('REPORT_DAILY_MANAGE')
   @ApiOperation({
     summary: "Récupérer tous les rapports quotidiens soumis (pour l'admin)",
   })
   async getAllDailyReports(@Query() paginationQuery: PaginationQueryDto) {
-    const reports = await this.reportingService.getAllDailyReports(paginationQuery);
+    const reports =
+      await this.reportingService.getAllDailyReports(paginationQuery);
     return {
       message: 'Liste des rapports quotidiens récupérée avec succès',
       data: reports,
@@ -83,7 +91,7 @@ export class ReportingController {
   }
 
   @Get('daily-report/:id')
-  @Roles(Role.SUPER_ADMIN, Role.ADMIN)
+  @Permissions('REPORT_DAILY_MANAGE')
   @ApiOperation({
     summary: 'Récupérer un rapport quotidien spécifique par son ID',
   })
@@ -96,12 +104,14 @@ export class ReportingController {
   }
 
   @Get('daily-report/:id/pdf')
-  @Roles(Role.SUPER_ADMIN, Role.ADMIN, Role.SURVEILLANT)
-  @ApiOperation({ summary: 'Récupérer le PDF d\'un rapport quotidien' })
+  @Permissions('REPORT_DAILY_MANAGE')
+  @ApiOperation({ summary: "Récupérer le PDF d'un rapport quotidien" })
   async getDailyReportPdf(@Param('id', ParseIntPipe) id: number) {
     const report = await this.reportingService.getDailyReportById(id);
     if (!report.pdfUrl) {
-      throw new NotFoundException('Le PDF de ce rapport n\'a pas encore été généré');
+      throw new NotFoundException(
+        "Le PDF de ce rapport n'a pas encore été généré",
+      );
     }
     return {
       message: 'Lien du PDF récupéré avec succès',

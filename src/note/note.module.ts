@@ -7,10 +7,7 @@ import { Evaluation } from '../evaluation/entities/evaluation.entity';
 import { EnseignantModule } from '../enseignant/enseignant.module';
 
 @Module({
-  imports: [
-    TypeOrmModule.forFeature([Note, Evaluation]),
-    EnseignantModule,
-  ],
+  imports: [TypeOrmModule.forFeature([Note, Evaluation]), EnseignantModule],
   controllers: [NoteController],
   providers: [NoteService],
   exports: [NoteService],

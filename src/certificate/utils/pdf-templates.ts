@@ -150,9 +150,7 @@ export async function generateSuccessAttestationPdf(
       doc.pipe(stream);
 
       // --- En-tête ---
-      const schoolName =
-        data.etablissement?.name?.toUpperCase() ||
-        'EDUCORE';
+      const schoolName = data.etablissement?.name?.toUpperCase() || 'EDUCORE';
       doc
         .fontSize(16)
         .font('Helvetica-Bold')

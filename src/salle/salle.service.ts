@@ -33,10 +33,7 @@ export class SalleService {
       query.where('s.etablissementId = :tenantId', { tenantId });
     }
 
-    const [items, total] = await query
-      .skip(skip)
-      .take(limit)
-      .getManyAndCount();
+    const [items, total] = await query.skip(skip).take(limit).getManyAndCount();
 
     return {
       items,

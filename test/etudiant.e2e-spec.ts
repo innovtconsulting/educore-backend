@@ -38,7 +38,9 @@ describe('Student Module (e2e)', () => {
     const entities = dataSource.entityMetadatas;
     for (const entity of entities) {
       const repository = dataSource.getRepository(entity.name);
-      await repository.query(`TRUNCATE "${entity.tableName}" RESTART IDENTITY CASCADE;`);
+      await repository.query(
+        `TRUNCATE "${entity.tableName}" RESTART IDENTITY CASCADE;`,
+      );
     }
 
     const passwordHash = await bcrypt.hash('password123', 10);
@@ -86,14 +88,16 @@ describe('Student Module (e2e)', () => {
     const entities = dataSource.entityMetadatas;
     for (const entity of entities) {
       const repository = dataSource.getRepository(entity.name);
-      await repository.query(`TRUNCATE "${entity.tableName}" RESTART IDENTITY CASCADE;`);
+      await repository.query(
+        `TRUNCATE "${entity.tableName}" RESTART IDENTITY CASCADE;`,
+      );
     }
     await app.close();
   });
 
   let etudiantId: number;
 
-  it('1. Création d\'un étudiant (Succès)', async () => {
+  it("1. Création d'un étudiant (Succès)", async () => {
     const res = await request(app.getHttpServer())
       .post('/api/etudiants')
       .set('Authorization', `Bearer ${authToken}`)
@@ -115,13 +119,13 @@ describe('Student Module (e2e)', () => {
         ],
       })
       .expect(201);
-    
+
     etudiantId = res.body.data.id;
     expect(etudiantId).toBeDefined();
     expect(res.body.data.status).toBe('Actif');
   });
 
-  it('2. ÉCHEC : Création d\'un étudiant avec matricule existant', async () => {
+  it("2. ÉCHEC : Création d'un étudiant avec matricule existant", async () => {
     await request(app.getHttpServer())
       .post('/api/etudiants')
       .set('Authorization', `Bearer ${authToken}`)
@@ -153,7 +157,7 @@ describe('Student Module (e2e)', () => {
         status: 'Suspendu',
       })
       .expect(200);
-    
+
     expect(res.body.data.status).toBe('Suspendu');
   });
 
@@ -162,7 +166,7 @@ describe('Student Module (e2e)', () => {
       .get(`/api/etudiants/${etudiantId}`)
       .set('Authorization', `Bearer ${authToken}`)
       .expect(200);
-    
+
     expect(res.body.data.etablissement).toBeDefined();
     expect(res.body.data.classe).toBeDefined();
     expect(res.body.data.niveau).toBeDefined();
@@ -174,14 +178,12 @@ describe('Student Module (e2e)', () => {
       .set('Authorization', `Bearer ${authToken}`)
       .attach('file', Buffer.from('fake-image-content'), 'test.jpg')
       .expect(201);
-    
+
     expect(res.body.data.photoPath).toContain('.jpg');
-    
+
     // Vérifier l'accessibilité statique (optionnel mais recommandé)
     const photoUrl = res.body.data.photoPath.replace(/\\/g, '/');
-    await request(app.getHttpServer())
-      .get(`/${photoUrl}`)
-      .expect(200);
+    await request(app.getHttpServer()).get(`/${photoUrl}`).expect(200);
   });
 
   it('6. Rejet de fichier non-image', async () => {
@@ -190,7 +192,9 @@ describe('Student Module (e2e)', () => {
       .set('Authorization', `Bearer ${authToken}`)
       .attach('file', Buffer.from('fake-text-content'), 'test.txt')
       .expect(400);
-    
-    expect(res.body.message).toContain('Seuls les fichiers images sont autorisés');
+
+    expect(res.body.message).toContain(
+      'Seuls les fichiers images sont autorisés',
+    );
   });
 });

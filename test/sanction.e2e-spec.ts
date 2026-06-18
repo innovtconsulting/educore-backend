@@ -33,7 +33,9 @@ describe('Sanction Module (e2e)', () => {
     const entities = dataSource.entityMetadatas;
     for (const entity of entities) {
       const repository = dataSource.getRepository(entity.name);
-      await repository.query(`TRUNCATE "${entity.tableName}" RESTART IDENTITY CASCADE;`);
+      await repository.query(
+        `TRUNCATE "${entity.tableName}" RESTART IDENTITY CASCADE;`,
+      );
     }
 
     // Setup SuperAdmin
@@ -47,7 +49,7 @@ describe('Sanction Module (e2e)', () => {
     const loginRes = await request(app.getHttpServer())
       .post('/api/auth/login')
       .send({ email: 'superadmin@test.com', password: 'password123' });
-    
+
     accessToken = loginRes.body.data.access_token;
 
     // Setup: Create Etablissement, Niveau, Classe, Parent, then Etudiant
@@ -107,7 +109,7 @@ describe('Sanction Module (e2e)', () => {
 
   let sanctionId: number;
 
-  it('1. Création d\'une sanction (Succès)', async () => {
+  it("1. Création d'une sanction (Succès)", async () => {
     const res = await request(app.getHttpServer())
       .post('/api/sanctions')
       .set('Authorization', `Bearer ${accessToken}`)
@@ -118,7 +120,7 @@ describe('Sanction Module (e2e)', () => {
         dateDecision: '2026-06-09',
       })
       .expect(201);
-    
+
     sanctionId = res.body.data.id;
     expect(sanctionId).toBeDefined();
     expect(res.body.data.motif).toBe('Retards répétés');
@@ -130,22 +132,22 @@ describe('Sanction Module (e2e)', () => {
       .get('/api/sanctions')
       .set('Authorization', `Bearer ${accessToken}`)
       .expect(200);
-    
+
     expect(Array.isArray(res.body.data.items)).toBe(true);
     expect(res.body.data.items.length).toBeGreaterThan(0);
   });
 
-  it('3. Récupération des sanctions d\'un étudiant', async () => {
+  it("3. Récupération des sanctions d'un étudiant", async () => {
     const res = await request(app.getHttpServer())
       .get(`/api/sanctions/etudiant/${etudiantId}`)
       .set('Authorization', `Bearer ${accessToken}`)
       .expect(200);
-    
+
     expect(Array.isArray(res.body.data)).toBe(true);
     expect(res.body.data[0].etudiant.id).toBe(etudiantId);
   });
 
-  it('4. Mise à jour d\'une sanction', async () => {
+  it("4. Mise à jour d'une sanction", async () => {
     const res = await request(app.getHttpServer())
       .patch(`/api/sanctions/${sanctionId}`)
       .set('Authorization', `Bearer ${accessToken}`)
@@ -154,21 +156,20 @@ describe('Sanction Module (e2e)', () => {
         type: SanctionType.BLAME,
       })
       .expect(200);
-    
+
     expect(res.body.data.motif).toBe('Retards répétés et absentéisme');
     expect(res.body.data.type).toBe(SanctionType.BLAME);
   });
 
-  it('5. Suppression d\'une sanction', async () => {
+  it("5. Suppression d'une sanction", async () => {
     await request(app.getHttpServer())
       .delete(`/api/sanctions/${sanctionId}`)
       .set('Authorization', `Bearer ${accessToken}`)
       .expect(200);
-    
+
     await request(app.getHttpServer())
       .get(`/api/sanctions/${sanctionId}`)
       .set('Authorization', `Bearer ${accessToken}`)
       .expect(404);
   });
 });
-

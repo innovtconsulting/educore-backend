@@ -37,45 +37,73 @@ describe('Reporting Module (e2e)', () => {
     const entities = dataSource.entityMetadatas;
     for (const entity of entities) {
       const repository = dataSource.getRepository(entity.name);
-      await repository.query(`TRUNCATE "${entity.tableName}" RESTART IDENTITY CASCADE;`);
+      await repository.query(
+        `TRUNCATE "${entity.tableName}" RESTART IDENTITY CASCADE;`,
+      );
     }
 
     // Setup SuperAdmin for requests
     const hashedPassword = await bcrypt.hash('admin123', 10);
-    await dataSource.query(`INSERT INTO "user" (email, password, role) VALUES ('admin@test.com', '${hashedPassword}', '${Role.SUPER_ADMIN}')`);
+    await dataSource.query(
+      `INSERT INTO "user" (email, password, role) VALUES ('admin@test.com', '${hashedPassword}', '${Role.SUPER_ADMIN}')`,
+    );
 
     const loginRes = await request(app.getHttpServer())
       .post('/api/auth/login')
       .send({ email: 'admin@test.com', password: 'admin123' });
-    
+
     accessToken = loginRes.body.data.access_token;
 
     // Setup basic data using direct SQL
-    const etablissement = await dataSource.query(`INSERT INTO etablissement (name, address, email, phone) VALUES ('Etab Test Report', 'Test', 'report.test@email.sn', '123') RETURNING id`);
+    const etablissement = await dataSource.query(
+      `INSERT INTO etablissement (name, address, email, phone) VALUES ('Etab Test Report', 'Test', 'report.test@email.sn', '123') RETURNING id`,
+    );
     const etablissementId = etablissement[0].id;
 
-    const niveau = await dataSource.query(`INSERT INTO niveau (name) VALUES ('L1 Report') RETURNING id`);
+    const niveau = await dataSource.query(
+      `INSERT INTO niveau (name) VALUES ('L1 Report') RETURNING id`,
+    );
     const niveauId = niveau[0].id;
 
-    const classe = await dataSource.query(`INSERT INTO classe (name) VALUES ('Classe Report') RETURNING id`);
+    const classe = await dataSource.query(
+      `INSERT INTO classe (name) VALUES ('Classe Report') RETURNING id`,
+    );
     const classeId = classe[0].id;
-    await dataSource.query(`INSERT INTO classe_etablissements_etablissement ("classeId", "etablissementId") VALUES (${classeId}, ${etablissementId})`);
-    await dataSource.query(`INSERT INTO classe_niveaux_niveau ("classeId", "niveauId") VALUES (${classeId}, ${niveauId})`);
+    await dataSource.query(
+      `INSERT INTO classe_etablissements_etablissement ("classeId", "etablissementId") VALUES (${classeId}, ${etablissementId})`,
+    );
+    await dataSource.query(
+      `INSERT INTO classe_niveaux_niveau ("classeId", "niveauId") VALUES (${classeId}, ${niveauId})`,
+    );
 
-    const matiere = await dataSource.query(`INSERT INTO matiere (name, code, coefficient) VALUES ('Matiere Report', 'REP101', 2) RETURNING id`);
+    const matiere = await dataSource.query(
+      `INSERT INTO matiere (name, code, coefficient) VALUES ('Matiere Report', 'REP101', 2) RETURNING id`,
+    );
     const matiereId = matiere[0].id;
-    await dataSource.query(`INSERT INTO matiere_classes_classe ("matiereId", "classeId") VALUES (${matiereId}, ${classeId})`);
-    await dataSource.query(`INSERT INTO matiere_niveaux_niveau ("matiereId", "niveauId") VALUES (${matiereId}, ${niveauId})`);
+    await dataSource.query(
+      `INSERT INTO matiere_classes_classe ("matiereId", "classeId") VALUES (${matiereId}, ${classeId})`,
+    );
+    await dataSource.query(
+      `INSERT INTO matiere_niveaux_niveau ("matiereId", "niveauId") VALUES (${matiereId}, ${niveauId})`,
+    );
 
-    const enseignant = await dataSource.query(`INSERT INTO enseignant ("firstName", "lastName", "email", matricule, phone, "dateEmbauche") VALUES ('Prof', 'Report', 'prof.report@email.sn', 'PROF-REP', '123', '2020-01-01') RETURNING id`);
+    const enseignant = await dataSource.query(
+      `INSERT INTO enseignant ("firstName", "lastName", "email", matricule, phone, "dateEmbauche") VALUES ('Prof', 'Report', 'prof.report@email.sn', 'PROF-REP', '123', '2020-01-01') RETURNING id`,
+    );
     const enseignantId = enseignant[0].id;
 
-    await dataSource.query(`INSERT INTO affectation ("enseignantId", "matiereId", "etablissementId", "niveauId") VALUES (${enseignantId}, ${matiereId}, ${etablissementId}, ${niveauId})`);
+    await dataSource.query(
+      `INSERT INTO affectation ("enseignantId", "matiereId", "etablissementId", "niveauId") VALUES (${enseignantId}, ${matiereId}, ${etablissementId}, ${niveauId})`,
+    );
 
-    const etudiant = await dataSource.query(`INSERT INTO etudiant ("firstName", "lastName", "email", matricule, "etablissementId", "classeId", "niveauId") VALUES ('Etu', 'Report', 'etu.report@email.sn', 'ETU-REP', ${etablissementId}, ${classeId}, ${niveauId}) RETURNING id`);
+    const etudiant = await dataSource.query(
+      `INSERT INTO etudiant ("firstName", "lastName", "email", matricule, "etablissementId", "classeId", "niveauId") VALUES ('Etu', 'Report', 'etu.report@email.sn', 'ETU-REP', ${etablissementId}, ${classeId}, ${niveauId}) RETURNING id`,
+    );
     etudiantId = etudiant[0].id;
 
-    const edt = await dataSource.query(`INSERT INTO emploi_du_temp ("startTime", "endTime", "matiereId", "enseignantId", "etablissementId", "classeId", "niveauId") VALUES ('${today}T08:00:00.000Z', '${today}T10:00:00.000Z', ${matiereId}, ${enseignantId}, ${etablissementId}, ${classeId}, ${niveauId}) RETURNING id`);
+    const edt = await dataSource.query(
+      `INSERT INTO emploi_du_temp ("startTime", "endTime", "matiereId", "enseignantId", "etablissementId", "classeId", "niveauId") VALUES ('${today}T08:00:00.000Z', '${today}T10:00:00.000Z', ${matiereId}, ${enseignantId}, ${etablissementId}, ${classeId}, ${niveauId}) RETURNING id`,
+    );
     edtId = edt[0].id;
   });
 
@@ -88,18 +116,20 @@ describe('Reporting Module (e2e)', () => {
       .get(`/api/reporting/supervisor-daily?date=${today}`)
       .set('Authorization', `Bearer ${accessToken}`)
       .expect(200);
-    
+
     expect(res.body.data.summary.totalAbsences).toBe(0);
     expect(res.body.data.summary.totalRetards).toBe(0);
     expect(res.body.data.summary.totalSanctions).toBe(0);
   });
 
-  it('2. Enregistrement d\'une absence, un retard et une sanction', async () => {
+  it("2. Enregistrement d'une absence, un retard et une sanction", async () => {
     const etablissementId = 1;
     const classeId = 1;
     const niveauId = 1;
 
-    const etudiant2 = await dataSource.query(`INSERT INTO etudiant ("firstName", "lastName", "email", matricule, "etablissementId", "classeId", "niveauId") VALUES ('Etu2', 'Report', 'etu2.report@email.sn', 'ETU-REP2', ${etablissementId}, ${classeId}, ${niveauId}) RETURNING id`);
+    const etudiant2 = await dataSource.query(
+      `INSERT INTO etudiant ("firstName", "lastName", "email", matricule, "etablissementId", "classeId", "niveauId") VALUES ('Etu2', 'Report', 'etu2.report@email.sn', 'ETU-REP2', ${etablissementId}, ${classeId}, ${niveauId}) RETURNING id`,
+    );
     const etudiant2Id = etudiant2[0].id;
 
     // Absence pour Etudiant 1
@@ -108,7 +138,9 @@ describe('Reporting Module (e2e)', () => {
       .set('Authorization', `Bearer ${accessToken}`)
       .send({
         emploiDuTempId: edtId,
-        items: [{ etudiantId, status: PresenceStatus.ABSENT, remark: 'Malade' }]
+        items: [
+          { etudiantId, status: PresenceStatus.ABSENT, remark: 'Malade' },
+        ],
       })
       .expect(201);
 
@@ -118,7 +150,13 @@ describe('Reporting Module (e2e)', () => {
       .set('Authorization', `Bearer ${accessToken}`)
       .send({
         emploiDuTempId: edtId,
-        items: [{ etudiantId: etudiant2Id, status: PresenceStatus.RETARD, remark: 'Transport' }]
+        items: [
+          {
+            etudiantId: etudiant2Id,
+            status: PresenceStatus.RETARD,
+            remark: 'Transport',
+          },
+        ],
       })
       .expect(201);
 
@@ -130,7 +168,7 @@ describe('Reporting Module (e2e)', () => {
         etudiantId,
         type: SanctionType.AVERTISSEMENT,
         motif: 'Absence injustifiée',
-        dateDecision: today
+        dateDecision: today,
       })
       .expect(201);
   });
@@ -140,11 +178,11 @@ describe('Reporting Module (e2e)', () => {
       .get(`/api/reporting/supervisor-daily?date=${today}`)
       .set('Authorization', `Bearer ${accessToken}`)
       .expect(200);
-    
+
     expect(res.body.data.summary.totalAbsences).toBe(1);
     expect(res.body.data.summary.totalRetards).toBe(1);
     expect(res.body.data.summary.totalSanctions).toBe(1);
-    
+
     expect(res.body.data.absences[0].remarque).toBe('Malade');
     expect(res.body.data.retards[0].remarque).toBe('Transport');
     expect(res.body.data.sanctions[0].motif).toBe('Absence injustifiée');
@@ -157,15 +195,17 @@ describe('Reporting Module (e2e)', () => {
       .send({
         date: today,
         supervisorName: 'Surveillant Test',
-        observations: 'Tout est en ordre pour aujourd\'hui'
+        observations: "Tout est en ordre pour aujourd'hui",
       })
       .expect(201);
-    
+
     expect(res.body.data.isSubmitted).toBe(true);
     expect(res.body.data.supervisorName).toBe('Surveillant Test');
     expect(res.body.data.totalAbsences).toBe(1);
     expect(res.body.data.pdfUrl).toBeDefined();
-    expect(res.body.data.pdfUrl).toContain('uploads/documents/rapport_quotidien');
+    expect(res.body.data.pdfUrl).toContain(
+      'uploads/documents/rapport_quotidien',
+    );
   });
 
   it('5. Récupération du lien PDF', async () => {
@@ -178,23 +218,25 @@ describe('Reporting Module (e2e)', () => {
       .get(`/api/reporting/daily-report/${reportId}/pdf`)
       .set('Authorization', `Bearer ${accessToken}`)
       .expect(200);
-    
+
     expect(res.body.data.pdfUrl).toBeDefined();
-    expect(res.body.data.pdfUrl).toContain('/uploads/documents/rapport_quotidien');
+    expect(res.body.data.pdfUrl).toContain(
+      '/uploads/documents/rapport_quotidien',
+    );
   });
 
-  it('6. Récupération de la liste des rapports pour l\'admin', async () => {
+  it("6. Récupération de la liste des rapports pour l'admin", async () => {
     const res = await request(app.getHttpServer())
       .get('/api/reporting/daily-reports')
       .set('Authorization', `Bearer ${accessToken}`)
       .expect(200);
-    
+
     expect(Array.isArray(res.body.data.items)).toBe(true);
     expect(res.body.data.items.length).toBeGreaterThanOrEqual(1);
     expect(res.body.data.items[0].date).toBe(today);
   });
 
-  it('7. Récupération d\'un rapport par ID', async () => {
+  it("7. Récupération d'un rapport par ID", async () => {
     const listRes = await request(app.getHttpServer())
       .get('/api/reporting/daily-reports')
       .set('Authorization', `Bearer ${accessToken}`);
@@ -204,7 +246,7 @@ describe('Reporting Module (e2e)', () => {
       .get(`/api/reporting/daily-report/${reportId}`)
       .set('Authorization', `Bearer ${accessToken}`)
       .expect(200);
-    
+
     expect(res.body.data.id).toBe(reportId);
     expect(res.body.data.supervisorName).toBe('Surveillant Test');
   });

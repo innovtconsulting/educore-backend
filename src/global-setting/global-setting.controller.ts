@@ -15,6 +15,7 @@ import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
+import { Permissions } from '../auth/decorators/permissions.decorator';
 import { Role } from '../user/entities/user.entity';
 
 @ApiTags('global-settings')
@@ -25,7 +26,7 @@ export class GlobalSettingController {
   constructor(private readonly service: GlobalSettingService) {}
 
   @Post()
-  @Roles(Role.SUPER_ADMIN)
+  @Permissions('CONFIG_MANAGE')
   @ApiOperation({ summary: 'Ajouter un nouveau paramètre global (SuperAdmin)' })
   create(@Body() dto: CreateGlobalSettingDto) {
     return this.service.create(dto);
@@ -44,14 +45,14 @@ export class GlobalSettingController {
   }
 
   @Patch(':key')
-  @Roles(Role.SUPER_ADMIN)
+  @Permissions('CONFIG_MANAGE')
   @ApiOperation({ summary: 'Modifier un paramètre global (SuperAdmin)' })
   update(@Param('key') key: string, @Body() dto: UpdateGlobalSettingDto) {
     return this.service.update(key, dto);
   }
 
   @Delete(':key')
-  @Roles(Role.SUPER_ADMIN)
+  @Permissions('CONFIG_MANAGE')
   @ApiOperation({ summary: 'Supprimer un paramètre global (SuperAdmin)' })
   remove(@Param('key') key: string) {
     return this.service.remove(key);

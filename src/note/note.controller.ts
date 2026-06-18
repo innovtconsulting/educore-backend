@@ -18,6 +18,7 @@ import { PaginationQueryDto } from '../common/dto/pagination-query.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
+import { Permissions } from '../auth/decorators/permissions.decorator';
 import { Role } from '../user/entities/user.entity';
 import { BulkCreateNoteDto } from './dto/bulk-create-note.dto';
 
@@ -29,7 +30,7 @@ export class NoteController {
   constructor(private readonly noteService: NoteService) {}
 
   @Post()
-  @Roles(Role.SUPER_ADMIN, Role.ADMIN, Role.ENSEIGNANT)
+  @Permissions('ACADEMIC_MANAGE')
   @ApiOperation({
     summary: 'Enregistrer une note',
     description:
@@ -40,7 +41,7 @@ export class NoteController {
   }
 
   @Post('bulk')
-  @Roles(Role.SUPER_ADMIN, Role.ADMIN, Role.ENSEIGNANT)
+  @Permissions('ACADEMIC_MANAGE')
   @ApiOperation({
     summary: 'Enregistrer des notes en masse',
     description:
@@ -54,13 +55,8 @@ export class NoteController {
   }
 
   @Get()
-  @Roles(
-    Role.SUPER_ADMIN,
-    Role.ADMIN,
-    Role.ENSEIGNANT,
-    Role.SURVEILLANT,
-    Role.ETUDIANT,
-  )
+  @Roles(Role.ETUDIANT)
+  @Permissions('ACADEMIC_VIEW')
   @ApiOperation({
     summary: 'Lister toutes les notes',
     description:
@@ -78,13 +74,8 @@ export class NoteController {
   }
 
   @Get(':id')
-  @Roles(
-    Role.SUPER_ADMIN,
-    Role.ADMIN,
-    Role.ENSEIGNANT,
-    Role.SURVEILLANT,
-    Role.ETUDIANT,
-  )
+  @Roles(Role.ETUDIANT)
+  @Permissions('ACADEMIC_VIEW')
   @ApiOperation({
     summary: 'Récupérer une note par ID',
     description: "Affiche les détails d'une note individuelle.",
@@ -94,7 +85,7 @@ export class NoteController {
   }
 
   @Patch(':id')
-  @Roles(Role.SUPER_ADMIN, Role.ADMIN, Role.ENSEIGNANT)
+  @Permissions('ACADEMIC_MANAGE')
   @ApiOperation({
     summary: 'Modifier une note',
     description: "Permet de corriger la valeur d'une note déjà saisie.",
@@ -108,7 +99,7 @@ export class NoteController {
   }
 
   @Delete(':id')
-  @Roles(Role.SUPER_ADMIN, Role.ADMIN, Role.ENSEIGNANT)
+  @Permissions('ACADEMIC_MANAGE')
   @ApiOperation({
     summary: 'Supprimer une note',
     description: 'Supprime une note du système.',

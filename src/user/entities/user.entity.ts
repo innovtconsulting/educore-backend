@@ -14,8 +14,9 @@ import { Enseignant } from '../../enseignant/entities/enseignant.entity';
 import { Etudiant } from '../../etudiant/entities/etudiant.entity';
 import { Parent } from '../../parent/entities/parent.entity';
 import { Etablissement } from '../../etablissement/entities/etablissement.entity';
+import { Role as AclRole } from '../../acl/entities/role.entity';
 
-export enum Role {
+export enum UserRole {
   SUPER_ADMIN = 'SuperAdmin',
   ADMIN = 'Admin',
   ENSEIGNANT = 'Enseignant',
@@ -25,15 +26,22 @@ export enum Role {
   SURVEILLANT = 'Surveillant',
 }
 
+export { UserRole as Role };
+export { UserRole as UserUserRole };
+
 @Entity()
 export class User {
   @PrimaryGeneratedColumn()
   @ApiProperty()
   id!: number;
 
-  @Column({ unique: true })
+  @Column({ type: 'varchar', unique: true, nullable: true })
   @ApiProperty()
-  email!: string;
+  email: string | null;
+
+  @Column({ nullable: true })
+  @ApiProperty()
+  username?: string;
 
   @Column({ nullable: true })
   @Exclude()
@@ -41,15 +49,19 @@ export class User {
 
   @Column({
     type: 'enum',
-    enum: Role,
-    default: Role.ETUDIANT,
+    enum: UserRole,
+    default: UserRole.ETUDIANT,
   })
-  @ApiProperty({ enum: Role })
-  role!: Role;
+  @ApiProperty({ enum: UserRole })
+  role!: UserRole;
 
   @Column({ default: true })
   @ApiProperty()
   isActive!: boolean;
+
+  @Column({ nullable: true })
+  @ApiProperty()
+  photoPath?: string;
 
   @ManyToOne(() => Etablissement, { nullable: true })
   @JoinColumn({ name: 'etablissementId' })
@@ -57,6 +69,13 @@ export class User {
 
   @Column({ nullable: true })
   etablissementId?: number;
+
+  @ManyToOne(() => AclRole, { nullable: true })
+  @JoinColumn({ name: 'roleId' })
+  aclRole?: AclRole;
+
+  @Column({ nullable: true })
+  roleId?: number;
 
   @OneToOne(() => Enseignant, { nullable: true, onDelete: 'SET NULL' })
   @JoinColumn()

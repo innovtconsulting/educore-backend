@@ -15,6 +15,7 @@ import { UpdateNiveauDto } from './dto/update-niveau.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
+import { Permissions } from '../auth/decorators/permissions.decorator';
 import { Role } from '../user/entities/user.entity';
 
 @ApiTags('niveau')
@@ -25,7 +26,7 @@ export class NiveauController {
   constructor(private readonly niveauService: NiveauService) {}
 
   @Post()
-  @Roles(Role.SUPER_ADMIN, Role.ADMIN)
+  @Permissions('ACADEMIC_CONFIG')
   @ApiOperation({
     summary: 'Créer un niveau',
     description:
@@ -40,6 +41,7 @@ export class NiveauController {
   }
 
   @Get()
+  @Permissions('ACADEMIC_VIEW')
   @ApiOperation({
     summary: 'Lister tous les niveaux',
     description: "Récupère la liste complète des niveaux d'étude disponibles.",
@@ -53,6 +55,7 @@ export class NiveauController {
   }
 
   @Get(':id')
+  @Permissions('ACADEMIC_VIEW')
   @ApiOperation({
     summary: 'Récupérer un niveau par ID',
     description: "Affiche les informations d'un niveau spécifique.",
@@ -66,7 +69,7 @@ export class NiveauController {
   }
 
   @Patch(':id')
-  @Roles(Role.SUPER_ADMIN, Role.ADMIN)
+  @Permissions('ACADEMIC_CONFIG')
   @ApiOperation({
     summary: 'Modifier un niveau',
     description: "Permet de mettre à jour le libellé d'un niveau d'étude.",
@@ -83,7 +86,7 @@ export class NiveauController {
   }
 
   @Delete(':id')
-  @Roles(Role.SUPER_ADMIN, Role.ADMIN)
+  @Permissions('ACADEMIC_CONFIG')
   @ApiOperation({
     summary: 'Supprimer un niveau',
     description: "Supprime un niveau d'étude du système.",

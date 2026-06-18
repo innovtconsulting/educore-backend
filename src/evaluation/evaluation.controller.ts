@@ -18,6 +18,7 @@ import { PaginationQueryDto } from '../common/dto/pagination-query.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
+import { Permissions } from '../auth/decorators/permissions.decorator';
 import { Role } from '../user/entities/user.entity';
 
 @ApiTags('evaluation')
@@ -28,7 +29,7 @@ export class EvaluationController {
   constructor(private readonly evaluationService: EvaluationService) {}
 
   @Post()
-  @Roles(Role.SUPER_ADMIN, Role.ADMIN, Role.ENSEIGNANT)
+  @Permissions('ACADEMIC_MANAGE')
   @ApiOperation({
     summary: 'Créer une évaluation',
     description:
@@ -42,7 +43,7 @@ export class EvaluationController {
   }
 
   @Get()
-  @Roles(Role.SUPER_ADMIN, Role.ADMIN, Role.ENSEIGNANT, Role.SURVEILLANT)
+  @Permissions('ACADEMIC_VIEW')
   @ApiOperation({
     summary: 'Lister toutes les évaluations',
     description:
@@ -57,7 +58,7 @@ export class EvaluationController {
   }
 
   @Get(':id')
-  @Roles(Role.SUPER_ADMIN, Role.ADMIN, Role.ENSEIGNANT, Role.SURVEILLANT)
+  @Permissions('ACADEMIC_VIEW')
   @ApiOperation({
     summary: 'Récupérer une évaluation par ID',
     description: "Affiche les détails d'une évaluation spécifique.",
@@ -67,7 +68,7 @@ export class EvaluationController {
   }
 
   @Patch(':id')
-  @Roles(Role.SUPER_ADMIN, Role.ADMIN, Role.ENSEIGNANT)
+  @Permissions('ACADEMIC_MANAGE')
   @ApiOperation({
     summary: 'Modifier une évaluation',
     description:
@@ -82,7 +83,7 @@ export class EvaluationController {
   }
 
   @Delete(':id')
-  @Roles(Role.SUPER_ADMIN, Role.ADMIN, Role.ENSEIGNANT)
+  @Permissions('ACADEMIC_MANAGE')
   @ApiOperation({
     summary: 'Supprimer une évaluation',
     description: 'Supprime définitivement une évaluation du système.',

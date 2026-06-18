@@ -15,6 +15,7 @@ import { UpdateClasseDto } from './dto/update-classe.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
+import { Permissions } from '../auth/decorators/permissions.decorator';
 import { Role } from '../user/entities/user.entity';
 
 @ApiTags('classe')
@@ -25,7 +26,7 @@ export class ClasseController {
   constructor(private readonly classeService: ClasseService) {}
 
   @Post()
-  @Roles(Role.SUPER_ADMIN, Role.ADMIN)
+  @Permissions('ACADEMIC_CONFIG')
   @ApiOperation({
     summary: 'Créer une classe',
     description:
@@ -40,6 +41,7 @@ export class ClasseController {
   }
 
   @Get()
+  @Permissions('ACADEMIC_VIEW')
   @ApiOperation({
     summary: 'Lister toutes les classes',
     description:
@@ -54,6 +56,7 @@ export class ClasseController {
   }
 
   @Get(':id')
+  @Permissions('ACADEMIC_VIEW')
   @ApiOperation({
     summary: 'Récupérer une classe par ID',
     description: "Affiche les informations détaillées d'une classe spécifique.",
@@ -67,7 +70,7 @@ export class ClasseController {
   }
 
   @Patch(':id')
-  @Roles(Role.SUPER_ADMIN, Role.ADMIN)
+  @Permissions('ACADEMIC_CONFIG')
   @ApiOperation({
     summary: 'Modifier une classe',
     description: "Met à jour les informations d'une classe existante.",
@@ -84,7 +87,7 @@ export class ClasseController {
   }
 
   @Delete(':id')
-  @Roles(Role.SUPER_ADMIN, Role.ADMIN)
+  @Permissions('ACADEMIC_CONFIG')
   @ApiOperation({
     summary: 'Supprimer une classe',
     description: 'Supprime une classe du système.',

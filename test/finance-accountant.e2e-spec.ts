@@ -31,7 +31,9 @@ describe('Finance Accountant (e2e)', () => {
     const entities = dataSource.entityMetadatas;
     for (const entity of entities) {
       const repository = dataSource.getRepository(entity.name);
-      await repository.query(`TRUNCATE "${entity.tableName}" RESTART IDENTITY CASCADE;`);
+      await repository.query(
+        `TRUNCATE "${entity.tableName}" RESTART IDENTITY CASCADE;`,
+      );
     }
 
     const passwordHash = await bcrypt.hash('password123', 10);
@@ -41,23 +43,45 @@ describe('Finance Accountant (e2e)', () => {
     const nivRepo = dataSource.getRepository('Niveau');
     const clsRepo = dataSource.getRepository('Classe');
 
-    const etab = await etabRepo.save({ name: 'FST', address: 'Dakar', email: 'fst@test.com', phone: '123' });
+    const etab = await etabRepo.save({
+      name: 'FST',
+      address: 'Dakar',
+      email: 'fst@test.com',
+      phone: '123',
+    });
     const niv = await nivRepo.save({ name: 'L1' });
     const cls = await clsRepo.save({ name: 'Informatique' });
-    await dataSource.createQueryBuilder().relation('Classe', 'etablissements').of(cls.id).add(etab.id);
-    await dataSource.createQueryBuilder().relation('Classe', 'niveaux').of(cls.id).add(niv.id);
+    await dataSource
+      .createQueryBuilder()
+      .relation('Classe', 'etablissements')
+      .of(cls.id)
+      .add(etab.id);
+    await dataSource
+      .createQueryBuilder()
+      .relation('Classe', 'niveaux')
+      .of(cls.id)
+      .add(niv.id);
 
     const etu = await etuRepo.save({
-      firstName: 'Ousmane', lastName: 'Sow', email: 'ous@test.com', matricule: 'E001',
-      etablissement: { id: etab.id }, classe: { id: cls.id }, niveau: { id: niv.id }
+      firstName: 'Ousmane',
+      lastName: 'Sow',
+      email: 'ous@test.com',
+      matricule: 'E001',
+      etablissement: { id: etab.id },
+      classe: { id: cls.id },
+      niveau: { id: niv.id },
     });
     etudiantId = etu.id;
 
     await userRepo.save({
-      email: 'accountant@test.com', password: passwordHash, role: Role.COMPTABLE
+      email: 'accountant@test.com',
+      password: passwordHash,
+      role: Role.COMPTABLE,
     });
 
-    const login = await request(app.getHttpServer()).post('/api/auth/login').send({ email: 'accountant@test.com', password: 'password123' });
+    const login = await request(app.getHttpServer())
+      .post('/api/auth/login')
+      .send({ email: 'accountant@test.com', password: 'password123' });
     comptableToken = login.body.data.access_token;
   });
 
@@ -82,7 +106,7 @@ describe('Finance Accountant (e2e)', () => {
         etudiantId,
         dateEmission: '2026-06-01',
         dateEcheance: '2026-07-01',
-        montantTotal: 500000
+        montantTotal: 500000,
       })
       .expect(201);
     factureId = res.body.data.id;
@@ -98,7 +122,7 @@ describe('Finance Accountant (e2e)', () => {
         factureId,
         montant: 200000,
         datePaiement: '2026-06-05',
-        modePaiement: 'Wave'
+        modePaiement: 'Wave',
       })
       .expect(201);
   });
@@ -113,10 +137,10 @@ describe('Finance Accountant (e2e)', () => {
         dateEmission: '2026-06-11',
         montantTotal: 150000,
         status: 'Payée',
-        notes: 'Payé cash à l\'inscription'
+        notes: "Payé cash à l'inscription",
       })
       .expect(201);
-    
+
     expect(res.body.data.status).toBe('Payée');
     expect(res.body.data.quittancePath).toBeDefined();
     expect(res.body.data.quittancePath).toContain('quittance_FAC-DIRECT-PAID');
@@ -128,14 +152,14 @@ describe('Finance Accountant (e2e)', () => {
       .get('/api/finance/paiements')
       .set('Authorization', `Bearer ${comptableToken}`)
       .expect(200);
-    
+
     const pId = list.body.data.items[0].id;
-    
+
     const res = await request(app.getHttpServer())
       .post(`/api/finance/paiements/${pId}/generate-recu`)
       .set('Authorization', `Bearer ${comptableToken}`)
       .expect(201);
-    
+
     expect(res.body.data.recuPath).toBeDefined();
   });
 

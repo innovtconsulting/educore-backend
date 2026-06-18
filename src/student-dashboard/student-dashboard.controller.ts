@@ -15,7 +15,9 @@ export class StudentDashboardController {
 
   @Get()
   @Roles(Role.ETUDIANT)
-  @ApiOperation({ summary: 'Récupérer les données du tableau de bord étudiant' })
+  @ApiOperation({
+    summary: 'Récupérer les données du tableau de bord étudiant',
+  })
   async getDashboard(@Request() req: any) {
     const data = await this.dashboardService.getDashboardData(req.user);
     return {

@@ -4,6 +4,7 @@ import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
+import { Permissions } from '../auth/decorators/permissions.decorator';
 import { Role } from '../user/entities/user.entity';
 
 @ApiTags('life-dashboard')
@@ -14,7 +15,7 @@ export class LifeDashboardController {
   constructor(private readonly dashboardService: LifeDashboardService) {}
 
   @Get()
-  @Roles(Role.SUPER_ADMIN, Role.ADMIN, Role.SURVEILLANT)
+  @Permissions('REPORT_DAILY_MANAGE')
   @ApiOperation({
     summary: 'Récupérer les statistiques de vie scolaire (Surveillant)',
   })
