@@ -19,12 +19,4 @@ export class EtudiantFilterDto extends PaginationQueryDto {
   @IsOptional()
   @IsEnum(EnrollmentStatus)
   status?: EnrollmentStatus;
-
-  @ApiPropertyOptional({
-    description: 'Filtrer par établissement',
-  })
-  @IsOptional()
-  @IsInt()
-  @Type(() => Number)
-  etablissementId?: number;
 }
