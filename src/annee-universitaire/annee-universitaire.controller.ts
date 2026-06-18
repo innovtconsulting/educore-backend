@@ -15,7 +15,7 @@ import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
-import { Role } from '../user/entities/user.entity';
+import { UserRole } from '../user/entities/user.entity';
 
 @ApiTags('annee-universitaire')
 @ApiBearerAuth()
@@ -25,7 +25,7 @@ export class AnneeUniversitaireController {
   constructor(private readonly service: AnneeUniversitaireService) {}
 
   @Post()
-  @Roles(Role.SUPER_ADMIN)
+  @Roles(UserRole.SUPER_ADMIN)
   @ApiOperation({ summary: 'Créer une nouvelle année universitaire' })
   create(@Body() dto: CreateAnneeUniversitaireDto) {
     return this.service.create(dto);
@@ -50,14 +50,14 @@ export class AnneeUniversitaireController {
   }
 
   @Patch(':id')
-  @Roles(Role.SUPER_ADMIN)
+  @Roles(UserRole.SUPER_ADMIN)
   @ApiOperation({ summary: 'Modifier une année universitaire' })
   update(@Param('id') id: string, @Body() dto: UpdateAnneeUniversitaireDto) {
     return this.service.update(+id, dto);
   }
 
   @Delete(':id')
-  @Roles(Role.SUPER_ADMIN)
+  @Roles(UserRole.SUPER_ADMIN)
   @ApiOperation({ summary: 'Supprimer une année universitaire' })
   remove(@Param('id') id: string) {
     return this.service.remove(+id);

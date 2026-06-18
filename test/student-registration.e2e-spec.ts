@@ -55,7 +55,7 @@ describe('Student Registration (e2e)', () => {
 
     const parent = await parentRepo.save({ firstName: 'P', lastName: 'A', gender: 'Père', phoneNumber: '000' });
 
-    await etuRepo.save({
+    const savedEtudiant = await etuRepo.save({
       firstName: 'John',
       lastName: 'Doe',
       email: 'john.doe@test.com',
@@ -64,6 +64,19 @@ describe('Student Registration (e2e)', () => {
       classe: cls,
       niveau: niv,
       parents: [parent]
+    });
+
+    const userRepo = dataSource.getRepository('User');
+    const bcrypt = require('bcrypt');
+    const hashedPassword = await bcrypt.hash('password123', 10);
+    await userRepo.save({
+      email: 'john.doe@test.com',
+      username: 'John',
+      password: hashedPassword,
+      role: Role.ETUDIANT,
+      isActive: true,
+      etudiant: savedEtudiant,
+      etablissement: etab
     });
 
     const teacherRepo = dataSource.getRepository('Enseignant');
@@ -81,7 +94,7 @@ describe('Student Registration (e2e)', () => {
   });
 
   describe('Student Registration', () => {
-    it('should register a student using only matricule and password (auto-fill email)', async () => {
+    it('should fail to register a student using matricule (flow removed)', async () => {
       const res = await request(app.getHttpServer())
         .post('/api/auth/register')
         .send({
@@ -90,9 +103,10 @@ describe('Student Registration (e2e)', () => {
           matricule: 'MAT-001'
         });
 
-      expect(res.status).toBe(201);
-      expect(res.body.data.message).toBe('Inscription réussie.');
-      expect(res.body.data.user.email).toBe('john.doe@test.com'); // De l'étudiant John Doe
+      // Matricule is no longer in DTO, it might be ignored or cause validation error depending on pipe config
+      // But service will throw error because etudiantData is missing
+      expect(res.status).toBe(400);
+      expect(res.body.message).toContain("Les données d'inscription sont obligatoires");
     });
 
     it('should allow providing etudiantData for a new student registration (unified flow)', async () => {
@@ -118,7 +132,7 @@ describe('Student Registration (e2e)', () => {
   });
 
   describe('Teacher Registration', () => {
-    it('should register a teacher with a valid matricule (auto-fill email)', async () => {
+    it('should fail to register a teacher (not allowed anymore)', async () => {
       const res = await request(app.getHttpServer())
         .post('/api/auth/register')
         .send({
@@ -127,44 +141,8 @@ describe('Student Registration (e2e)', () => {
           matricule: 'T-001'
         });
 
-      expect(res.status).toBe(201);
-      expect(res.body.data.message).toBe('Inscription réussie.');
-      expect(res.body.data.user.email).toBe('jane.smith@test.com'); // De l'enseignant Jane Smith
-    });
-
-    it('should fail to register with a non-existent teacher matricule', async () => {
-      const res = await request(app.getHttpServer())
-        .post('/api/auth/register')
-        .send({
-          email: 'ghost.t@test.com',
-          password: 'password123',
-          role: Role.ENSEIGNANT,
-          matricule: 'T-999'
-        });
-
       expect(res.status).toBe(400);
-      expect(res.body.message).toContain('Aucun enseignant trouvé');
-    });
-
-    it('should fail if enseignantData is provided for teacher role', async () => {
-      const res = await request(app.getHttpServer())
-        .post('/api/auth/register')
-        .send({
-          email: 'illegal.t@test.com',
-          password: 'password123',
-          role: Role.ENSEIGNANT,
-          matricule: 'T-001',
-          enseignantData: {
-            firstName: 'Illegal',
-            lastName: 'Teacher',
-            email: 'ill.t@test.com',
-            matricule: 'T-ILL',
-            dateEmbauche: '2026-01-01'
-          }
-        });
-
-      expect(res.status).toBe(400);
-      expect(res.body.message).toContain("L'auto-inscription ne permet pas la création d'un nouveau profil enseignant");
+      expect(res.body.message).toContain("L'auto-inscription n'est pas disponible pour les enseignants");
     });
   });
 

@@ -10,8 +10,8 @@ import { BulletinService } from './bulletin.service';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
-import { Roles } from '../auth/decorators/roles.decorator';
-import { Role } from '../user/entities/user.entity';
+import { UserRoles } from '../auth/decorators/roles.decorator';
+import { UserRole } from '../user/entities/user.entity';
 import { Response } from 'express';
 import * as path from 'path';
 
@@ -23,13 +23,13 @@ export class BulletinController {
   constructor(private readonly bulletinService: BulletinService) {}
 
   @Get('etudiant/:etudiantId/semestre/:semestreId')
-  @Roles(
-    Role.SUPER_ADMIN,
-    Role.ADMIN,
-    Role.ENSEIGNANT,
-    Role.SURVEILLANT,
-    Role.PARENT,
-    Role.ETUDIANT,
+  @UserRoles(
+    UserRole.SUPER_ADMIN,
+    UserRole.ADMIN,
+    UserRole.ENSEIGNANT,
+    UserRole.SURVEILLANT,
+    UserRole.PARENT,
+    UserRole.ETUDIANT,
   )
   @ApiOperation({
     summary:
@@ -50,13 +50,13 @@ export class BulletinController {
   }
 
   @Get('etudiant/:etudiantId/semestre/:semestreId/pdf')
-  @Roles(
-    Role.SUPER_ADMIN,
-    Role.ADMIN,
-    Role.ENSEIGNANT,
-    Role.SURVEILLANT,
-    Role.PARENT,
-    Role.ETUDIANT,
+  @UserRoles(
+    UserRole.SUPER_ADMIN,
+    UserRole.ADMIN,
+    UserRole.ENSEIGNANT,
+    UserRole.SURVEILLANT,
+    UserRole.PARENT,
+    UserRole.ETUDIANT,
   )
   @ApiOperation({
     summary:

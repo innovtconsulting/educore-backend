@@ -7,6 +7,11 @@ export class UpdateProfileDto {
   @IsOptional()
   email?: string;
 
+  @ApiProperty({ example: 'johndoe', required: false })
+  @IsString()
+  @IsOptional()
+  username?: string;
+
   @ApiProperty({ example: 'newpassword123', required: false })
   @IsString()
   @IsOptional()

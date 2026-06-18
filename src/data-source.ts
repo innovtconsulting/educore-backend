@@ -27,6 +27,8 @@ import { Submission } from './devoir/entities/submission.entity';
 import { Salle } from './salle/entities/salle.entity';
 import { Inscription } from './etudiant/entities/inscription.entity';
 import { GlobalSetting } from './global-setting/entities/global-setting.entity';
+import { Role as AclRole } from './acl/entities/role.entity';
+import { Permission } from './acl/entities/permission.entity';
 import * as dotenv from 'dotenv';
 
 dotenv.config();
@@ -42,6 +44,8 @@ export const AppDataSource = new DataSource({
   synchronize: process.env.NODE_ENV !== 'production',
   logging: false,
   entities: [
+    AclRole,
+    Permission,
     Etablissement,
     Niveau,
     Classe,

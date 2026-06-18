@@ -98,6 +98,7 @@ export class EtudiantService {
         if (!existingParentUser) {
           await this.userService.create({
             email: parentUserEmail,
+            username: pData.firstName,
             password: '12345678',
             role: Role.PARENT,
             isActive: false, // Sera activé lors de la validation de l'étudiant
@@ -132,6 +133,7 @@ export class EtudiantService {
     // Créer le compte utilisateur pour l'étudiant
     await this.userService.create({
       email: rest.email,
+      username: rest.firstName,
       password: password,
       role: Role.ETUDIANT,
       isActive: false, // Sera activé lors de la validation
@@ -396,7 +398,14 @@ export class EtudiantService {
     }
 
     Object.assign(etudiant, rest);
-    return await this.etudiantRepository.save(etudiant);
+    const savedEtudiant = await this.etudiantRepository.save(etudiant);
+
+    // Synchroniser le username si le prénom a changé
+    if (rest.firstName && etudiant.user) {
+      await this.userService.update(etudiant.user.id, { username: rest.firstName });
+    }
+
+    return savedEtudiant;
   }
 
   async validateEnrollment(

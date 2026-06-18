@@ -12,6 +12,7 @@ import {
   UseInterceptors,
   UploadedFile,
   BadRequestException,
+  Query,
 } from '@nestjs/common';
 import { UserService } from './user.service';
 import { User, Role } from './entities/user.entity';
@@ -29,6 +30,7 @@ import { UpdateProfileDto } from './dto/update-profile.dto';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
 import { extname } from 'path';
+import { PaginationQueryDto } from '../common/dto/pagination-query.dto';
 
 @ApiTags('users')
 @ApiBearerAuth()
@@ -142,8 +144,8 @@ export class UserController {
   @Get()
   @Roles(Role.SUPER_ADMIN)
   @ApiOperation({ summary: 'Lister tous les utilisateurs' })
-  findAll() {
-    return this.userService.findAll();
+  findAll(@Query() query: PaginationQueryDto) {
+    return this.userService.findAll(query);
   }
 
   @Get(':id')

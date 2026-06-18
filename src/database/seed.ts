@@ -40,6 +40,8 @@ import {
 import { User, Role } from '../user/entities/user.entity';
 import { Inscription } from '../etudiant/entities/inscription.entity';
 import { GeneratedDocument } from '../certificate/entities/generated-document.entity';
+import { Role as AclRole } from '../acl/entities/role.entity';
+import { Permission } from '../acl/entities/permission.entity';
 import * as bcrypt from 'bcrypt';
 import { generateReceiptPdf } from '../finance/utils/pdf-generator';
 import * as dotenv from 'dotenv';
@@ -79,6 +81,8 @@ async function seed() {
     const globalSettingRepo = AppDataSource.getRepository(GlobalSetting);
     const inscriptionRepo = AppDataSource.getRepository(Inscription);
     const userRepo = AppDataSource.getRepository(User);
+    const roleAclRepo = AppDataSource.getRepository(AclRole);
+    const permissionRepo = AppDataSource.getRepository(Permission);
 
     // 0. Configuration Globale
     const defaultSettings = [
@@ -116,6 +120,39 @@ async function seed() {
     await globalSettingRepo.save(
       defaultSettings.map((s) => globalSettingRepo.create(s)),
     );
+
+    // 0.0 Permissions et Rôles ACL
+    const perms = [
+      { name: 'STUDENT_VIEW', description: 'Voir les étudiants' },
+      { name: 'STUDENT_CREATE', description: 'Créer un étudiant' },
+      { name: 'STUDENT_EDIT', description: 'Modifier un étudiant' },
+      { name: 'FINANCE_VIEW', description: 'Voir les finances' },
+      { name: 'FINANCE_MANAGE', description: 'Gérer les finances' },
+      { name: 'ACADEMIC_MANAGE', description: 'Gérer les notes et évaluations' },
+    ];
+    const savedPerms = await permissionRepo.save(perms.map(p => permissionRepo.create(p)));
+
+    const roleAdminAcl = roleAclRepo.create({
+      name: 'Admin',
+      description: 'Administrateur d\'établissement',
+      permissions: savedPerms,
+    });
+    const roleComptableAcl = roleAclRepo.create({
+      name: 'Comptable',
+      description: 'Gestionnaire financier',
+      permissions: savedPerms.filter(p => p.name.startsWith('FINANCE')),
+    });
+    const roleSurveillantAcl = roleAclRepo.create({
+      name: 'Surveillant',
+      description: 'Gestionnaire de la vie scolaire',
+      permissions: savedPerms.filter(p => p.name.startsWith('STUDENT')),
+    });
+    const roleEnseignantAcl = roleAclRepo.create({
+      name: 'Enseignant',
+      description: 'Personnel académique',
+      permissions: savedPerms.filter(p => p.name === 'ACADEMIC_MANAGE' || p.name === 'STUDENT_VIEW'),
+    });
+    await roleAclRepo.save([roleAdminAcl, roleComptableAcl, roleSurveillantAcl, roleEnseignantAcl]);
 
     // 0.1 Année Universitaire
     const annee2026 = anneeRepo.create({
@@ -577,45 +614,61 @@ async function seed() {
     const users = [
       userRepo.create({
         email: 'superadmin@espm.sn',
+        username: 'superadmin',
         password: passwordHash,
         role: Role.SUPER_ADMIN,
+        photoPath: 'uploads/profiles/default-admin.png',
       }),
       userRepo.create({
         email: 'admin@espm.sn',
+        username: 'admin',
         password: passwordHash,
         role: Role.ADMIN,
+        aclRole: roleAdminAcl,
       }),
       // Utilisateur Admin prêt à être activé (pas de mot de passe)
       userRepo.create({
         email: 'activation.admin@espm.sn',
+        username: 'activation_admin',
         role: Role.ADMIN,
         isActive: false,
+        aclRole: roleAdminAcl,
       }),
       userRepo.create({
         email: 'comptable@espm.sn',
+        username: 'comptable',
         password: passwordHash,
         role: Role.COMPTABLE,
+        aclRole: roleComptableAcl,
       }),
       userRepo.create({
         email: 'surveillant@espm.sn',
+        username: 'surveillant',
         password: passwordHash,
         role: Role.SURVEILLANT,
+        aclRole: roleSurveillantAcl,
       }),
       userRepo.create({
         email: 'prof.diallo@espm.sn',
+        username: profDiallo.firstName,
         password: passwordHash,
         role: Role.ENSEIGNANT,
         enseignant: profDiallo,
+        photoPath: 'uploads/profiles/prof-diallo.png',
+        aclRole: roleEnseignantAcl,
       }),
       userRepo.create({
         email: 'ousmane.sow@espm.sn',
+        username: etudiant1.firstName,
         password: passwordHash,
         role: Role.ETUDIANT,
         etudiant: etudiant1,
+        photoPath: 'uploads/profiles/ousmane-sow.png',
       }),
       // Parent avec numéro de téléphone comme identifiant
       userRepo.create({
         email: parent1.phoneNumber,
+        username: parent1.firstName,
         password: passwordHash,
         role: Role.PARENT,
         parent: parent1,

@@ -5,7 +5,7 @@ import { EtudiantService } from '../etudiant/etudiant.service';
 import { EnseignantService } from '../enseignant/enseignant.service';
 import { ParentService } from '../parent/parent.service';
 import { RegisterDto } from './dto/register.dto';
-import { Role } from '../user/entities/user.entity';
+import { UserRole } from '../user/entities/user.entity';
 import * as bcrypt from 'bcrypt';
 import * as crypto from 'crypto';
 import { ForgotPasswordDto, ResetPasswordDto } from './dto/password-reset.dto';
@@ -69,7 +69,7 @@ export class AuthService {
 
     try {
       // 1. Gérer la récupération du profil et de l'email selon le rôle
-      if (role === Role.ETUDIANT) {
+      if (role === UserRole.ETUDIANT) {
         const allowReg = await this.globalSettingService.getValue(
           'ENABLE_STUDENT_REGISTRATION',
           'true',
@@ -92,82 +92,19 @@ export class AuthService {
               'Votre demande de pré-inscription a été enregistrée avec succès. Votre compte sera activé après validation par un administrateur.',
             user: {
               email: profile.email,
-              role: Role.ETUDIANT,
+              role: UserRole.ETUDIANT,
             },
           };
-        }
-
-        // Sinon, c'est une activation par matricule pour un profil existant
-        if (!registerDto.matricule) {
+        } else {
           throw new BadRequestException(
-            "Le matricule ou les données d'inscription sont obligatoires pour un étudiant",
+            "Les données d'inscription sont obligatoires pour un étudiant",
           );
         }
-
-        profile = await this.etudiantService.findByMatricule(
-          registerDto.matricule,
+      } else if (role === UserRole.ENSEIGNANT) {
+        throw new BadRequestException(
+          "L'auto-inscription n'est pas disponible pour les enseignants. Votre compte est créé par l'administration.",
         );
-        if (!profile) {
-          throw new BadRequestException(
-            `Aucun étudiant trouvé avec le matricule ${registerDto.matricule}.`,
-          );
-        }
-
-        // Auto-remplissage de l'email depuis le profil
-        email = profile.email;
-
-        const userWithProfile = await this.userService.findByEtudiantId(
-          profile.id,
-        );
-        if (userWithProfile) {
-          throw new BadRequestException(
-            'Un compte utilisateur existe déjà pour cet étudiant.',
-          );
-        }
-      } else if (role === Role.ENSEIGNANT) {
-        const allowReg = await this.globalSettingService.getValue(
-          'ENABLE_TEACHER_REGISTRATION',
-          'true',
-        );
-        if (allowReg === 'false') {
-          throw new BadRequestException(
-            "L'auto-inscription des enseignants est actuellement désactivée.",
-          );
-        }
-
-        if (registerDto.enseignantData) {
-          throw new BadRequestException(
-            "L'auto-inscription ne permet pas la création d'un nouveau profil enseignant. Veuillez utiliser uniquement votre matricule.",
-          );
-        }
-
-        if (!registerDto.matricule) {
-          throw new BadRequestException(
-            "Le matricule est obligatoire pour l'inscription d'un enseignant",
-          );
-        }
-
-        profile = await this.enseignantService.findByMatricule(
-          registerDto.matricule,
-        );
-        if (!profile) {
-          throw new BadRequestException(
-            `Aucun enseignant trouvé avec le matricule ${registerDto.matricule}.`,
-          );
-        }
-
-        // Auto-remplissage de l'email depuis le profil
-        email = profile.email;
-
-        const userWithProfile = await this.userService.findByEnseignantId(
-          profile.id,
-        );
-        if (userWithProfile) {
-          throw new BadRequestException(
-            'Un compte utilisateur existe déjà pour cet enseignant.',
-          );
-        }
-      } else if (role === Role.PARENT) {
+      } else if (role === UserRole.PARENT) {
         if (!registerDto.parentData) {
           throw new BadRequestException(
             "Les données du profil parent sont obligatoires pour l'inscription.",
@@ -182,7 +119,7 @@ export class AuthService {
         email = registerDto.parentData.phoneNumber;
         profile = await this.parentService.create(registerDto.parentData);
       } else if (
-        [Role.ADMIN, Role.COMPTABLE, Role.SURVEILLANT].includes(role)
+        [UserRole.ADMIN, UserRole.COMPTABLE, UserRole.SURVEILLANT].includes(role)
       ) {
         if (!registerDto.id) {
           throw new BadRequestException(
@@ -246,15 +183,16 @@ export class AuthService {
       // 3. Créer l'utilisateur lié
       const user = await this.userService.create({
         email: email,
+        username: profile?.firstName,
         password: password,
         role: role,
         etablissement:
-          role === Role.ETUDIANT || role === Role.ENSEIGNANT
+          role === UserRole.ETUDIANT || role === UserRole.ENSEIGNANT
             ? profile.etablissement || profile.affectations?.[0]?.etablissement
             : null,
-        etudiant: role === Role.ETUDIANT ? profile : null,
-        enseignant: role === Role.ENSEIGNANT ? profile : null,
-        parent: role === Role.PARENT ? profile : null,
+        etudiant: role === UserRole.ETUDIANT ? profile : null,
+        enseignant: role === UserRole.ENSEIGNANT ? profile : null,
+        parent: role === UserRole.PARENT ? profile : null,
       });
 
       return {
@@ -268,9 +206,9 @@ export class AuthService {
     } catch (error: any) {
       // Nettoyage en cas d'erreur (uniquement pour les profils créés ici)
       if (profile && profile.id) {
-        if (role === Role.ENSEIGNANT)
+        if (role === UserRole.ENSEIGNANT)
           await this.enseignantService.remove(profile.id);
-        if (role === Role.PARENT) await this.parentService.remove(profile.id);
+        if (role === UserRole.PARENT) await this.parentService.remove(profile.id);
       }
       throw error;
     }

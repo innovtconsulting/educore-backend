@@ -16,8 +16,8 @@ import {
 import { CertificateService } from './certificate.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
-import { Roles } from '../auth/decorators/roles.decorator';
-import { Role } from '../user/entities/user.entity';
+import { UserRoles } from '../auth/decorators/roles.decorator';
+import { UserRole } from '../user/entities/user.entity';
 import { PaginationQueryDto } from '../common/dto/pagination-query.dto';
 
 @ApiTags('certificates')
@@ -28,7 +28,7 @@ export class CertificateController {
   constructor(private readonly certificateService: CertificateService) {}
 
   @Get('scolarity/:etudiantId')
-  @Roles(Role.SUPER_ADMIN, Role.ADMIN, Role.ETUDIANT)
+  @UserRoles(UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.ETUDIANT)
   @ApiOperation({
     summary: 'Générer un certificat de scolarité pour un étudiant',
   })
@@ -47,7 +47,7 @@ export class CertificateController {
   }
 
   @Get('success/:etudiantId')
-  @Roles(Role.SUPER_ADMIN, Role.ADMIN, Role.ETUDIANT)
+  @UserRoles(UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.ETUDIANT)
   @ApiOperation({
     summary: 'Générer une attestation de réussite pour un étudiant',
   })
@@ -73,7 +73,7 @@ export class CertificateController {
   }
 
   @Get('history')
-  @Roles(Role.SUPER_ADMIN, Role.ADMIN)
+  @UserRoles(UserRole.SUPER_ADMIN, UserRole.ADMIN)
   @ApiOperation({ summary: "Consulter l'historique des documents générés" })
   @ApiQuery({
     name: 'etudiantId',
@@ -95,7 +95,7 @@ export class CertificateController {
   }
 
   @Get('my-history')
-  @Roles(Role.ETUDIANT)
+  @UserRoles(UserRole.ETUDIANT)
   @ApiOperation({ summary: 'Consulter mon historique de documents (Étudiant)' })
   async getMyHistory(
     @Query() paginationQuery: PaginationQueryDto,

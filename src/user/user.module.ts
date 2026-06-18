@@ -6,6 +6,7 @@ import { User } from './entities/user.entity';
 import { EtudiantModule } from '../etudiant/etudiant.module';
 import { EnseignantModule } from '../enseignant/enseignant.module';
 import { ParentModule } from '../parent/parent.module';
+import { AclModule } from '../acl/acl.module';
 
 @Module({
   imports: [
@@ -13,6 +14,7 @@ import { ParentModule } from '../parent/parent.module';
     forwardRef(() => EtudiantModule),
     forwardRef(() => EnseignantModule),
     forwardRef(() => ParentModule),
+    AclModule,
   ],
   controllers: [UserController],
   providers: [UserService],
