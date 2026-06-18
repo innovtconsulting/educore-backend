@@ -37,7 +37,9 @@ describe('Note Restriction (e2e)', () => {
     const entities = dataSource.entityMetadatas;
     for (const entity of entities) {
       const repository = dataSource.getRepository(entity.name);
-      await repository.query(`TRUNCATE "${entity.tableName}" RESTART IDENTITY CASCADE;`);
+      await repository.query(
+        `TRUNCATE "${entity.tableName}" RESTART IDENTITY CASCADE;`,
+      );
     }
 
     const passwordHash = await bcrypt.hash('password123', 10);
@@ -54,40 +56,93 @@ describe('Note Restriction (e2e)', () => {
     const evalRepo = dataSource.getRepository('Evaluation');
 
     // Setup base data
-    const etab = await etabRepo.save({ name: 'FST', address: 'Dakar', email: 'fst@test.com', phone: '123' });
+    const etab = await etabRepo.save({
+      name: 'FST',
+      address: 'Dakar',
+      email: 'fst@test.com',
+      phone: '123',
+    });
     const niv = await nivRepo.save({ name: 'L1' });
     const cls = await clsRepo.save({ name: 'Informatique' });
     // Link class to etab and niv
-    await dataSource.createQueryBuilder().relation('Classe', 'etablissements').of(cls.id).add(etab.id);
-    await dataSource.createQueryBuilder().relation('Classe', 'niveaux').of(cls.id).add(niv.id);
+    await dataSource
+      .createQueryBuilder()
+      .relation('Classe', 'etablissements')
+      .of(cls.id)
+      .add(etab.id);
+    await dataSource
+      .createQueryBuilder()
+      .relation('Classe', 'niveaux')
+      .of(cls.id)
+      .add(niv.id);
 
-    const mat = await matRepo.save({ name: 'Algorithmique', code: 'ALG1', coefficient: 4 });
-    await dataSource.createQueryBuilder().relation('Matiere', 'classes').of(mat.id).add(cls.id);
-    await dataSource.createQueryBuilder().relation('Matiere', 'niveaux').of(mat.id).add(niv.id);
+    const mat = await matRepo.save({
+      name: 'Algorithmique',
+      code: 'ALG1',
+      coefficient: 4,
+    });
+    await dataSource
+      .createQueryBuilder()
+      .relation('Matiere', 'classes')
+      .of(mat.id)
+      .add(cls.id);
+    await dataSource
+      .createQueryBuilder()
+      .relation('Matiere', 'niveaux')
+      .of(mat.id)
+      .add(niv.id);
 
     // Create Teachers
-    const t1 = await teacherRepo.save({ firstName: 'Moussa', lastName: 'Diallo', email: 't1@test.com', matricule: 'T001', dateEmbauche: new Date() });
-    const t2 = await teacherRepo.save({ firstName: 'Mariam', lastName: 'Sow', email: 't2@test.com', matricule: 'T002', dateEmbauche: new Date() });
+    const t1 = await teacherRepo.save({
+      firstName: 'Moussa',
+      lastName: 'Diallo',
+      email: 't1@test.com',
+      matricule: 'T001',
+      dateEmbauche: new Date(),
+    });
+    const t2 = await teacherRepo.save({
+      firstName: 'Mariam',
+      lastName: 'Sow',
+      email: 't2@test.com',
+      matricule: 'T002',
+      dateEmbauche: new Date(),
+    });
 
     // Affectation for T1 only
     await affectRepo.save({
       enseignant: { id: t1.id },
       matiere: { id: mat.id },
       etablissement: { id: etab.id },
-      niveau: { id: niv.id }
+      niveau: { id: niv.id },
     });
 
     // Create Users
     await userRepo.save([
       { email: 'admin@test.com', password: passwordHash, role: Role.ADMIN },
-      { email: 't1@test.com', password: passwordHash, role: Role.ENSEIGNANT, enseignant: { id: t1.id } },
-      { email: 't2@test.com', password: passwordHash, role: Role.ENSEIGNANT, enseignant: { id: t2.id } },
-      { email: 'surv@test.com', password: passwordHash, role: Role.SURVEILLANT },
+      {
+        email: 't1@test.com',
+        password: passwordHash,
+        role: Role.ENSEIGNANT,
+        enseignant: { id: t1.id },
+      },
+      {
+        email: 't2@test.com',
+        password: passwordHash,
+        role: Role.ENSEIGNANT,
+        enseignant: { id: t2.id },
+      },
+      {
+        email: 'surv@test.com',
+        password: passwordHash,
+        role: Role.SURVEILLANT,
+      },
     ]);
 
     // Tokens
     const login = async (email: string) => {
-      const res = await request(app.getHttpServer()).post('/api/auth/login').send({ email, password: 'password123' });
+      const res = await request(app.getHttpServer())
+        .post('/api/auth/login')
+        .send({ email, password: 'password123' });
       return res.body.data.access_token;
     };
     adminToken = await login('admin@test.com');
@@ -97,19 +152,39 @@ describe('Note Restriction (e2e)', () => {
 
     // Create Student
     const etu = await etuRepo.save({
-      firstName: 'Ousmane', lastName: 'Diallo', email: 'ous@test.com', matricule: 'E001',
-      etablissement: { id: etab.id }, classe: { id: cls.id }, niveau: { id: niv.id }
+      firstName: 'Ousmane',
+      lastName: 'Diallo',
+      email: 'ous@test.com',
+      matricule: 'E001',
+      etablissement: { id: etab.id },
+      classe: { id: cls.id },
+      niveau: { id: niv.id },
     });
     etudiantId = etu.id;
 
     // Create Academic context
-    const annee = await anneeRepo.save({ label: '2026-2027', startDate: '2026-10-01', endDate: '2027-07-31' });
-    const sem = await semRepo.save({ name: 'S1', startDate: '2026-10-01', endDate: '2027-02-28', anneeUniversitaire: { id: annee.id } });
+    const annee = await anneeRepo.save({
+      label: '2026-2027',
+      startDate: '2026-10-01',
+      endDate: '2027-07-31',
+    });
+    const sem = await semRepo.save({
+      name: 'S1',
+      startDate: '2026-10-01',
+      endDate: '2027-02-28',
+      anneeUniversitaire: { id: annee.id },
+    });
 
     // Create Evaluation (by Admin for simplicity)
     const ev = await evalRepo.save({
-      title: 'CC1', type: 'Contrôle Continu', weight: 1, date: '2026-11-01',
-      matiere: { id: mat.id }, classe: { id: cls.id }, niveau: { id: niv.id }, semestre: { id: sem.id }
+      title: 'CC1',
+      type: 'Contrôle Continu',
+      weight: 1,
+      date: '2026-11-01',
+      matiere: { id: mat.id },
+      classe: { id: cls.id },
+      niveau: { id: niv.id },
+      semestre: { id: sem.id },
     });
     evaluationId = ev.id;
   });

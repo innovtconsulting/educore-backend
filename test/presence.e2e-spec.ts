@@ -27,7 +27,9 @@ describe('Presence Module (e2e)', () => {
     const entities = dataSource.entityMetadatas;
     for (const entity of entities) {
       const repository = dataSource.getRepository(entity.name);
-      await repository.query(`TRUNCATE "${entity.tableName}" RESTART IDENTITY CASCADE;`);
+      await repository.query(
+        `TRUNCATE "${entity.tableName}" RESTART IDENTITY CASCADE;`,
+      );
     }
     await app.close();
   });
@@ -39,7 +41,12 @@ describe('Presence Module (e2e)', () => {
     // 1. Etab
     const etab = await request(app.getHttpServer())
       .post('/api/etablissement')
-      .send({ name: 'Presence Etab', address: 'Test', email: 'pres@test.com', phone: '123' });
+      .send({
+        name: 'Presence Etab',
+        address: 'Test',
+        email: 'pres@test.com',
+        phone: '123',
+      });
     const etabId = etab.body.data.id;
 
     // 2. Niveau
@@ -51,13 +58,22 @@ describe('Presence Module (e2e)', () => {
     // 3. Classe
     const cls = await request(app.getHttpServer())
       .post('/api/classe')
-      .send({ name: 'Classe Presence', etablissementIds: [etabId], niveauIds: [nivId] });
+      .send({
+        name: 'Classe Presence',
+        etablissementIds: [etabId],
+        niveauIds: [nivId],
+      });
     const clsId = cls.body.data.id;
 
     // 4. Parent
     const parent = await request(app.getHttpServer())
       .post('/api/parents')
-      .send({ firstName: 'P', lastName: 'P', gender: 'Père', phoneNumber: '000' });
+      .send({
+        firstName: 'P',
+        lastName: 'P',
+        gender: 'Père',
+        phoneNumber: '000',
+      });
     const pId = parent.body.data.id;
 
     // 5. Etudiant
@@ -78,7 +94,13 @@ describe('Presence Module (e2e)', () => {
     // 6. Matiere
     const mat = await request(app.getHttpServer())
       .post('/api/matiere')
-      .send({ code: 'PRES101', name: 'Pres Course', coefficient: 1, classeIds: [clsId], niveauIds: [nivId] });
+      .send({
+        code: 'PRES101',
+        name: 'Pres Course',
+        coefficient: 1,
+        classeIds: [clsId],
+        niveauIds: [nivId],
+      });
     const matId = mat.body.data.id;
 
     // 7. Enseignant & Affectation
@@ -121,12 +143,10 @@ describe('Presence Module (e2e)', () => {
       .post('/api/presence/bulk')
       .send({
         emploiDuTempId,
-        items: [
-          { etudiantId, status: 'Présent', remark: 'À l\'heure' }
-        ]
+        items: [{ etudiantId, status: 'Présent', remark: "À l'heure" }],
       })
       .expect(201);
-    
+
     expect(res.body.data).toHaveLength(1);
     expect(res.body.data[0].status).toBe('Présent');
   });
@@ -135,16 +155,16 @@ describe('Presence Module (e2e)', () => {
     const res = await request(app.getHttpServer())
       .get(`/api/presence/session/${emploiDuTempId}`)
       .expect(200);
-    
+
     expect(res.body.data).toHaveLength(1);
     expect(res.body.data[0].etudiant.id).toBe(etudiantId);
   });
 
-  it('4. Consulter les stats d\'un étudiant', async () => {
+  it("4. Consulter les stats d'un étudiant", async () => {
     const res = await request(app.getHttpServer())
       .get(`/api/presence/etudiant/${etudiantId}`)
       .expect(200);
-    
+
     expect(res.body.data.total).toBe(1);
     expect(res.body.data.presents).toBe(1);
   });
@@ -154,16 +174,14 @@ describe('Presence Module (e2e)', () => {
       .post('/api/presence/bulk')
       .send({
         emploiDuTempId,
-        items: [
-          { etudiantId, status: 'Absent', remark: 'Parti plus tôt' }
-        ]
+        items: [{ etudiantId, status: 'Absent', remark: 'Parti plus tôt' }],
       })
       .expect(201);
 
     const stats = await request(app.getHttpServer())
       .get(`/api/presence/etudiant/${etudiantId}`)
       .expect(200);
-    
+
     expect(stats.body.data.absents).toBe(1);
     expect(stats.body.data.presents).toBe(0);
   });

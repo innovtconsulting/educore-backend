@@ -30,13 +30,15 @@ describe('Global Settings (e2e)', () => {
     const entities = dataSource.entityMetadatas;
     for (const entity of entities) {
       const repository = dataSource.getRepository(entity.name);
-      await repository.query(`TRUNCATE "${entity.tableName}" RESTART IDENTITY CASCADE;`);
+      await repository.query(
+        `TRUNCATE "${entity.tableName}" RESTART IDENTITY CASCADE;`,
+      );
     }
 
     const passwordHash = await bcrypt.hash('password123', 10);
     const userRepo = dataSource.getRepository('User');
     const settingRepo = dataSource.getRepository('GlobalSetting');
-    
+
     await userRepo.save({
       email: 'super@test.com',
       password: passwordHash,
@@ -45,8 +47,16 @@ describe('Global Settings (e2e)', () => {
 
     // Re-seed settings after truncate
     await settingRepo.save([
-      { key: 'ENABLE_STUDENT_REGISTRATION', value: 'true', category: 'SECURITY' as any },
-      { key: 'ENABLE_TEACHER_REGISTRATION', value: 'true', category: 'SECURITY' as any },
+      {
+        key: 'ENABLE_STUDENT_REGISTRATION',
+        value: 'true',
+        category: 'SECURITY' as any,
+      },
+      {
+        key: 'ENABLE_TEACHER_REGISTRATION',
+        value: 'true',
+        category: 'SECURITY' as any,
+      },
     ]);
 
     const superRes = await request(app.getHttpServer())
@@ -64,9 +74,11 @@ describe('Global Settings (e2e)', () => {
       .get('/api/global-settings')
       .set('Authorization', `Bearer ${superAdminToken}`)
       .expect(200);
-    
+
     expect(res.body.data.length).toBeGreaterThan(0);
-    const registrationSetting = res.body.data.find(s => s.key === 'ENABLE_STUDENT_REGISTRATION');
+    const registrationSetting = res.body.data.find(
+      (s) => s.key === 'ENABLE_STUDENT_REGISTRATION',
+    );
     expect(registrationSetting).toBeDefined();
     expect(registrationSetting.value).toBe('true');
   });
@@ -85,13 +97,27 @@ describe('Global Settings (e2e)', () => {
     const clsRepo = dataSource.getRepository('Classe');
     const etuRepo = dataSource.getRepository('Etudiant');
 
-    const etab = await etabRepo.save({ name: 'Test Etab', address: 'X', email: 'x@test.com', phone: '1' });
+    const etab = await etabRepo.save({
+      name: 'Test Etab',
+      address: 'X',
+      email: 'x@test.com',
+      phone: '1',
+    });
     const niv = await nivRepo.save({ name: 'L1' });
-    const cls = await clsRepo.save({ name: 'Info', etablissements: [etab], niveaux: [niv] });
-    
+    const cls = await clsRepo.save({
+      name: 'Info',
+      etablissements: [etab],
+      niveaux: [niv],
+    });
+
     await etuRepo.save({
-      firstName: 'Test', lastName: 'Student', email: 'student@test.com', matricule: 'TEST001',
-      etablissement: etab, niveau: niv, classe: cls
+      firstName: 'Test',
+      lastName: 'Student',
+      email: 'student@test.com',
+      matricule: 'TEST001',
+      etablissement: etab,
+      niveau: niv,
+      classe: cls,
     });
 
     // Try to register
@@ -101,11 +127,13 @@ describe('Global Settings (e2e)', () => {
         email: 'student@test.com',
         password: 'password123',
         role: Role.ETUDIANT,
-        matricule: 'TEST001'
+        matricule: 'TEST001',
       })
       .expect(400);
 
-    expect(res.body.message).toContain("L'auto-inscription des étudiants est actuellement désactivée");
+    expect(res.body.message).toContain(
+      "L'auto-inscription des étudiants est actuellement désactivée",
+    );
   });
 
   it('3. Re-enable and verify success', async () => {
@@ -123,7 +151,7 @@ describe('Global Settings (e2e)', () => {
         email: 'student@test.com',
         password: 'password123',
         role: Role.ETUDIANT,
-        matricule: 'TEST001'
+        matricule: 'TEST001',
       })
       .expect(201);
   });

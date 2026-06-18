@@ -80,5 +80,9 @@ export const AppDataSource = new DataSource({
       ? false
       : { rejectUnauthorized: false },
   subscribers: [],
-  migrations: [process.env.NODE_ENV === 'production' ? 'dist/migrations/*.js' : 'src/migrations/*.ts'],
+  migrations: [
+    process.env.NODE_ENV === 'production'
+      ? 'dist/migrations/*.js'
+      : 'src/migrations/*.ts',
+  ],
 });

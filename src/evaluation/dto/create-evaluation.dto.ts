@@ -1,6 +1,16 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsDateString, IsEnum, IsNotEmpty, IsNumber, IsOptional, IsString } from 'class-validator';
-import { EvaluationType, EvaluationSession } from '../entities/evaluation.entity';
+import {
+  IsDateString,
+  IsEnum,
+  IsNotEmpty,
+  IsNumber,
+  IsOptional,
+  IsString,
+} from 'class-validator';
+import {
+  EvaluationType,
+  EvaluationSession,
+} from '../entities/evaluation.entity';
 
 export class CreateEvaluationDto {
   @ApiProperty({ example: 'Examen Final Algorithmique' })

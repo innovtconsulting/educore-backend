@@ -29,7 +29,9 @@ describe('University Workflow (e2e)', () => {
     const entities = dataSource.entityMetadatas;
     for (const entity of entities) {
       const repository = dataSource.getRepository(entity.name);
-      await repository.query(`TRUNCATE "${entity.tableName}" RESTART IDENTITY CASCADE;`);
+      await repository.query(
+        `TRUNCATE "${entity.tableName}" RESTART IDENTITY CASCADE;`,
+      );
     }
 
     const passwordHash = await bcrypt.hash('password123', 10);
@@ -42,7 +44,7 @@ describe('University Workflow (e2e)', () => {
     const loginRes = await request(app.getHttpServer())
       .post('/api/auth/login')
       .send({ email: 'superadmin@test.com', password: 'password123' });
-    
+
     superAdminToken = loginRes.body.data.access_token;
   });
 
@@ -61,7 +63,7 @@ describe('University Workflow (e2e)', () => {
   let salleId: number;
   let parentId: number;
 
-  it('1. Création de l\'établissement (FST)', async () => {
+  it("1. Création de l'établissement (FST)", async () => {
     const res = await request(app.getHttpServer())
       .post('/api/etablissement')
       .set('Authorization', `Bearer ${superAdminToken}`)
@@ -72,7 +74,7 @@ describe('University Workflow (e2e)', () => {
         phone: '+221 33 825 00 00',
       })
       .expect(201);
-    
+
     etablissementId = res.body.data.id;
     expect(etablissementId).toBeDefined();
   });
@@ -106,7 +108,7 @@ describe('University Workflow (e2e)', () => {
         etablissementIds: [etablissementId],
       })
       .expect(201);
-    
+
     informatiqueId = res.body.data.id;
     expect(informatiqueId).toBeDefined();
     expect(res.body.data.niveaux).toHaveLength(2);
@@ -124,12 +126,12 @@ describe('University Workflow (e2e)', () => {
         niveauIds: [l1Id],
       })
       .expect(201);
-    
+
     algosId = res.body.data.id;
     expect(algosId).toBeDefined();
   });
 
-  it('5. Création d\'un enseignant (Pr. Moussa Diallo)', async () => {
+  it("5. Création d'un enseignant (Pr. Moussa Diallo)", async () => {
     const res = await request(app.getHttpServer())
       .post('/api/enseignants')
       .set('Authorization', `Bearer ${superAdminToken}`)
@@ -142,12 +144,12 @@ describe('University Workflow (e2e)', () => {
         dateEmbauche: '2026-01-01',
       })
       .expect(201);
-    
+
     enseignantId = res.body.data.id;
     expect(enseignantId).toBeDefined();
   });
 
-  it('6. Affectation de l\'enseignant à la matière', async () => {
+  it("6. Affectation de l'enseignant à la matière", async () => {
     const res = await request(app.getHttpServer())
       .post(`/api/enseignants/${enseignantId}/affectations`)
       .set('Authorization', `Bearer ${superAdminToken}`)
@@ -157,12 +159,12 @@ describe('University Workflow (e2e)', () => {
         niveauId: l1Id,
       })
       .expect(201);
-    
+
     affectationId = res.body.data.id;
     expect(affectationId).toBeDefined();
   });
 
-  it('6.2. Création d\'un étudiant avec création automatique de parent', async () => {
+  it("6.2. Création d'un étudiant avec création automatique de parent", async () => {
     const res = await request(app.getHttpServer())
       .post('/api/etudiants')
       .set('Authorization', `Bearer ${superAdminToken}`)
@@ -188,7 +190,7 @@ describe('University Workflow (e2e)', () => {
     expect(res.body.data.parents[0].firstName).toBe('Jean');
   });
 
-  it('6.3. Création d\'une salle', async () => {
+  it("6.3. Création d'une salle", async () => {
     const res = await request(app.getHttpServer())
       .post('/api/salles')
       .set('Authorization', `Bearer ${superAdminToken}`)
@@ -198,12 +200,12 @@ describe('University Workflow (e2e)', () => {
         etablissementId: etablissementId,
       })
       .expect(201);
-    
+
     salleId = res.body.data.id;
     expect(salleId).toBeDefined();
   });
 
-  it('7. Création d\'un créneau d\'emploi du temps valide', async () => {
+  it("7. Création d'un créneau d'emploi du temps valide", async () => {
     const startTime = '2026-06-08T08:00:00.000Z';
     const endTime = '2026-06-08T10:00:00.000Z';
 
@@ -221,11 +223,11 @@ describe('University Workflow (e2e)', () => {
         salleId: salleId,
       })
       .expect(201);
-    
+
     expect(res.body.data.id).toBeDefined();
   });
 
-  it('8. ÉCHEC : Création d\'un créneau avec conflit enseignant', async () => {
+  it("8. ÉCHEC : Création d'un créneau avec conflit enseignant", async () => {
     const startTime = '2026-06-08T09:00:00.000Z'; // Chevauche le créneau précédent (08:00-10:00)
     const endTime = '2026-06-08T11:00:00.000Z';
 
@@ -242,11 +244,11 @@ describe('University Workflow (e2e)', () => {
         niveauId: l1Id,
       })
       .expect(400);
-    
+
     expect(res.body.message).toContain("L'enseignant a déjà un cours");
   });
 
-  it('9. ÉCHEC : Création d\'un créneau pour un enseignant non affecté', async () => {
+  it("9. ÉCHEC : Création d'un créneau pour un enseignant non affecté", async () => {
     // Création d'un autre enseignant
     const resEns = await request(app.getHttpServer())
       .post('/api/enseignants')
@@ -274,11 +276,11 @@ describe('University Workflow (e2e)', () => {
         niveauId: l1Id,
       })
       .expect(400);
-    
+
     expect(res.body.message).toContain("L'enseignant n'est pas affecté");
   });
 
-  it('10. ÉCHEC : Création d\'un créneau avec conflit classe', async () => {
+  it("10. ÉCHEC : Création d'un créneau avec conflit classe", async () => {
     // Création d'un autre enseignant et affectation
     const resEns = await request(app.getHttpServer())
       .post('/api/enseignants')
@@ -317,11 +319,11 @@ describe('University Workflow (e2e)', () => {
         niveauId: l1Id,
       })
       .expect(400);
-    
-    expect(res.body.message).toContain("La classe est déjà occupée");
+
+    expect(res.body.message).toContain('La classe est déjà occupée');
   });
 
-  it('10.1. ÉCHEC : Création d\'un créneau avec conflit salle', async () => {
+  it("10.1. ÉCHEC : Création d'un créneau avec conflit salle", async () => {
     // Création d'une autre classe pour éviter le conflit de classe
     const resCls = await request(app.getHttpServer())
       .post('/api/classe')
@@ -382,11 +384,11 @@ describe('University Workflow (e2e)', () => {
         salleId: salleId,
       })
       .expect(400);
-    
-    expect(res.body.message).toContain("La salle est déjà occupée");
+
+    expect(res.body.message).toContain('La salle est déjà occupée');
   });
 
-  it('10.2. ÉCHEC : Création d\'un créneau avec incohérence académique (Matière non liée)', async () => {
+  it("10.2. ÉCHEC : Création d'un créneau avec incohérence académique (Matière non liée)", async () => {
     // Créer une autre matière liée à une AUTRE classe/niveau
     const resMat = await request(app.getHttpServer())
       .post('/api/matiere')
@@ -414,11 +416,13 @@ describe('University Workflow (e2e)', () => {
         niveauId: l1Id,
       })
       .expect(400);
-    
-    expect(res.body.message).toContain("pas prévue pour cette classe ou ce niveau");
+
+    expect(res.body.message).toContain(
+      'pas prévue pour cette classe ou ce niveau',
+    );
   });
 
-  it('11. Mise à jour d\'un créneau', async () => {
+  it("11. Mise à jour d'un créneau", async () => {
     // Récupérer le premier créneau
     const resAll = await request(app.getHttpServer())
       .get('/api/emploi-du-temps')
@@ -437,7 +441,7 @@ describe('University Workflow (e2e)', () => {
         endTime: newEndTime,
       })
       .expect(200);
-    
+
     expect(new Date(res.body.data.startTime).toISOString()).toBe(newStartTime);
   });
 
@@ -464,4 +468,3 @@ describe('University Workflow (e2e)', () => {
       .expect(404);
   });
 });
-

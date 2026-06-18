@@ -34,7 +34,7 @@ describe('User Profile Integration (e2e)', () => {
       .get('/users')
       .set('Authorization', `Bearer ${adminToken}`)
       .query({ search: 'ousmane.sow@espm.sn' });
-    
+
     studentUserId = studentUser.body.items[0].id;
     studentId = studentUser.body.items[0].etudiant.id;
 
@@ -61,7 +61,7 @@ describe('User Profile Integration (e2e)', () => {
       const userResponse = await request(app.getHttpServer())
         .get(`/users/${studentUserId}`)
         .set('Authorization', `Bearer ${adminToken}`);
-      
+
       expect(userResponse.body.username).toBe('OusmaneNew');
     });
 
@@ -76,7 +76,7 @@ describe('User Profile Integration (e2e)', () => {
       const studentResponse = await request(app.getHttpServer())
         .get(`/etudiants/${studentId}`)
         .set('Authorization', `Bearer ${adminToken}`);
-      
+
       expect(studentResponse.body.data.firstName).toBe('OusmaneSync');
     });
   });
@@ -113,7 +113,8 @@ describe('User Profile Integration (e2e)', () => {
 
       // Cleanup: Supprimer le fichier local de test ET le fichier uploadé
       if (fs.existsSync(dummyImagePath)) fs.unlinkSync(dummyImagePath);
-      if (fs.existsSync(absoluteUploadedPath)) fs.unlinkSync(absoluteUploadedPath);
+      if (fs.existsSync(absoluteUploadedPath))
+        fs.unlinkSync(absoluteUploadedPath);
     });
   });
 });

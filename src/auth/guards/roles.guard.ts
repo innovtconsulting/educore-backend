@@ -19,10 +19,10 @@ export class RolesGuard implements CanActivate {
     }
 
     // 1. Vérification par Permissions (Nouveau système dynamique)
-    const requiredPermissions = this.reflector.getAllAndOverride<string[]>(PERMISSIONS_KEY, [
-      context.getHandler(),
-      context.getClass(),
-    ]);
+    const requiredPermissions = this.reflector.getAllAndOverride<string[]>(
+      PERMISSIONS_KEY,
+      [context.getHandler(), context.getClass()],
+    );
 
     const { user } = context.switchToHttp().getRequest();
     if (!user) return false;
@@ -31,22 +31,19 @@ export class RolesGuard implements CanActivate {
     if (user.role === UserRole.SUPER_ADMIN) return true;
 
     if (requiredPermissions && requiredPermissions.length > 0) {
-      // Si l'utilisateur a un rôle dynamique avec des permissions
-      if (user.aclUserRole && user.aclUserRole.permissions) {
-        const userPermissions = user.aclUserRole.permissions.map((p: any) => p.name);
-        const hasPermission = requiredPermissions.every((permission) =>
-          userPermissions.includes(permission),
-        );
-        if (hasPermission) return true;
-      }
+      const userPermissions = user.permissions || [];
+      const hasPermission = requiredPermissions.every((permission) =>
+        userPermissions.includes(permission),
+      );
+      if (hasPermission) return true;
     }
 
     // 2. Vérification par Rôles (Ancien système statique pour compatibilité)
-    const requiredUserRoles = this.reflector.getAllAndOverride<UserRole[]>(ROLES_KEY, [
-      context.getHandler(),
-      context.getClass(),
-    ]);
-    
+    const requiredUserRoles = this.reflector.getAllAndOverride<UserRole[]>(
+      ROLES_KEY,
+      [context.getHandler(), context.getClass()],
+    );
+
     if (!requiredUserRoles) {
       return true;
     }

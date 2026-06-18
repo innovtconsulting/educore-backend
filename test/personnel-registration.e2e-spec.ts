@@ -15,12 +15,12 @@ describe('Personnel Registration (e2e)', () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
       imports: [AppModule],
     })
-    .overrideProvider(MailService)
-    .useValue({
-      sendPasswordResetEmail: jest.fn().mockResolvedValue(undefined),
-      sendMail: jest.fn().mockResolvedValue(undefined),
-    })
-    .compile();
+      .overrideProvider(MailService)
+      .useValue({
+        sendPasswordResetEmail: jest.fn().mockResolvedValue(undefined),
+        sendMail: jest.fn().mockResolvedValue(undefined),
+      })
+      .compile();
 
     app = moduleFixture.createNestApplication();
     app.setGlobalPrefix('api');
@@ -29,12 +29,14 @@ describe('Personnel Registration (e2e)', () => {
     await app.init();
 
     dataSource = app.get(DataSource);
-    
+
     // Clean database
     const entities = dataSource.entityMetadatas;
     for (const entity of entities) {
       const repository = dataSource.getRepository(entity.name);
-      await repository.query(`TRUNCATE "${entity.tableName}" RESTART IDENTITY CASCADE;`);
+      await repository.query(
+        `TRUNCATE "${entity.tableName}" RESTART IDENTITY CASCADE;`,
+      );
     }
 
     // Create a base user for testing personnel registration (activation)
@@ -63,7 +65,9 @@ describe('Personnel Registration (e2e)', () => {
     it('should activate a COMPTABLE account using ID and password', async () => {
       // Find the user ID first
       const userRepo = dataSource.getRepository('User');
-      const user = await userRepo.findOne({ where: { email: 'comptable@test.com' } });
+      const user = await userRepo.findOne({
+        where: { email: 'comptable@test.com' },
+      });
       const userId = user?.id;
 
       const res = await request(app.getHttpServer())
@@ -71,19 +75,19 @@ describe('Personnel Registration (e2e)', () => {
         .send({
           id: userId,
           password: 'new-password-123',
-          role: Role.COMPTABLE
+          role: Role.COMPTABLE,
         });
 
       expect(res.status).toBe(201);
       expect(res.body.data.message).toBe('Activation du compte réussie.');
       expect(res.body.data.user.email).toBe('comptable@test.com');
-      
+
       // Verify login works now
       const loginRes = await request(app.getHttpServer())
         .post('/api/auth/login')
         .send({
           email: 'comptable@test.com',
-          password: 'new-password-123'
+          password: 'new-password-123',
         });
       expect(loginRes.status).toBe(201);
       expect(loginRes.body.data.access_token).toBeDefined();
@@ -92,7 +96,9 @@ describe('Personnel Registration (e2e)', () => {
     it('should activate a SURVEILLANT account using ID and password', async () => {
       // Find the user ID first
       const userRepo = dataSource.getRepository('User');
-      const user = await userRepo.findOne({ where: { email: 'surveillant@test.com' } });
+      const user = await userRepo.findOne({
+        where: { email: 'surveillant@test.com' },
+      });
       const userId = user?.id;
 
       const res = await request(app.getHttpServer())
@@ -100,7 +106,7 @@ describe('Personnel Registration (e2e)', () => {
         .send({
           id: userId,
           password: 'secure-password-surv',
-          role: Role.SURVEILLANT
+          role: Role.SURVEILLANT,
         });
 
       expect(res.status).toBe(201);
@@ -113,7 +119,7 @@ describe('Personnel Registration (e2e)', () => {
         .post('/api/auth/register')
         .send({
           password: 'some-password',
-          role: Role.COMPTABLE
+          role: Role.COMPTABLE,
         });
 
       expect(res.status).toBe(400);
@@ -122,7 +128,9 @@ describe('Personnel Registration (e2e)', () => {
 
     it('should fail if role mismatch', async () => {
       const userRepo = dataSource.getRepository('User');
-      const user = await userRepo.findOne({ where: { email: 'comptable@test.com' } });
+      const user = await userRepo.findOne({
+        where: { email: 'comptable@test.com' },
+      });
       const userId = user?.id;
 
       const res = await request(app.getHttpServer())
@@ -130,17 +138,21 @@ describe('Personnel Registration (e2e)', () => {
         .send({
           id: userId,
           password: 'some-password',
-          role: Role.ADMIN // Wrong role for this ID
+          role: Role.ADMIN, // Wrong role for this ID
         });
 
       expect(res.status).toBe(400);
-      expect(res.body.message).toContain("Le rôle demandé (Admin) ne correspond pas");
+      expect(res.body.message).toContain(
+        'Le rôle demandé (Admin) ne correspond pas',
+      );
     });
 
     it('should fail if account is already activated', async () => {
       // The comptable account was already activated in the first test
       const userRepo = dataSource.getRepository('User');
-      const user = await userRepo.findOne({ where: { email: 'comptable@test.com' } });
+      const user = await userRepo.findOne({
+        where: { email: 'comptable@test.com' },
+      });
       const userId = user?.id;
 
       const res = await request(app.getHttpServer())
@@ -148,11 +160,11 @@ describe('Personnel Registration (e2e)', () => {
         .send({
           id: userId,
           password: 'another-password',
-          role: Role.COMPTABLE
+          role: Role.COMPTABLE,
         });
 
       expect(res.status).toBe(400);
-      expect(res.body.message).toContain("Ce compte est déjà activé");
+      expect(res.body.message).toContain('Ce compte est déjà activé');
     });
   });
 });

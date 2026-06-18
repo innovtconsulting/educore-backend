@@ -6,7 +6,10 @@ import { Matiere } from '../matiere/entities/matiere.entity';
 import { Enseignant } from '../enseignant/entities/enseignant.entity';
 import { Affectation } from '../enseignant/entities/affectation.entity';
 import { EmploiDuTemp } from '../emploi-du-temps/entities/emploi-du-temp.entity';
-import { Etudiant, EnrollmentStatus } from '../etudiant/entities/etudiant.entity';
+import {
+  Etudiant,
+  EnrollmentStatus,
+} from '../etudiant/entities/etudiant.entity';
 import { Parent } from '../parent/entities/parent.entity';
 import { Presence } from '../presence/entities/presence.entity';
 import { Sanction, SanctionType } from '../sanction/entities/sanction.entity';
@@ -123,36 +126,83 @@ async function seed() {
 
     // 0.0 Permissions et Rôles ACL
     const perms = [
+      // Étudiants
       { name: 'STUDENT_VIEW', description: 'Voir les étudiants' },
       { name: 'STUDENT_CREATE', description: 'Créer un étudiant' },
       { name: 'STUDENT_EDIT', description: 'Modifier un étudiant' },
+      { name: 'STUDENT_DELETE', description: 'Supprimer un étudiant' },
+      { name: 'STUDENT_VALIDATE', description: 'Valider une inscription' },
+
+      // Enseignants
+      { name: 'TEACHER_VIEW', description: 'Voir les enseignants' },
+      { name: 'TEACHER_MANAGE', description: 'Gérer les enseignants' },
+
+      // Finances
       { name: 'FINANCE_VIEW', description: 'Voir les finances' },
-      { name: 'FINANCE_MANAGE', description: 'Gérer les finances' },
+      { name: 'FINANCE_MANAGE', description: 'Gérer les factures et paiements' },
+      { name: 'FINANCE_REPORT', description: 'Voir les rapports financiers' },
+
+      // Académique
+      { name: 'ACADEMIC_VIEW', description: 'Voir les notes et bulletins' },
       { name: 'ACADEMIC_MANAGE', description: 'Gérer les notes et évaluations' },
+      { name: 'ACADEMIC_CONFIG', description: 'Configurer les classes/matières' },
+
+      // Planning & Présence
+      { name: 'SCHEDULE_VIEW', description: 'Voir l emploi du temps' },
+      { name: 'SCHEDULE_MANAGE', description: 'Gérer l emploi du temps' },
+      { name: 'ATTENDANCE_MANAGE', description: 'Gérer les présences' },
+
+      // Discipline & Vie Scolaire
+      { name: 'DISCIPLINE_MANAGE', description: 'Gérer les sanctions et règlements' },
+      { name: 'REPORT_DAILY_MANAGE', description: 'Gérer les rapports quotidiens' },
+
+      // Administration & Système
+      { name: 'USER_MANAGE', description: 'Gérer les comptes utilisateurs' },
+      { name: 'CONFIG_MANAGE', description: 'Gérer la configuration globale' },
+      { name: 'DOCUMENT_MANAGE', description: 'Gérer la GED' },
     ];
-    const savedPerms = await permissionRepo.save(perms.map(p => permissionRepo.create(p)));
+    const savedPerms = await permissionRepo.save(
+      perms.map((p) => permissionRepo.create(p)),
+    );
+
+    const getPerms = (names: string[]) => savedPerms.filter(p => names.includes(p.name));
 
     const roleAdminAcl = roleAclRepo.create({
       name: 'Admin',
-      description: 'Administrateur d\'établissement',
-      permissions: savedPerms,
+      description: "Administrateur d'établissement",
+      permissions: savedPerms, // L'admin de l'école a tout sauf peut-être CONFIG_MANAGE (réservé SuperAdmin)
     });
     const roleComptableAcl = roleAclRepo.create({
       name: 'Comptable',
       description: 'Gestionnaire financier',
-      permissions: savedPerms.filter(p => p.name.startsWith('FINANCE')),
+      permissions: getPerms([
+        'FINANCE_VIEW', 'FINANCE_MANAGE', 'FINANCE_REPORT',
+        'STUDENT_VIEW', 'ACADEMIC_VIEW'
+      ]),
     });
     const roleSurveillantAcl = roleAclRepo.create({
       name: 'Surveillant',
       description: 'Gestionnaire de la vie scolaire',
-      permissions: savedPerms.filter(p => p.name.startsWith('STUDENT')),
+      permissions: getPerms([
+        'STUDENT_VIEW', 'STUDENT_CREATE', 'STUDENT_EDIT', 'STUDENT_VALIDATE',
+        'ATTENDANCE_MANAGE', 'DISCIPLINE_MANAGE', 'REPORT_DAILY_MANAGE',
+        'SCHEDULE_VIEW', 'ACADEMIC_VIEW'
+      ]),
     });
     const roleEnseignantAcl = roleAclRepo.create({
       name: 'Enseignant',
       description: 'Personnel académique',
-      permissions: savedPerms.filter(p => p.name === 'ACADEMIC_MANAGE' || p.name === 'STUDENT_VIEW'),
+      permissions: getPerms([
+        'STUDENT_VIEW', 'ACADEMIC_VIEW', 'ACADEMIC_MANAGE',
+        'SCHEDULE_VIEW', 'ATTENDANCE_MANAGE'
+      ]),
     });
-    await roleAclRepo.save([roleAdminAcl, roleComptableAcl, roleSurveillantAcl, roleEnseignantAcl]);
+    await roleAclRepo.save([
+      roleAdminAcl,
+      roleComptableAcl,
+      roleSurveillantAcl,
+      roleEnseignantAcl,
+    ]);
 
     // 0.1 Année Universitaire
     const annee2026 = anneeRepo.create({

@@ -31,7 +31,7 @@ export class PresenceService {
     const tenantId = TenantContext.getTenantId();
 
     const emploi = await this.emploiRepo.findOne({
-      where: TenantHelper.addTenantFilter({ id: emploiDuTempId }, tenantId) as any,
+      where: TenantHelper.addTenantFilter({ id: emploiDuTempId }, tenantId),
       relations: { classe: true, niveau: true, matiere: true },
     });
     if (!emploi)
@@ -41,8 +41,13 @@ export class PresenceService {
 
     for (const item of items) {
       const etudiant = await this.etudiantRepo.findOne({
-        where: TenantHelper.addTenantFilter({ id: item.etudiantId }, tenantId) as any,
-        relations: { classe: true, niveau: true, parents: true, etablissement: true },
+        where: TenantHelper.addTenantFilter({ id: item.etudiantId }, tenantId),
+        relations: {
+          classe: true,
+          niveau: true,
+          parents: true,
+          etablissement: true,
+        },
       });
 
       if (!etudiant) {
@@ -88,10 +93,14 @@ export class PresenceService {
     const { page = 1, limit = 15 } = paginationQuery;
     const skip = (page - 1) * limit;
     const tenantId = TenantContext.getTenantId();
-    const where = TenantHelper.addTenantFilter({}, tenantId, 'etudiant.etablissement');
+    const where = TenantHelper.addTenantFilter(
+      {},
+      tenantId,
+      'etudiant.etablissement',
+    );
 
     const [items, total] = await this.presenceRepository.findAndCount({
-      where: where as any,
+      where: where,
       relations: {
         etudiant: true,
         emploiDuTemp: { matiere: true, classe: true, niveau: true },

@@ -16,12 +16,12 @@ describe('Student Registration (e2e)', () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
       imports: [AppModule],
     })
-    .overrideProvider(MailService)
-    .useValue({
-      sendPasswordResetEmail: jest.fn().mockResolvedValue(undefined),
-      sendMail: jest.fn().mockResolvedValue(undefined),
-    })
-    .compile();
+      .overrideProvider(MailService)
+      .useValue({
+        sendPasswordResetEmail: jest.fn().mockResolvedValue(undefined),
+        sendMail: jest.fn().mockResolvedValue(undefined),
+      })
+      .compile();
 
     app = moduleFixture.createNestApplication();
     app.setGlobalPrefix('api');
@@ -31,12 +31,14 @@ describe('Student Registration (e2e)', () => {
 
     dataSource = app.get(DataSource);
     mailService = app.get(MailService);
-    
+
     // Clean database
     const entities = dataSource.entityMetadatas;
     for (const entity of entities) {
       const repository = dataSource.getRepository(entity.name);
-      await repository.query(`TRUNCATE "${entity.tableName}" RESTART IDENTITY CASCADE;`);
+      await repository.query(
+        `TRUNCATE "${entity.tableName}" RESTART IDENTITY CASCADE;`,
+      );
     }
 
     // Create a base student for testing registration
@@ -46,14 +48,32 @@ describe('Student Registration (e2e)', () => {
     const etuRepo = dataSource.getRepository('Etudiant');
     const parentRepo = dataSource.getRepository('Parent');
 
-    const etab = await etabRepo.save({ name: 'Test Etab', address: 'Test', email: 'etab@test.com', phone: '123' });
+    const etab = await etabRepo.save({
+      name: 'Test Etab',
+      address: 'Test',
+      email: 'etab@test.com',
+      phone: '123',
+    });
     const niv = await nivRepo.save({ name: 'L1' });
     const cls = await clsRepo.save({ name: 'Informatique' });
     // ManyToMany relations need manual insertion or using the repository save with objects
-    await dataSource.createQueryBuilder().relation('Classe', 'etablissements').of(cls).add(etab);
-    await dataSource.createQueryBuilder().relation('Classe', 'niveaux').of(cls).add(niv);
+    await dataSource
+      .createQueryBuilder()
+      .relation('Classe', 'etablissements')
+      .of(cls)
+      .add(etab);
+    await dataSource
+      .createQueryBuilder()
+      .relation('Classe', 'niveaux')
+      .of(cls)
+      .add(niv);
 
-    const parent = await parentRepo.save({ firstName: 'P', lastName: 'A', gender: 'Père', phoneNumber: '000' });
+    const parent = await parentRepo.save({
+      firstName: 'P',
+      lastName: 'A',
+      gender: 'Père',
+      phoneNumber: '000',
+    });
 
     const savedEtudiant = await etuRepo.save({
       firstName: 'John',
@@ -63,7 +83,7 @@ describe('Student Registration (e2e)', () => {
       etablissement: etab,
       classe: cls,
       niveau: niv,
-      parents: [parent]
+      parents: [parent],
     });
 
     const userRepo = dataSource.getRepository('User');
@@ -76,7 +96,7 @@ describe('Student Registration (e2e)', () => {
       role: Role.ETUDIANT,
       isActive: true,
       etudiant: savedEtudiant,
-      etablissement: etab
+      etablissement: etab,
     });
 
     const teacherRepo = dataSource.getRepository('Enseignant');
@@ -85,7 +105,7 @@ describe('Student Registration (e2e)', () => {
       lastName: 'Smith',
       email: 'jane.smith@test.com',
       matricule: 'T-001',
-      dateEmbauche: new Date()
+      dateEmbauche: new Date(),
     });
   });
 
@@ -100,13 +120,15 @@ describe('Student Registration (e2e)', () => {
         .send({
           password: 'password123',
           role: Role.ETUDIANT,
-          matricule: 'MAT-001'
+          matricule: 'MAT-001',
         });
 
       // Matricule is no longer in DTO, it might be ignored or cause validation error depending on pipe config
       // But service will throw error because etudiantData is missing
       expect(res.status).toBe(400);
-      expect(res.body.message).toContain("Les données d'inscription sont obligatoires");
+      expect(res.body.message).toContain(
+        "Les données d'inscription sont obligatoires",
+      );
     });
 
     it('should allow providing etudiantData for a new student registration (unified flow)', async () => {
@@ -122,12 +144,21 @@ describe('Student Registration (e2e)', () => {
             etablissementId: 1,
             classeId: 1,
             niveauId: 1,
-            parentsData: [{ firstName: 'P', lastName: 'S', gender: 'Père', phoneNumber: '999888777' }]
-          }
+            parentsData: [
+              {
+                firstName: 'P',
+                lastName: 'S',
+                gender: 'Père',
+                phoneNumber: '999888777',
+              },
+            ],
+          },
         });
 
       expect(res.status).toBe(201);
-      expect(res.body.data.message).toContain('pré-inscription a été enregistrée avec succès');
+      expect(res.body.data.message).toContain(
+        'pré-inscription a été enregistrée avec succès',
+      );
     });
   });
 
@@ -138,11 +169,13 @@ describe('Student Registration (e2e)', () => {
         .send({
           password: 'password123',
           role: Role.ENSEIGNANT,
-          matricule: 'T-001'
+          matricule: 'T-001',
         });
 
       expect(res.status).toBe(400);
-      expect(res.body.message).toContain("L'auto-inscription n'est pas disponible pour les enseignants");
+      expect(res.body.message).toContain(
+        "L'auto-inscription n'est pas disponible pour les enseignants",
+      );
     });
   });
 
@@ -154,7 +187,7 @@ describe('Student Registration (e2e)', () => {
         .post('/api/auth/login')
         .send({
           email: 'john.doe@test.com',
-          password: 'password123'
+          password: 'password123',
         });
       studentToken = loginRes.body.data.access_token;
     });
@@ -175,7 +208,7 @@ describe('Student Registration (e2e)', () => {
         .set('Authorization', `Bearer ${studentToken}`)
         .send({
           phoneNumber: '+221 77 111 22 33',
-          address: 'New Dakar Address'
+          address: 'New Dakar Address',
         });
 
       expect(res.status).toBe(200);
@@ -194,11 +227,15 @@ describe('Student Registration (e2e)', () => {
         .send({ email: 'john.doe@test.com' });
 
       expect(res.status).toBe(201);
-      expect(res.body.message).toContain('lien de réinitialisation a été envoyé');
+      expect(res.body.message).toContain(
+        'lien de réinitialisation a été envoyé',
+      );
 
       // Pour le test, on récupère le token directement en base (car on ne peut pas lire l'email réel ici)
       const userRepo = dataSource.getRepository('User');
-      const user = await userRepo.findOne({ where: { email: 'john.doe@test.com' } });
+      const user = await userRepo.findOne({
+        where: { email: 'john.doe@test.com' },
+      });
       resetToken = (user as any).resetPasswordToken;
       expect(resetToken).toBeDefined();
     });
@@ -208,7 +245,7 @@ describe('Student Registration (e2e)', () => {
         .post('/api/auth/reset-password')
         .send({
           token: resetToken,
-          newPassword: 'new-secure-password'
+          newPassword: 'new-secure-password',
         });
 
       expect(res.status).toBe(201);
@@ -219,7 +256,7 @@ describe('Student Registration (e2e)', () => {
         .post('/api/auth/login')
         .send({
           email: 'john.doe@test.com',
-          password: 'new-secure-password'
+          password: 'new-secure-password',
         });
       expect(loginRes.status).toBe(201);
       expect(loginRes.body.data.access_token).toBeDefined();
@@ -230,7 +267,7 @@ describe('Student Registration (e2e)', () => {
         .post('/api/auth/reset-password')
         .send({
           token: 'invalid-token',
-          newPassword: 'some-password'
+          newPassword: 'some-password',
         });
 
       expect(res.status).toBe(400);

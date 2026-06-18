@@ -71,7 +71,7 @@ export class FinanceService {
     const where = TenantHelper.addTenantFilter({}, tenantId);
 
     return await this.fraisRepository.find({
-      where: where as any,
+      where: where,
       relations: { classe: true, niveau: true },
     });
   }
@@ -81,7 +81,7 @@ export class FinanceService {
   async createFacture(dto: CreateFactureDto) {
     const tenantId = TenantContext.getTenantId();
     const etudiant = await this.etudiantRepository.findOne({
-      where: TenantHelper.addTenantFilter({ id: dto.etudiantId }, tenantId) as any,
+      where: TenantHelper.addTenantFilter({ id: dto.etudiantId }, tenantId),
     });
     if (!etudiant)
       throw new NotFoundException(`Étudiant #${dto.etudiantId} introuvable`);
@@ -108,7 +108,9 @@ export class FinanceService {
           where: { id: savedFacture.id },
           relations: { etudiant: { etablissement: true } },
         });
-        const quittancePath = await generateQuittancePdf(factureWithEtab || savedFacture);
+        const quittancePath = await generateQuittancePdf(
+          factureWithEtab || savedFacture,
+        );
         savedFacture.quittancePath = quittancePath;
         await this.factureRepository.save(savedFacture);
       } catch (error) {
@@ -124,10 +126,14 @@ export class FinanceService {
     const skip = (page - 1) * limit;
 
     const tenantId = TenantContext.getTenantId();
-    const where = TenantHelper.addTenantFilter({}, tenantId, 'etudiant.etablissement');
+    const where = TenantHelper.addTenantFilter(
+      {},
+      tenantId,
+      'etudiant.etablissement',
+    );
 
     const [items, total] = await this.factureRepository.findAndCount({
-      where: where as any,
+      where: where,
       relations: { etudiant: true, paiements: true },
       order: { dateEmission: 'DESC' },
       skip,
@@ -144,10 +150,14 @@ export class FinanceService {
 
   async findOneFacture(id: number) {
     const tenantId = TenantContext.getTenantId();
-    const where = TenantHelper.addTenantFilter({ id }, tenantId, 'etudiant.etablissement');
+    const where = TenantHelper.addTenantFilter(
+      { id },
+      tenantId,
+      'etudiant.etablissement',
+    );
 
     const facture = await this.factureRepository.findOne({
-      where: where as any,
+      where: where,
       relations: { etudiant: true, paiements: true },
     });
     if (!facture) throw new NotFoundException(`Facture #${id} introuvable`);
@@ -159,7 +169,7 @@ export class FinanceService {
   async createPaiement(dto: CreatePaiementDto) {
     const tenantId = TenantContext.getTenantId();
     const etudiant = await this.etudiantRepository.findOne({
-      where: TenantHelper.addTenantFilter({ id: dto.etudiantId }, tenantId) as any,
+      where: TenantHelper.addTenantFilter({ id: dto.etudiantId }, tenantId),
     });
     if (!etudiant)
       throw new NotFoundException(`Étudiant #${dto.etudiantId} introuvable`);
@@ -192,7 +202,9 @@ export class FinanceService {
         where: { id: savedPaiement.id },
         relations: { etudiant: { etablissement: true } },
       });
-      const recuPath = await generateReceiptPdf(paiementWithEtab || savedPaiement);
+      const recuPath = await generateReceiptPdf(
+        paiementWithEtab || savedPaiement,
+      );
       savedPaiement.recuPath = recuPath;
       await this.paiementRepository.save(savedPaiement);
     } catch (error) {
@@ -229,7 +241,9 @@ export class FinanceService {
           where: { id: facture.id },
           relations: { etudiant: { etablissement: true } },
         });
-        const quittancePath = await generateQuittancePdf(factureWithEtab || facture);
+        const quittancePath = await generateQuittancePdf(
+          factureWithEtab || facture,
+        );
         facture.quittancePath = quittancePath;
       } catch (error) {
         console.error('Erreur lors de la génération de la quittance:', error);
@@ -248,10 +262,14 @@ export class FinanceService {
     const skip = (page - 1) * limit;
 
     const tenantId = TenantContext.getTenantId();
-    const where = TenantHelper.addTenantFilter({}, tenantId, 'etudiant.etablissement');
+    const where = TenantHelper.addTenantFilter(
+      {},
+      tenantId,
+      'etudiant.etablissement',
+    );
 
     const [items, total] = await this.paiementRepository.findAndCount({
-      where: where as any,
+      where: where,
       relations: { etudiant: true, facture: true },
       order: { datePaiement: 'DESC' },
       skip,
@@ -270,13 +288,17 @@ export class FinanceService {
 
   async getDashboardStats() {
     const tenantId = TenantContext.getTenantId();
-    const where = TenantHelper.addTenantFilter({}, tenantId, 'etudiant.etablissement');
+    const where = TenantHelper.addTenantFilter(
+      {},
+      tenantId,
+      'etudiant.etablissement',
+    );
 
     const now = new Date();
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
 
     const allPaiements = await this.paiementRepository.find({
-      where: where as any,
+      where: where,
       relations: { etudiant: { niveau: true } },
     });
     const totalCollected = allPaiements.reduce(
@@ -293,7 +315,7 @@ export class FinanceService {
     );
 
     const allFactures = await this.factureRepository.find({
-      where: where as any,
+      where: where,
       relations: { etudiant: { niveau: true } },
     });
     const totalInvoiced = allFactures.reduce(
@@ -341,10 +363,14 @@ export class FinanceService {
     if (start && end) {
       where.datePaiement = Between(new Date(start), new Date(end));
     }
-    where = TenantHelper.addTenantFilter(where, tenantId, 'etudiant.etablissement');
+    where = TenantHelper.addTenantFilter(
+      where,
+      tenantId,
+      'etudiant.etablissement',
+    );
 
     const paiements = await this.paiementRepository.find({
-      where: where as any,
+      where: where,
       relations: { etudiant: true, facture: true },
       order: { datePaiement: 'ASC' },
     });
@@ -359,10 +385,14 @@ export class FinanceService {
 
   async generateManualReceipt(paiementId: number) {
     const tenantId = TenantContext.getTenantId();
-    const where = TenantHelper.addTenantFilter({ id: paiementId }, tenantId, 'etudiant.etablissement');
+    const where = TenantHelper.addTenantFilter(
+      { id: paiementId },
+      tenantId,
+      'etudiant.etablissement',
+    );
 
     const paiement = await this.paiementRepository.findOne({
-      where: where as any,
+      where: where,
       relations: { etudiant: { etablissement: true }, facture: true },
     });
     if (!paiement)
@@ -381,10 +411,14 @@ export class FinanceService {
 
   async generateManualQuittance(factureId: number) {
     const tenantId = TenantContext.getTenantId();
-    const where = TenantHelper.addTenantFilter({ id: factureId }, tenantId, 'etudiant.etablissement');
+    const where = TenantHelper.addTenantFilter(
+      { id: factureId },
+      tenantId,
+      'etudiant.etablissement',
+    );
 
     const facture = await this.factureRepository.findOne({
-      where: where as any,
+      where: where,
       relations: { etudiant: { etablissement: true } },
     });
     if (!facture)
@@ -432,12 +466,17 @@ export class FinanceService {
     });
   }
 
-  async generateAutoFactures(etudiantId: number, classeId: number, niveauId: number) {
+  async generateAutoFactures(
+    etudiantId: number,
+    classeId: number,
+    niveauId: number,
+  ) {
     const etudiant = await this.etudiantRepository.findOne({
       where: { id: etudiantId },
-      relations: { etablissement: true }
+      relations: { etablissement: true },
     });
-    if (!etudiant) throw new NotFoundException(`Étudiant #${etudiantId} introuvable`);
+    if (!etudiant)
+      throw new NotFoundException(`Étudiant #${etudiantId} introuvable`);
 
     const tenantId = etudiant.etablissement.id;
 
@@ -446,12 +485,14 @@ export class FinanceService {
       where: {
         classe: { id: classeId },
         niveau: { id: niveauId },
-        etablissement: { id: tenantId }
-      }
+        etablissement: { id: tenantId },
+      },
     });
 
     if (fraisList.length === 0) {
-      console.warn(`Aucun frais configuré pour Classe #${classeId} et Niveau #${niveauId}`);
+      console.warn(
+        `Aucun frais configuré pour Classe #${classeId} et Niveau #${niveauId}`,
+      );
       return [];
     }
 

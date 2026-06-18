@@ -26,12 +26,14 @@ describe('Parent Module (e2e)', () => {
 
     // Créer un utilisateur admin pour les tests
     const passwordHash = await require('bcrypt').hash('password123', 10);
-    await dataSource.query(`INSERT INTO "user" (email, password, role) VALUES ('admin@test.com', '${passwordHash}', '${Role.SUPER_ADMIN}')`);
+    await dataSource.query(
+      `INSERT INTO "user" (email, password, role) VALUES ('admin@test.com', '${passwordHash}', '${Role.SUPER_ADMIN}')`,
+    );
 
     const loginRes = await request(app.getHttpServer())
       .post('/api/auth/login')
       .send({ email: 'admin@test.com', password: 'password123' });
-    
+
     // console.log('Login Response:', loginRes.body);
     accessToken = loginRes.body.access_token;
   });
@@ -41,7 +43,9 @@ describe('Parent Module (e2e)', () => {
     const entities = dataSource.entityMetadatas;
     for (const entity of entities) {
       const repository = dataSource.getRepository(entity.name);
-      await repository.query(`TRUNCATE "${entity.tableName}" RESTART IDENTITY CASCADE;`);
+      await repository.query(
+        `TRUNCATE "${entity.tableName}" RESTART IDENTITY CASCADE;`,
+      );
     }
     await app.close();
   });
@@ -49,7 +53,7 @@ describe('Parent Module (e2e)', () => {
   let parentId: number;
   let etudiantId: number;
 
-  it('1. Création d\'un parent', async () => {
+  it("1. Création d'un parent", async () => {
     const res = await request(app.getHttpServer())
       .post('/api/parents')
       .set('Authorization', `Bearer ${accessToken}`)
@@ -62,20 +66,25 @@ describe('Parent Module (e2e)', () => {
         job: 'Ingénieur',
       })
       .expect(201);
-    
+
     parentId = res.body.data.id;
     expect(parentId).toBeDefined();
     expect(res.body.data.firstName).toBe('Jean');
   });
 
-  it('2. Création d\'un étudiant avec le parent', async () => {
+  it("2. Création d'un étudiant avec le parent", async () => {
     // Create relations first
     const etablissement = await request(app.getHttpServer())
       .post('/api/etablissement')
       .set('Authorization', `Bearer ${accessToken}`)
-      .send({ name: 'Etab Test', address: 'Test', email: 'etab@test.com', phone: '123' })
+      .send({
+        name: 'Etab Test',
+        address: 'Test',
+        email: 'etab@test.com',
+        phone: '123',
+      })
       .expect(201);
-    
+
     const niveau = await request(app.getHttpServer())
       .post('/api/niveau')
       .set('Authorization', `Bearer ${accessToken}`)
@@ -106,22 +115,22 @@ describe('Parent Module (e2e)', () => {
         parentIds: [parentId],
       })
       .expect(201);
-    
+
     etudiantId = res.body.data.id;
     expect(res.body.data.parents).toHaveLength(1);
     expect(res.body.data.parents[0].id).toBe(parentId);
   });
 
-  it('2.1. ÉCHEC : Création d\'un étudiant sans parent', async () => {
+  it("2.1. ÉCHEC : Création d'un étudiant sans parent", async () => {
     const etablissement = await request(app.getHttpServer())
-        .get('/api/etablissement')
-        .set('Authorization', `Bearer ${accessToken}`);
+      .get('/api/etablissement')
+      .set('Authorization', `Bearer ${accessToken}`);
     const niveau = await request(app.getHttpServer())
-        .get('/api/niveau')
-        .set('Authorization', `Bearer ${accessToken}`);
+      .get('/api/niveau')
+      .set('Authorization', `Bearer ${accessToken}`);
     const classe = await request(app.getHttpServer())
-        .get('/api/classe')
-        .set('Authorization', `Bearer ${accessToken}`);
+      .get('/api/classe')
+      .set('Authorization', `Bearer ${accessToken}`);
 
     await request(app.getHttpServer())
       .post('/api/etudiants')
@@ -153,14 +162,14 @@ describe('Parent Module (e2e)', () => {
     const p2Id = resP2.body.data.id;
 
     const etablissement = await request(app.getHttpServer())
-        .get('/api/etablissement')
-        .set('Authorization', `Bearer ${accessToken}`);
+      .get('/api/etablissement')
+      .set('Authorization', `Bearer ${accessToken}`);
     const niveau = await request(app.getHttpServer())
-        .get('/api/niveau')
-        .set('Authorization', `Bearer ${accessToken}`);
+      .get('/api/niveau')
+      .set('Authorization', `Bearer ${accessToken}`);
     const classe = await request(app.getHttpServer())
-        .get('/api/classe')
-        .set('Authorization', `Bearer ${accessToken}`);
+      .get('/api/classe')
+      .set('Authorization', `Bearer ${accessToken}`);
 
     await request(app.getHttpServer())
       .post('/api/etudiants')
@@ -183,7 +192,7 @@ describe('Parent Module (e2e)', () => {
       .get(`/api/parents/${parentId}`)
       .set('Authorization', `Bearer ${accessToken}`)
       .expect(200);
-    
+
     expect(res.body.data.etudiants).toHaveLength(1);
     expect(res.body.data.etudiants[0].id).toBe(etudiantId);
   });
@@ -193,7 +202,7 @@ describe('Parent Module (e2e)', () => {
       .get('/api/parents/contacts?search=Dupont')
       .set('Authorization', `Bearer ${accessToken}`)
       .expect(200);
-    
+
     expect(res.body.data.length).toBeGreaterThanOrEqual(1);
   });
 
@@ -203,7 +212,7 @@ describe('Parent Module (e2e)', () => {
       .set('Authorization', `Bearer ${accessToken}`)
       .send({ job: 'Directeur' })
       .expect(200);
-    
+
     expect(res.body.data.job).toBe('Directeur');
   });
 
@@ -212,7 +221,7 @@ describe('Parent Module (e2e)', () => {
       .delete(`/api/parents/${parentId}`)
       .set('Authorization', `Bearer ${accessToken}`)
       .expect(200);
-    
+
     await request(app.getHttpServer())
       .get(`/api/parents/${parentId}`)
       .set('Authorization', `Bearer ${accessToken}`)

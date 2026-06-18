@@ -1,4 +1,12 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, ManyToOne, JoinColumn } from 'typeorm';
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  CreateDateColumn,
+  UpdateDateColumn,
+  ManyToOne,
+  JoinColumn,
+} from 'typeorm';
 import { ApiProperty } from '@nestjs/swagger';
 import { Etablissement } from '../../etablissement/entities/etablissement.entity';
 
@@ -19,7 +27,9 @@ export class Discipline {
   title!: string;
 
   @Column({ type: 'text' })
-  @ApiProperty({ example: 'Le port de la blouse est obligatoire dans les laboratoires.' })
+  @ApiProperty({
+    example: 'Le port de la blouse est obligatoire dans les laboratoires.',
+  })
   content!: string;
 
   @Column({

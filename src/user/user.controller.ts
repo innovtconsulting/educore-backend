@@ -19,6 +19,7 @@ import { User, Role } from './entities/user.entity';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
+import { Permissions } from '../auth/decorators/permissions.decorator';
 import {
   ApiTags,
   ApiOperation,
@@ -135,28 +136,28 @@ export class UserController {
   }
 
   @Post()
-  @Roles(Role.SUPER_ADMIN)
+  @Permissions('USER_MANAGE')
   @ApiOperation({ summary: 'Créer un nouvel utilisateur' })
   create(@Body() userData: Partial<User>) {
     return this.userService.create(userData);
   }
 
   @Get()
-  @Roles(Role.SUPER_ADMIN)
+  @Permissions('USER_MANAGE')
   @ApiOperation({ summary: 'Lister tous les utilisateurs' })
   findAll(@Query() query: PaginationQueryDto) {
     return this.userService.findAll(query);
   }
 
   @Get(':id')
-  @Roles(Role.SUPER_ADMIN)
+  @Permissions('USER_MANAGE')
   @ApiOperation({ summary: 'Obtenir un utilisateur par son ID' })
   findOne(@Param('id', ParseIntPipe) id: number) {
     return this.userService.findOne(id);
   }
 
   @Patch(':id')
-  @Roles(Role.SUPER_ADMIN)
+  @Permissions('USER_MANAGE')
   @ApiOperation({ summary: 'Modifier un utilisateur' })
   update(
     @Param('id', ParseIntPipe) id: number,
@@ -166,7 +167,7 @@ export class UserController {
   }
 
   @Delete(':id')
-  @Roles(Role.SUPER_ADMIN)
+  @Permissions('USER_MANAGE')
   @ApiOperation({ summary: 'Supprimer un utilisateur' })
   remove(@Param('id', ParseIntPipe) id: number) {
     return this.userService.remove(id);

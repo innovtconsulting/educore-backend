@@ -30,6 +30,7 @@ import { EtudiantFilterDto } from './dto/etudiant-filter.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
+import { Permissions } from '../auth/decorators/permissions.decorator';
 import { Role } from '../user/entities/user.entity';
 import { Public } from '../auth/decorators/public.decorator';
 
@@ -41,7 +42,7 @@ export class EtudiantController {
   constructor(private readonly etudiantService: EtudiantService) {}
 
   @Post()
-  @Roles(Role.SUPER_ADMIN, Role.ADMIN)
+  @Permissions('STUDENT_CREATE')
   @ApiOperation({ summary: 'Créer un nouvel étudiant' })
   async create(@Body() createEtudiantDto: CreateEtudiantDto) {
     const data = await this.etudiantService.create(createEtudiantDto);
@@ -52,7 +53,7 @@ export class EtudiantController {
   }
 
   @Get()
-  @Roles(Role.SUPER_ADMIN, Role.ADMIN, Role.SURVEILLANT)
+  @Permissions('STUDENT_VIEW')
   @ApiOperation({ summary: 'Récupérer tous les étudiants' })
   async findAll(@Query() filterDto: EtudiantFilterDto) {
     const data = await this.etudiantService.findAll(filterDto);
@@ -63,7 +64,7 @@ export class EtudiantController {
   }
 
   @Get(':id')
-  @Roles(Role.SUPER_ADMIN, Role.ADMIN, Role.SURVEILLANT)
+  @Permissions('STUDENT_VIEW')
   @ApiOperation({ summary: 'Récupérer un étudiant par son ID' })
   async findOne(@Param('id') id: string) {
     const data = await this.etudiantService.findOne(+id);
@@ -74,7 +75,7 @@ export class EtudiantController {
   }
 
   @Patch(':id')
-  @Roles(Role.SUPER_ADMIN, Role.ADMIN)
+  @Permissions('STUDENT_EDIT')
   @ApiOperation({
     summary: "Modifier un étudiant (Validation d'inscription inclus)",
   })
@@ -90,7 +91,7 @@ export class EtudiantController {
   }
 
   @Patch(':id/validate')
-  @Roles(Role.SUPER_ADMIN, Role.ADMIN)
+  @Permissions('STUDENT_VALIDATE')
   @ApiOperation({ summary: "Valider l'inscription d'un étudiant" })
   async validate(
     @Param('id') id: string,
@@ -107,7 +108,7 @@ export class EtudiantController {
   }
 
   @Delete(':id')
-  @Roles(Role.SUPER_ADMIN, Role.ADMIN)
+  @Permissions('STUDENT_DELETE')
   @ApiOperation({ summary: 'Supprimer un étudiant' })
   async remove(@Param('id') id: string) {
     await this.etudiantService.remove(+id);
@@ -117,7 +118,7 @@ export class EtudiantController {
   }
 
   @Post(':id/profile-picture')
-  @Roles(Role.SUPER_ADMIN, Role.ADMIN)
+  @Permissions('STUDENT_EDIT')
   @ApiOperation({ summary: "Mettre à jour la photo de profil de l'étudiant" })
   @ApiConsumes('multipart/form-data')
   @ApiBody({

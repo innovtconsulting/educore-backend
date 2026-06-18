@@ -36,7 +36,9 @@ describe('Auth & Roles (e2e)', () => {
     const entities = dataSource.entityMetadatas;
     for (const entity of entities) {
       const repository = dataSource.getRepository(entity.name);
-      await repository.query(`TRUNCATE "${entity.tableName}" RESTART IDENTITY CASCADE;`);
+      await repository.query(
+        `TRUNCATE "${entity.tableName}" RESTART IDENTITY CASCADE;`,
+      );
     }
 
     const passwordHash = await bcrypt.hash('password123', 10);
@@ -49,25 +51,47 @@ describe('Auth & Roles (e2e)', () => {
 
     // Create Base Entities
     const teacher = await teacherRepo.save({
-      firstName: 'T', lastName: 'E', email: 'teacher@test.com', matricule: 'T001', dateEmbauche: new Date()
+      firstName: 'T',
+      lastName: 'E',
+      email: 'teacher@test.com',
+      matricule: 'T001',
+      dateEmbauche: new Date(),
     });
 
     await userRepo.save([
-      { email: 'super@test.com', password: passwordHash, role: Role.SUPER_ADMIN },
+      {
+        email: 'super@test.com',
+        password: passwordHash,
+        role: Role.SUPER_ADMIN,
+      },
       { email: 'admin@test.com', password: passwordHash, role: Role.ADMIN },
-      { email: 'teacher@test.com', password: passwordHash, role: Role.ENSEIGNANT, enseignant: { id: teacher.id } },
+      {
+        email: 'teacher@test.com',
+        password: passwordHash,
+        role: Role.ENSEIGNANT,
+        enseignant: { id: teacher.id },
+      },
     ]);
 
     // Setup for teacher tests
-    const etab = await etabRepo.save({ name: 'Base Etab', address: 'T', email: 'b@t.com', phone: '1' });
+    const etab = await etabRepo.save({
+      name: 'Base Etab',
+      address: 'T',
+      email: 'b@t.com',
+      phone: '1',
+    });
     const niv = await nivRepo.save({ name: 'Base Niv' });
-    const mat = await matRepo.save({ name: 'Base Mat', code: 'BMAT', coefficient: 1 });
-    
+    const mat = await matRepo.save({
+      name: 'Base Mat',
+      code: 'BMAT',
+      coefficient: 1,
+    });
+
     await affectRepo.save({
       enseignant: { id: teacher.id },
       matiere: { id: mat.id },
       etablissement: { id: etab.id },
-      niveau: { id: niv.id }
+      niveau: { id: niv.id },
     });
 
     // Récupération des tokens
@@ -111,7 +135,11 @@ describe('Auth & Roles (e2e)', () => {
       await request(app.getHttpServer())
         .post('/api/users')
         .set('Authorization', `Bearer ${superAdminToken}`)
-        .send({ email: 'new@test.com', password: 'password123', role: Role.ADMIN })
+        .send({
+          email: 'new@test.com',
+          password: 'password123',
+          role: Role.ADMIN,
+        })
         .expect(201);
     });
   });
@@ -123,7 +151,12 @@ describe('Auth & Roles (e2e)', () => {
       const res = await request(app.getHttpServer())
         .post('/api/etablissement')
         .set('Authorization', `Bearer ${superAdminToken}`)
-        .send({ name: 'Role Etab', address: 'Test', email: 'role@test.com', phone: '123' })
+        .send({
+          name: 'Role Etab',
+          address: 'Test',
+          email: 'role@test.com',
+          phone: '123',
+        })
         .expect(201);
       etabId = res.body.data.id;
     });
@@ -132,7 +165,12 @@ describe('Auth & Roles (e2e)', () => {
       await request(app.getHttpServer())
         .post('/api/etablissement')
         .set('Authorization', `Bearer ${adminToken}`)
-        .send({ name: 'Admin Etab', address: 'Test', email: 'admin.etab@test.com', phone: '123' })
+        .send({
+          name: 'Admin Etab',
+          address: 'Test',
+          email: 'admin.etab@test.com',
+          phone: '123',
+        })
         .expect(403);
     });
 
@@ -173,8 +211,13 @@ describe('Auth & Roles (e2e)', () => {
       const etab = await request(app.getHttpServer())
         .post('/api/etablissement')
         .set('Authorization', `Bearer ${superAdminToken}`)
-        .send({ name: 'Admin Test Etab', address: 'Test', email: 'admin.etu@test.com', phone: '123' });
-      
+        .send({
+          name: 'Admin Test Etab',
+          address: 'Test',
+          email: 'admin.etu@test.com',
+          phone: '123',
+        });
+
       const niv = await request(app.getHttpServer())
         .post('/api/niveau')
         .set('Authorization', `Bearer ${superAdminToken}`)
@@ -183,22 +226,41 @@ describe('Auth & Roles (e2e)', () => {
       const cls = await request(app.getHttpServer())
         .post('/api/classe')
         .set('Authorization', `Bearer ${superAdminToken}`)
-        .send({ name: 'Classe Admin', etablissementIds: [etab.body.data.id], niveauIds: [niv.body.data.id] });
+        .send({
+          name: 'Classe Admin',
+          etablissementIds: [etab.body.data.id],
+          niveauIds: [niv.body.data.id],
+        });
 
       const parent = await request(app.getHttpServer())
         .post('/api/parents')
         .set('Authorization', `Bearer ${adminToken}`)
-        .send({ firstName: 'P', lastName: 'A', gender: 'Père', phoneNumber: '000' });
+        .send({
+          firstName: 'P',
+          lastName: 'A',
+          gender: 'Père',
+          phoneNumber: '000',
+        });
 
       await request(app.getHttpServer())
         .post('/api/etudiants')
         .set('Authorization', `Bearer ${adminToken}`)
         .send({
-          firstName: 'Etu', lastName: 'Admin', email: 'etu.admin@test.com', matricule: 'ETU-ADM-001',
-          etablissementId: etab.body.data.id, classeId: cls.body.data.id, niveauId: niv.body.data.id,
+          firstName: 'Etu',
+          lastName: 'Admin',
+          email: 'etu.admin@test.com',
+          matricule: 'ETU-ADM-001',
+          etablissementId: etab.body.data.id,
+          classeId: cls.body.data.id,
+          niveauId: niv.body.data.id,
           parentsData: [
-            { firstName: 'P', lastName: 'A', gender: 'Père', phoneNumber: '000' }
-          ]
+            {
+              firstName: 'P',
+              lastName: 'A',
+              gender: 'Père',
+              phoneNumber: '000',
+            },
+          ],
         })
         .expect(201);
     });
@@ -225,28 +287,47 @@ describe('Auth & Roles (e2e)', () => {
       const mat = await matRepo.findOneBy({ code: 'BMAT' });
       const niv = await nivRepo.findOneBy({ name: 'Base Niv' });
       const etab = await etabRepo.findOneBy({ name: 'Base Etab' });
-      
+
       const cls = await request(app.getHttpServer())
         .post('/api/classe')
         .set('Authorization', `Bearer ${superAdminToken}`)
-        .send({ name: 'Teacher Class', etablissementIds: [etab.id], niveauIds: [niv.id] });
+        .send({
+          name: 'Teacher Class',
+          etablissementIds: [etab.id],
+          niveauIds: [niv.id],
+        });
 
       const annee = await request(app.getHttpServer())
         .post('/api/annee-universitaire')
         .set('Authorization', `Bearer ${superAdminToken}`)
-        .send({ label: '2028-2029', startDate: '2028-10-01', endDate: '2029-07-31' });
+        .send({
+          label: '2028-2029',
+          startDate: '2028-10-01',
+          endDate: '2029-07-31',
+        });
 
       const sem = await request(app.getHttpServer())
         .post('/api/semestre')
         .set('Authorization', `Bearer ${superAdminToken}`)
-        .send({ name: 'S1 Teach', startDate: '2028-10-01', endDate: '2029-02-28', anneeUniversitaireId: annee.body.data.id });
+        .send({
+          name: 'S1 Teach',
+          startDate: '2028-10-01',
+          endDate: '2029-02-28',
+          anneeUniversitaireId: annee.body.data.id,
+        });
 
       await request(app.getHttpServer())
         .post('/api/evaluation')
         .set('Authorization', `Bearer ${teacherToken}`)
         .send({
-          title: 'CC Teacher OK', type: 'Contrôle Continu', weight: 0.5, date: '2028-11-01',
-          matiereId: mat.id, classeId: cls.body.data.id, niveauId: niv.id, semestreId: sem.body.data.id
+          title: 'CC Teacher OK',
+          type: 'Contrôle Continu',
+          weight: 0.5,
+          date: '2028-11-01',
+          matiereId: mat.id,
+          classeId: cls.body.data.id,
+          niveauId: niv.id,
+          semestreId: sem.body.data.id,
         })
         .expect(201);
     });
@@ -262,7 +343,9 @@ describe('Auth & Roles (e2e)', () => {
     });
 
     it('Teacher cannot delete an etablissement', async () => {
-      const etabs = await request(app.getHttpServer()).get('/api/etablissement').set('Authorization', `Bearer ${adminToken}`);
+      const etabs = await request(app.getHttpServer())
+        .get('/api/etablissement')
+        .set('Authorization', `Bearer ${adminToken}`);
       await request(app.getHttpServer())
         .delete(`/api/etablissement/${etabs.body.data[0].id}`)
         .set('Authorization', `Bearer ${teacherToken}`)
@@ -270,23 +353,43 @@ describe('Auth & Roles (e2e)', () => {
     });
 
     it('Teacher cannot create evaluation for unassigned subject', async () => {
-      const etab = await request(app.getHttpServer()).get('/api/etablissement').set('Authorization', `Bearer ${adminToken}`);
-      const niv = await request(app.getHttpServer()).get('/api/niveau').set('Authorization', `Bearer ${adminToken}`);
-      const cls = await request(app.getHttpServer()).get('/api/classe').set('Authorization', `Bearer ${adminToken}`);
+      const etab = await request(app.getHttpServer())
+        .get('/api/etablissement')
+        .set('Authorization', `Bearer ${adminToken}`);
+      const niv = await request(app.getHttpServer())
+        .get('/api/niveau')
+        .set('Authorization', `Bearer ${adminToken}`);
+      const cls = await request(app.getHttpServer())
+        .get('/api/classe')
+        .set('Authorization', `Bearer ${adminToken}`);
       const mat = await request(app.getHttpServer())
         .post('/api/matiere')
         .set('Authorization', `Bearer ${adminToken}`)
-        .send({ name: 'Unassigned Math', code: 'UNMAT', coefficient: 2, classeIds: [cls.body.data[0].id], niveauIds: [niv.body.data[0].id] });
-      
-      const sem = await request(app.getHttpServer()).get('/api/semestre').set('Authorization', `Bearer ${adminToken}`);
+        .send({
+          name: 'Unassigned Math',
+          code: 'UNMAT',
+          coefficient: 2,
+          classeIds: [cls.body.data[0].id],
+          niveauIds: [niv.body.data[0].id],
+        });
+
+      const sem = await request(app.getHttpServer())
+        .get('/api/semestre')
+        .set('Authorization', `Bearer ${adminToken}`);
 
       // Attempt to create evaluation for 'Unassigned Math' without Affectation
       await request(app.getHttpServer())
         .post('/api/evaluation')
         .set('Authorization', `Bearer ${teacherToken}`)
         .send({
-          title: 'Illegal CC', type: 'Contrôle Continu', weight: 0.5, date: '2027-11-01',
-          matiereId: mat.body.data.id, classeId: cls.body.data[0].id, niveauId: niv.body.data[0].id, semestreId: sem.body.data[0].id
+          title: 'Illegal CC',
+          type: 'Contrôle Continu',
+          weight: 0.5,
+          date: '2027-11-01',
+          matiereId: mat.body.data.id,
+          classeId: cls.body.data[0].id,
+          niveauId: niv.body.data[0].id,
+          semestreId: sem.body.data[0].id,
         })
         .expect(403); // Forbidden
     });

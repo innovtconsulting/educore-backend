@@ -178,7 +178,9 @@ export class EnseignantService {
 
     // Synchroniser le username si le prénom a changé
     if (updateEnseignantDto.firstName && enseignant.user) {
-      await this.userService.update(enseignant.user.id, { username: updateEnseignantDto.firstName });
+      await this.userService.update(enseignant.user.id, {
+        username: updateEnseignantDto.firstName,
+      });
     }
 
     return savedEnseignant;

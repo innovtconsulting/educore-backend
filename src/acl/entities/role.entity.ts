@@ -1,4 +1,10 @@
-import { Entity, PrimaryGeneratedColumn, Column, ManyToMany, JoinTable } from 'typeorm';
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  ManyToMany,
+  JoinTable,
+} from 'typeorm';
 import { ApiProperty } from '@nestjs/swagger';
 import { Permission } from './permission.entity';
 
@@ -13,7 +19,7 @@ export class Role {
   name!: string;
 
   @Column({ nullable: true })
-  @ApiProperty({ example: 'Administrateur de l\'établissement' })
+  @ApiProperty({ example: "Administrateur de l'établissement" })
   description?: string;
 
   @ManyToMany(() => Permission)

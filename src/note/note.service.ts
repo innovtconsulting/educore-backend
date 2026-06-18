@@ -1,4 +1,8 @@
-import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { CreateNoteDto } from './dto/create-note.dto';
@@ -27,16 +31,18 @@ export class NoteService {
 
     const evaluation = await this.evaluationRepository.findOne({
       where: { id: evaluationId },
-      relations: { 
-        matiere: true, 
+      relations: {
+        matiere: true,
         niveau: true,
-        classe: { etablissements: true }
+        classe: { etablissements: true },
       },
     });
     if (!evaluation) throw new NotFoundException('Évaluation introuvable');
 
     if (user.role === Role.ENSEIGNANT) {
-      const etablissementIds = evaluation.classe.etablissements.map(e => e.id);
+      const etablissementIds = evaluation.classe.etablissements.map(
+        (e) => e.id,
+      );
       const isResponsible = await this.enseignantService.isResponsibleFor(
         user.enseignantId,
         evaluation.matiere.id,
@@ -76,16 +82,18 @@ export class NoteService {
 
     const evaluation = await this.evaluationRepository.findOne({
       where: { id: evaluationId },
-      relations: { 
-        matiere: true, 
+      relations: {
+        matiere: true,
         niveau: true,
-        classe: { etablissements: true }
+        classe: { etablissements: true },
       },
     });
     if (!evaluation) throw new NotFoundException('Évaluation introuvable');
 
     if (user.role === Role.ENSEIGNANT) {
-      const etablissementIds = evaluation.classe.etablissements.map(e => e.id);
+      const etablissementIds = evaluation.classe.etablissements.map(
+        (e) => e.id,
+      );
       const isResponsible = await this.enseignantService.isResponsibleFor(
         user.enseignantId,
         evaluation.matiere.id,
@@ -137,7 +145,11 @@ export class NoteService {
       where.etudiant = { id: user.etudiantId };
     }
 
-    where = TenantHelper.addTenantFilter(where, tenantId, 'etudiant.etablissement');
+    where = TenantHelper.addTenantFilter(
+      where,
+      tenantId,
+      'etudiant.etablissement',
+    );
 
     const [items, total] = await this.noteRepository.findAndCount({
       where,
@@ -161,7 +173,11 @@ export class NoteService {
   async findOne(id: number, user?: any) {
     const tenantId = TenantContext.getTenantId();
     let where: any = { id };
-    where = TenantHelper.addTenantFilter(where, tenantId, 'etudiant.etablissement');
+    where = TenantHelper.addTenantFilter(
+      where,
+      tenantId,
+      'etudiant.etablissement',
+    );
 
     const note = await this.noteRepository.findOne({
       where,
@@ -172,10 +188,16 @@ export class NoteService {
     });
     if (!note) throw new NotFoundException(`Note #${id} non trouvée`);
 
-    if (user && user.role === Role.ETUDIANT && note.etudiant.id !== user.etudiantId) {
-      throw new ForbiddenException("Vous n'êtes pas autorisé à consulter cette note");
+    if (
+      user &&
+      user.role === Role.ETUDIANT &&
+      note.etudiant.id !== user.etudiantId
+    ) {
+      throw new ForbiddenException(
+        "Vous n'êtes pas autorisé à consulter cette note",
+      );
     }
-    
+
     return note;
   }
 
@@ -186,15 +208,17 @@ export class NoteService {
       // Re-charger les relations nécessaires pour la vérification de responsabilité
       const noteFull = await this.noteRepository.findOne({
         where: { id: note.id },
-        relations: { 
-          evaluation: { 
-            matiere: true, 
+        relations: {
+          evaluation: {
+            matiere: true,
             niveau: true,
-            classe: { etablissements: true }
-          } 
+            classe: { etablissements: true },
+          },
         },
       });
-      const etablissementIds = noteFull!.evaluation.classe.etablissements.map(e => e.id);
+      const etablissementIds = noteFull!.evaluation.classe.etablissements.map(
+        (e) => e.id,
+      );
       const isResponsible = await this.enseignantService.isResponsibleFor(
         user.enseignantId,
         noteFull!.evaluation.matiere.id,
@@ -218,15 +242,17 @@ export class NoteService {
     if (user.role === Role.ENSEIGNANT) {
       const noteFull = await this.noteRepository.findOne({
         where: { id: note.id },
-        relations: { 
-          evaluation: { 
-            matiere: true, 
+        relations: {
+          evaluation: {
+            matiere: true,
             niveau: true,
-            classe: { etablissements: true }
-          } 
+            classe: { etablissements: true },
+          },
         },
       });
-      const etablissementIds = noteFull!.evaluation.classe.etablissements.map(e => e.id);
+      const etablissementIds = noteFull!.evaluation.classe.etablissements.map(
+        (e) => e.id,
+      );
       const isResponsible = await this.enseignantService.isResponsibleFor(
         user.enseignantId,
         noteFull!.evaluation.matiere.id,

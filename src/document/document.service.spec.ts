@@ -42,7 +42,11 @@ describe('DocumentService', () => {
 
   describe('create', () => {
     it('should create and save a document', async () => {
-      const dto = { title: 'Test', description: 'Desc', category: DocumentCategory.ADMINISTRATIF };
+      const dto = {
+        title: 'Test',
+        description: 'Desc',
+        category: DocumentCategory.ADMINISTRATIF,
+      };
       const file = {
         path: 'uploads/documents/test.pdf',
         originalname: 'test.pdf',

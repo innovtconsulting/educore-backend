@@ -34,7 +34,9 @@ describe('Document Module (e2e)', () => {
     const entities = dataSource.entityMetadatas;
     for (const entity of entities) {
       const repository = dataSource.getRepository(entity.name);
-      await repository.query(`TRUNCATE "${entity.tableName}" RESTART IDENTITY CASCADE;`);
+      await repository.query(
+        `TRUNCATE "${entity.tableName}" RESTART IDENTITY CASCADE;`,
+      );
     }
 
     // Setup admin
@@ -55,7 +57,7 @@ describe('Document Module (e2e)', () => {
     await app.close();
   });
 
-  it('1. Upload d\'un document', async () => {
+  it("1. Upload d'un document", async () => {
     // Créer un fichier de test temporaire
     const testFilePath = path.join(__dirname, 'test-file.txt');
     fs.writeFileSync(testFilePath, 'Contenu de test pour upload');
@@ -68,10 +70,10 @@ describe('Document Module (e2e)', () => {
       .field('description', 'Une description de test')
       .field('category', 'Administratif')
       .expect(201);
-    
+
     expect(res.body.data.title).toBe('Document de Test');
     expect(res.body.data.filePath).toBeDefined();
-    
+
     // Nettoyage fichier de test
     fs.unlinkSync(testFilePath);
   });
@@ -81,7 +83,7 @@ describe('Document Module (e2e)', () => {
       .get('/api/documents')
       .set('Authorization', `Bearer ${authToken}`)
       .expect(200);
-    
+
     expect(res.body.data.items).toHaveLength(1);
     expect(res.body.data.items[0].title).toBe('Document de Test');
   });
@@ -97,7 +99,7 @@ describe('Document Module (e2e)', () => {
       .delete(`/api/documents/${docId}`)
       .set('Authorization', `Bearer ${authToken}`)
       .expect(200);
-    
+
     // Vérifier que le fichier physique est supprimé
     expect(fs.existsSync(filePath)).toBe(false);
 

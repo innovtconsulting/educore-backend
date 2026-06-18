@@ -24,12 +24,14 @@ describe('Etudiant Pre-inscription (e2e)', () => {
     await app.init();
 
     dataSource = app.get(DataSource);
-    
+
     // Clean database
     const entities = dataSource.entityMetadatas;
     for (const entity of entities) {
       const repository = dataSource.getRepository(entity.name);
-      await repository.query(`TRUNCATE "${entity.tableName}" RESTART IDENTITY CASCADE;`);
+      await repository.query(
+        `TRUNCATE "${entity.tableName}" RESTART IDENTITY CASCADE;`,
+      );
     }
 
     // Seed necessary data
@@ -39,11 +41,24 @@ describe('Etudiant Pre-inscription (e2e)', () => {
     const userRepo = dataSource.getRepository('User');
     const settingRepo = dataSource.getRepository('GlobalSetting');
 
-    const etab = await etabRepo.save({ name: 'Test Etab', address: 'Test', email: 'etab@test.com', phone: '123' });
+    const etab = await etabRepo.save({
+      name: 'Test Etab',
+      address: 'Test',
+      email: 'etab@test.com',
+      phone: '123',
+    });
     const niv = await nivRepo.save({ name: 'L1' });
     const cls = await clsRepo.save({ name: 'Informatique' });
-    await dataSource.createQueryBuilder().relation('Classe', 'etablissements').of(cls).add(etab);
-    await dataSource.createQueryBuilder().relation('Classe', 'niveaux').of(cls).add(niv);
+    await dataSource
+      .createQueryBuilder()
+      .relation('Classe', 'etablissements')
+      .of(cls)
+      .add(etab);
+    await dataSource
+      .createQueryBuilder()
+      .relation('Classe', 'niveaux')
+      .of(cls)
+      .add(niv);
 
     // Create Admin for validation
     const hashedPassword = await bcrypt.hash('password123', 10);
@@ -52,13 +67,13 @@ describe('Etudiant Pre-inscription (e2e)', () => {
       password: hashedPassword,
       role: Role.ADMIN,
       etablissementId: etab.id,
-      isActive: true
+      isActive: true,
     });
 
     // Enable student registration
     await settingRepo.save({
       key: 'ENABLE_STUDENT_REGISTRATION',
-      value: 'true'
+      value: 'true',
     });
   });
 
@@ -85,18 +100,22 @@ describe('Etudiant Pre-inscription (e2e)', () => {
                 firstName: 'Papa',
                 lastName: 'Smith',
                 gender: 'Père',
-                phoneNumber: '111222333'
-              }
-            ]
-          }
+                phoneNumber: '111222333',
+              },
+            ],
+          },
         });
 
       expect(res.status).toBe(201);
-      expect(res.body.data.message).toContain('Votre demande de pré-inscription a été enregistrée avec succès');
+      expect(res.body.data.message).toContain(
+        'Votre demande de pré-inscription a été enregistrée avec succès',
+      );
 
       // Vérifier que le compte User est créé mais inactif
       const userRepo = dataSource.getRepository('User');
-      const user = await userRepo.findOneBy({ email: 'jane.smith@student.com' });
+      const user = await userRepo.findOneBy({
+        email: 'jane.smith@student.com',
+      });
       expect(user).toBeDefined();
       expect(user?.isActive).toBe(false);
 
@@ -120,12 +139,19 @@ describe('Etudiant Pre-inscription (e2e)', () => {
             etablissementId: 1,
             classeId: 1,
             niveauId: 1,
-            parentsData: [{ firstName: 'P', lastName: 'S', gender: 'Père', phoneNumber: '444' }]
-          }
+            parentsData: [
+              {
+                firstName: 'P',
+                lastName: 'S',
+                gender: 'Père',
+                phoneNumber: '444',
+              },
+            ],
+          },
         });
 
       expect(res.status).toBe(400);
-      expect(res.body.message).toContain("L'email existe déjà"); 
+      expect(res.body.message).toContain("L'email existe déjà");
     });
 
     it('should allow admin to validate the pre-registration and activate accounts', async () => {
@@ -140,15 +166,17 @@ describe('Etudiant Pre-inscription (e2e)', () => {
         .patch('/api/etudiants/1/validate')
         .set('Authorization', `Bearer ${adminToken}`)
         .send({
-          matricule: 'MAT-JANE-001'
+          matricule: 'MAT-JANE-001',
         });
 
       expect(res.status).toBe(200);
       expect(res.body.data.status).toBe(EnrollmentStatus.ACTIF);
-      
+
       // 3. Vérifier que les comptes sont activés
       const userRepo = dataSource.getRepository('User');
-      const user = await userRepo.findOneBy({ email: 'jane.smith@student.com' });
+      const user = await userRepo.findOneBy({
+        email: 'jane.smith@student.com',
+      });
       expect(user?.isActive).toBe(true);
 
       const parentUser = await userRepo.findOneBy({ email: '111222333' });
@@ -160,7 +188,7 @@ describe('Etudiant Pre-inscription (e2e)', () => {
         .post('/api/auth/login')
         .send({
           email: 'jane.smith@student.com',
-          password: 'password-jane'
+          password: 'password-jane',
         });
 
       expect(res.status).toBe(201);

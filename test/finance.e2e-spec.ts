@@ -35,7 +35,9 @@ describe('Finance Module (e2e)', () => {
     const entities = dataSource.entityMetadatas;
     for (const entity of entities) {
       const repository = dataSource.getRepository(entity.name);
-      await repository.query(`TRUNCATE "${entity.tableName}" RESTART IDENTITY CASCADE;`);
+      await repository.query(
+        `TRUNCATE "${entity.tableName}" RESTART IDENTITY CASCADE;`,
+      );
     }
 
     // Setup SuperAdmin
@@ -49,7 +51,7 @@ describe('Finance Module (e2e)', () => {
     const loginRes = await request(app.getHttpServer())
       .post('/api/auth/login')
       .send({ email: 'superadmin@test.com', password: 'password123' });
-    
+
     accessToken = loginRes.body.data.access_token;
 
     // Setup: Create Etab, Niveau, Classe, Parent, then Etudiant
@@ -112,14 +114,13 @@ describe('Finance Module (e2e)', () => {
         ],
       });
     etudiantId = etudiant.body.data.id;
-
   });
 
   afterAll(async () => {
     await app.close();
   });
 
-  it('1. Création d\'un frais configuré', async () => {
+  it("1. Création d'un frais configuré", async () => {
     const res = await request(app.getHttpServer())
       .post('/api/finance/frais')
       .set('Authorization', `Bearer ${accessToken}`)
@@ -129,13 +130,13 @@ describe('Finance Module (e2e)', () => {
         type: FeeType.SCOLARITE,
       })
       .expect(201);
-    
+
     expect(Number(res.body.data.amount)).toBe(500000);
   });
 
   let factureId: number;
 
-  it('2. Émission d\'une facture', async () => {
+  it("2. Émission d'une facture", async () => {
     const res = await request(app.getHttpServer())
       .post('/api/finance/factures')
       .set('Authorization', `Bearer ${accessToken}`)
@@ -146,13 +147,13 @@ describe('Finance Module (e2e)', () => {
         montantTotal: 500000,
       })
       .expect(201);
-    
+
     factureId = res.body.data.id;
     expect(factureId).toBeDefined();
     expect(res.body.data.status).toBe(InvoiceStatus.BROUILLON);
   });
 
-  it('3. Enregistrement d\'un paiement partiel', async () => {
+  it("3. Enregistrement d'un paiement partiel", async () => {
     const res = await request(app.getHttpServer())
       .post('/api/finance/paiements')
       .set('Authorization', `Bearer ${accessToken}`)
@@ -165,7 +166,7 @@ describe('Finance Module (e2e)', () => {
         modePaiement: PaymentMethod.WAVE,
       })
       .expect(201);
-    
+
     expect(Number(res.body.data.montant)).toBe(200000);
     expect(res.body.data.recuPath).toContain('.pdf');
 
@@ -174,7 +175,7 @@ describe('Finance Module (e2e)', () => {
       .get(`/api/finance/factures/${factureId}`)
       .set('Authorization', `Bearer ${accessToken}`)
       .expect(200);
-    
+
     expect(facRes.body.data.status).toBe(InvoiceStatus.PARTIEL);
   });
 
@@ -197,7 +198,7 @@ describe('Finance Module (e2e)', () => {
       .get(`/api/finance/factures/${factureId}`)
       .set('Authorization', `Bearer ${accessToken}`)
       .expect(200);
-    
+
     expect(facRes.body.data.status).toBe(InvoiceStatus.PAYE);
   });
 
@@ -206,20 +207,19 @@ describe('Finance Module (e2e)', () => {
       .get('/api/finance/dashboard')
       .set('Authorization', `Bearer ${accessToken}`)
       .expect(200);
-    
+
     expect(res.body.data.totalCollected).toBe(500000);
     expect(res.body.data.totalInvoiced).toBe(500000);
     expect(res.body.data.totalPending).toBe(0);
   });
 
-  it('6. Génération d\'un rapport financier', async () => {
+  it("6. Génération d'un rapport financier", async () => {
     const res = await request(app.getHttpServer())
       .get('/api/finance/report?start=2026-06-01&end=2026-06-30')
       .set('Authorization', `Bearer ${accessToken}`)
       .expect(200);
-    
+
     expect(res.body.data.count).toBe(2);
     expect(res.body.data.totalCollected).toBe(500000);
   });
 });
-

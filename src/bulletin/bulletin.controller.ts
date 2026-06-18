@@ -10,8 +10,9 @@ import { BulletinService } from './bulletin.service';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
-import { UserRoles } from '../auth/decorators/roles.decorator';
-import { UserRole } from '../user/entities/user.entity';
+import { Roles } from '../auth/decorators/roles.decorator';
+import { Permissions } from '../auth/decorators/permissions.decorator';
+import { Role } from '../user/entities/user.entity';
 import { Response } from 'express';
 import * as path from 'path';
 
@@ -23,14 +24,8 @@ export class BulletinController {
   constructor(private readonly bulletinService: BulletinService) {}
 
   @Get('etudiant/:etudiantId/semestre/:semestreId')
-  @UserRoles(
-    UserRole.SUPER_ADMIN,
-    UserRole.ADMIN,
-    UserRole.ENSEIGNANT,
-    UserRole.SURVEILLANT,
-    UserRole.PARENT,
-    UserRole.ETUDIANT,
-  )
+  @Roles(Role.PARENT, Role.ETUDIANT)
+  @Permissions('ACADEMIC_VIEW')
   @ApiOperation({
     summary:
       "Générer le bulletin de notes d'un étudiant pour un semestre (JSON)",
@@ -50,14 +45,8 @@ export class BulletinController {
   }
 
   @Get('etudiant/:etudiantId/semestre/:semestreId/pdf')
-  @UserRoles(
-    UserRole.SUPER_ADMIN,
-    UserRole.ADMIN,
-    UserRole.ENSEIGNANT,
-    UserRole.SURVEILLANT,
-    UserRole.PARENT,
-    UserRole.ETUDIANT,
-  )
+  @Roles(Role.PARENT, Role.ETUDIANT)
+  @Permissions('ACADEMIC_VIEW')
   @ApiOperation({
     summary:
       "Générer le bulletin de notes d'un étudiant pour un semestre (PDF)",

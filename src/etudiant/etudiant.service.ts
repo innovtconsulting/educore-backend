@@ -6,22 +6,22 @@ import {
   forwardRef,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, ILike, FindOptionsWhere } from 'typeorm';
 import { CreateEtudiantDto } from './dto/create-etudiant.dto';
 import { UpdateEtudiantDto } from './dto/update-etudiant.dto';
-import { ValidateEtudiantDto } from './dto/validate-etudiant.dto';
 import { Etudiant, EnrollmentStatus } from './entities/etudiant.entity';
 import { Etablissement } from '../etablissement/entities/etablissement.entity';
 import { Classe } from '../classe/entities/classe.entity';
 import { Niveau } from '../niveau/entities/niveau.entity';
 import { Parent, ParentGender } from '../parent/entities/parent.entity';
-import { In, ILike, FindOptionsWhere } from 'typeorm';
-import { unlink } from 'fs/promises';
-import { existsSync } from 'fs';
-import { join } from 'path';
 import { PaginationQueryDto } from '../common/dto/pagination-query.dto';
 import { TenantContext } from '../common/tenant/tenant.context';
 import { UserService } from '../user/user.service';
+import { User, UserRole } from '../user/entities/user.entity';
+import { ValidateEtudiantDto } from './dto/validate-etudiant.dto';
+import { unlink } from 'fs/promises';
+import { join } from 'path';
+import { existsSync } from 'fs';
 import { Role } from '../user/entities/user.entity';
 
 @Injectable()
@@ -41,114 +41,48 @@ export class EtudiantService {
     private readonly userService: UserService,
   ) {}
 
-  async preRegister(createEtudiantDto: CreateEtudiantDto): Promise<Etudiant> {
-    const {
-      etablissementId,
-      classeId,
-      niveauId,
-      parentsData,
-      password,
-      ...rest
-    } = createEtudiantDto;
+  async preRegister(data: any): Promise<Etudiant> {
+    const { password, ...etudiantData } = data;
 
-    // Pour une pré-inscription, on force le statut EN_ATTENTE et on ignore le matricule
-    const status = EnrollmentStatus.EN_ATTENTE;
-    delete rest.matricule;
-
-    if (!password) {
-      throw new BadRequestException(
-        'Le mot de passe est obligatoire pour la pré-inscription',
-      );
-    }
-
-    const etablissement = await this.etablissementRepository.findOneBy({
-      id: etablissementId,
+    // Créer le profil étudiant en attente
+    const etudiant = await this.create({
+      ...etudiantData,
+      status: EnrollmentStatus.EN_ATTENTE,
     });
-    if (!etablissement)
-      throw new NotFoundException(
-        `Établissement #${etablissementId} introuvable`,
-      );
 
-    const classe = await this.classeRepository.findOneBy({ id: classeId });
-    if (!classe) throw new NotFoundException(`Classe #${classeId} introuvable`);
+    // Créer le compte utilisateur inactif
+    await this.userService.create({
+      email: etudiant.email,
+      password: password,
+      role: UserRole.ETUDIANT,
+      isActive: false,
+      username: etudiant.firstName,
+    });
 
-    const niveau = await this.niveauRepository.findOneBy({ id: niveauId });
-    if (!niveau) throw new NotFoundException(`Niveau #${niveauId} introuvable`);
-
-    const parents: Parent[] = [];
-    if (parentsData && parentsData.length > 0) {
-      for (const pData of parentsData) {
-        let parent = await this.parentRepository.findOne({
-          where: [
-            { phoneNumber: pData.phoneNumber },
-            ...(pData.email ? [{ email: pData.email }] : []),
-          ],
-        });
-
-        if (!parent) {
-          parent = this.parentRepository.create(pData);
-          parent = await this.parentRepository.save(parent);
-        }
-        parents.push(parent);
-
-        // Créer un compte utilisateur pour le parent s'il n'existe pas
-        const parentUserEmail = pData.phoneNumber; // Identifiant parent = téléphone
-        const existingParentUser =
-          await this.userService.findByEmail(parentUserEmail);
-        if (!existingParentUser) {
+    // Créer les comptes parents si nécessaire
+    if (etudiant.parents) {
+      for (const parent of etudiant.parents) {
+        const existingUser = await this.userService.findByEmail(
+          parent.phoneNumber,
+        );
+        if (!existingUser) {
           await this.userService.create({
-            email: parentUserEmail,
-            username: pData.firstName,
-            password: '12345678',
-            role: Role.PARENT,
-            isActive: false, // Sera activé lors de la validation de l'étudiant
-            parent: parent,
+            email: parent.phoneNumber,
+            role: UserRole.PARENT,
+            isActive: false,
+            username: parent.firstName,
           });
         }
       }
-    } else {
-      throw new BadRequestException(
-        'Un étudiant doit avoir au moins un parent ou tuteur',
-      );
     }
 
-    const existingEmail = await this.etudiantRepository.findOne({
-      where: { email: rest.email },
-    });
-    if (existingEmail) {
-      throw new BadRequestException("L'email existe déjà");
-    }
-
-    const etudiant = this.etudiantRepository.create({
-      ...rest,
-      status,
-      etablissement,
-      classe,
-      niveau,
-      parents,
-    });
-
-    const savedEtudiant = await this.etudiantRepository.save(etudiant);
-
-    // Créer le compte utilisateur pour l'étudiant
-    await this.userService.create({
-      email: rest.email,
-      username: rest.firstName,
-      password: password,
-      role: Role.ETUDIANT,
-      isActive: false, // Sera activé lors de la validation
-      etudiant: savedEtudiant,
-      etablissement: etablissement,
-    });
-
-    return savedEtudiant;
+    return etudiant;
   }
 
   async create(createEtudiantDto: CreateEtudiantDto): Promise<Etudiant> {
     const { etablissementId, classeId, niveauId, parentsData, ...rest } =
       createEtudiantDto;
 
-    // Vérifier l'existence des relations de base
     const etablissement = await this.etablissementRepository.findOneBy({
       id: etablissementId,
     });
@@ -165,8 +99,12 @@ export class EtudiantService {
 
     const parents: Parent[] = [];
     if (parentsData && parentsData.length > 0) {
+      let hasTuteur = false;
       for (const pData of parentsData) {
-        // Chercher si le parent existe déjà par téléphone ou email
+        if (pData.gender === ParentGender.TUTEUR) {
+          hasTuteur = true;
+        }
+
         let parent = await this.parentRepository.findOne({
           where: [
             { phoneNumber: pData.phoneNumber },
@@ -175,30 +113,10 @@ export class EtudiantService {
         });
 
         if (!parent) {
-          // Créer le parent s'il n'existe pas
           parent = this.parentRepository.create(pData);
           parent = await this.parentRepository.save(parent);
         }
         parents.push(parent);
-      }
-
-      // Validation des règles métier pour les parents
-      if (parents.length > 2) {
-        throw new BadRequestException(
-          'Un étudiant ne peut pas avoir plus de 2 parents',
-        );
-      }
-
-      const hasPere = parents.some((p) => p.gender === ParentGender.PERE);
-      const hasMere = parents.some((p) => p.gender === ParentGender.MERE);
-      const hasTuteur = parents.some((p) => p.gender === ParentGender.TUTEUR);
-
-      if (parents.length === 2) {
-        if (!hasPere || !hasMere) {
-          throw new BadRequestException(
-            "Si l'étudiant a 2 parents, ce doit être un père et une mère",
-          );
-        }
       }
 
       if (hasTuteur && parents.length > 1) {
@@ -212,17 +130,7 @@ export class EtudiantService {
       );
     }
 
-    // Vérifier l'unicité du matricule (si fourni) et de l'email
-    const matricule = rest.matricule;
-    if (matricule) {
-      const existingMatricule = await this.etudiantRepository.findOne({
-        where: { matricule },
-      });
-      if (existingMatricule) {
-        throw new BadRequestException('Le matricule existe déjà');
-      }
-    }
-
+    // Vérifier l'unicité de l'email
     const existingEmail = await this.etudiantRepository.findOne({
       where: { email: rest.email },
     });
@@ -333,17 +241,6 @@ export class EtudiantService {
     const { etablissementId, classeId, niveauId, parentsData, ...rest } =
       updateEtudiantDto;
 
-    // Règle métier : Pour passer à l'état ACTIF, le matricule est OBLIGATOIRE
-    if (
-      rest.status === EnrollmentStatus.ACTIF &&
-      !etudiant.matricule &&
-      !rest.matricule
-    ) {
-      throw new BadRequestException(
-        "Un matricule doit être attribué pour activer l'inscription de l'étudiant",
-      );
-    }
-
     if (etablissementId) {
       const etablissement = await this.etablissementRepository.findOneBy({
         id: etablissementId,
@@ -388,21 +285,14 @@ export class EtudiantService {
       etudiant.parents = parents;
     }
 
-    if (rest.matricule && rest.matricule !== etudiant.matricule) {
-      const existing = await this.etudiantRepository.findOne({
-        where: { matricule: rest.matricule },
-      });
-      if (existing) {
-        throw new BadRequestException('Ce matricule est déjà utilisé');
-      }
-    }
-
     Object.assign(etudiant, rest);
     const savedEtudiant = await this.etudiantRepository.save(etudiant);
 
     // Synchroniser le username si le prénom a changé
     if (rest.firstName && etudiant.user) {
-      await this.userService.update(etudiant.user.id, { username: rest.firstName });
+      await this.userService.update(etudiant.user.id, {
+        username: rest.firstName,
+      });
     }
 
     return savedEtudiant;

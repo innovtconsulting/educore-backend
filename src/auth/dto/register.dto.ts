@@ -20,13 +20,15 @@ export class RegisterDto {
     example: 'user@example.com',
     required: false,
     description:
-      "Optionnel pour Etudiant/Enseignant (récupéré via matricule). Pour les parents, le numéro de téléphone est utilisé.",
+      'Optionnel pour Etudiant (utilisé pour la pré-inscription). Pour les parents, le numéro de téléphone est utilisé.',
   })
   @IsString()
   @IsOptional()
   email?: string;
 
-  @ApiProperty({ example: 'password123' })
+  @ApiProperty({
+    example: 'password123'
+  })
   @IsString()
   @IsNotEmpty()
   @MinLength(6)
@@ -35,20 +37,12 @@ export class RegisterDto {
   @ApiProperty({
     enum: UserRole,
     example: UserRole.ETUDIANT,
-    description: "Rôle de l'utilisateur (Etudiant, Enseignant, Parent, Admin, Comptable, Surveillant)",
+    description:
+      "Rôle de l'utilisateur (Etudiant, Enseignant, Parent, Admin, Comptable, Surveillant)",
   })
   @IsEnum(UserRole)
   @IsNotEmpty()
   role!: UserRole;
-
-  @ApiProperty({
-    example: 1,
-    required: false,
-    description: "Obligatoire pour les rôles Admin, Comptable, Surveillant (ID de l'utilisateur).",
-  })
-  @IsNumber()
-  @IsOptional()
-  id?: number;
 
   @ApiProperty({
     type: CreateEtudiantDto,
@@ -63,7 +57,8 @@ export class RegisterDto {
   @ApiProperty({
     type: CreateEnseignantDto,
     required: false,
-    description: "Non utilisé (les enseignants sont créés par l'administrateur).",
+    description:
+      "Non utilisé (les enseignants sont créés par l'administrateur).",
   })
   @IsOptional()
   @ValidateNested()

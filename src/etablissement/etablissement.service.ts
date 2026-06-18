@@ -13,8 +13,12 @@ export class EtablissementService {
     private readonly etablissementRepository: Repository<Etablissement>,
   ) {}
 
-  async create(createEtablissementDto: CreateEtablissementDto): Promise<Etablissement> {
-    const etablissement = this.etablissementRepository.create(createEtablissementDto);
+  async create(
+    createEtablissementDto: CreateEtablissementDto,
+  ): Promise<Etablissement> {
+    const etablissement = this.etablissementRepository.create(
+      createEtablissementDto,
+    );
     return await this.etablissementRepository.save(etablissement);
   }
 
@@ -27,17 +31,24 @@ export class EtablissementService {
   async findOne(id: number): Promise<Etablissement> {
     const tenantId = TenantContext.getTenantId();
     if (tenantId && tenantId !== id) {
-      throw new NotFoundException(`L'établissement avec l'ID ${id} n'est pas accessible`);
+      throw new NotFoundException(
+        `L'établissement avec l'ID ${id} n'est pas accessible`,
+      );
     }
 
     const etablissement = await this.etablissementRepository.findOneBy({ id });
     if (!etablissement) {
-      throw new NotFoundException(`L'établissement avec l'ID ${id} n'a pas été trouvé`);
+      throw new NotFoundException(
+        `L'établissement avec l'ID ${id} n'a pas été trouvé`,
+      );
     }
     return etablissement;
   }
 
-  async update(id: number, updateEtablissementDto: UpdateEtablissementDto): Promise<Etablissement> {
+  async update(
+    id: number,
+    updateEtablissementDto: UpdateEtablissementDto,
+  ): Promise<Etablissement> {
     const etablissement = await this.findOne(id);
     Object.assign(etablissement, updateEtablissementDto);
     return await this.etablissementRepository.save(etablissement);

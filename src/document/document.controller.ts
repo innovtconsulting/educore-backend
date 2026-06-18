@@ -29,6 +29,7 @@ import { PaginationQueryDto } from '../common/dto/pagination-query.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
+import { Permissions } from '../auth/decorators/permissions.decorator';
 import { Role } from '../user/entities/user.entity';
 
 @ApiTags('documents')
@@ -39,7 +40,7 @@ export class DocumentController {
   constructor(private readonly documentService: DocumentService) {}
 
   @Post('upload')
-  @Roles(Role.SUPER_ADMIN, Role.ADMIN, Role.ENSEIGNANT)
+  @Permissions('DOCUMENT_MANAGE')
   @ApiOperation({
     summary: 'Uploader un nouveau document',
     description:
@@ -97,14 +98,8 @@ export class DocumentController {
   }
 
   @Get()
-  @Roles(
-    Role.SUPER_ADMIN,
-    Role.ADMIN,
-    Role.SURVEILLANT,
-    Role.ENSEIGNANT,
-    Role.ETUDIANT,
-    Role.PARENT,
-  )
+  @Roles(Role.ETUDIANT, Role.PARENT, Role.ENSEIGNANT)
+  @Permissions('DOCUMENT_MANAGE')
   @ApiOperation({
     summary: 'Récupérer tous les documents',
     description:
@@ -119,14 +114,8 @@ export class DocumentController {
   }
 
   @Get(':id')
-  @Roles(
-    Role.SUPER_ADMIN,
-    Role.ADMIN,
-    Role.SURVEILLANT,
-    Role.ENSEIGNANT,
-    Role.ETUDIANT,
-    Role.PARENT,
-  )
+  @Roles(Role.ETUDIANT, Role.PARENT, Role.ENSEIGNANT)
+  @Permissions('DOCUMENT_MANAGE')
   @ApiOperation({
     summary: 'Récupérer un document par son ID',
     description:
@@ -141,7 +130,7 @@ export class DocumentController {
   }
 
   @Patch(':id')
-  @Roles(Role.SUPER_ADMIN, Role.ADMIN, Role.ENSEIGNANT)
+  @Permissions('DOCUMENT_MANAGE')
   @ApiOperation({
     summary: "Modifier les métadonnées d'un document",
     description:
@@ -159,7 +148,7 @@ export class DocumentController {
   }
 
   @Delete(':id')
-  @Roles(Role.SUPER_ADMIN, Role.ADMIN)
+  @Permissions('DOCUMENT_MANAGE')
   @ApiOperation({
     summary: 'Supprimer un document',
     description:

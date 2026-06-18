@@ -10,7 +10,10 @@ import {
   InscriptionStatus,
 } from '../etudiant/entities/inscription.entity';
 import { CreateInscriptionDto } from './dto/create-inscription.dto';
-import { Etudiant, EnrollmentStatus } from '../etudiant/entities/etudiant.entity';
+import {
+  Etudiant,
+  EnrollmentStatus,
+} from '../etudiant/entities/etudiant.entity';
 import { AnneeUniversitaire } from '../annee-universitaire/entities/annee-universitaire.entity';
 import { Classe } from '../classe/entities/classe.entity';
 import { Niveau } from '../niveau/entities/niveau.entity';
@@ -82,7 +85,11 @@ export class InscriptionService {
       return {
         eligible: false,
         reason: 'Dettes impayées détectées ou factures non validées',
-        details: unpaidInvoices.map(f => ({ numero: f.numero, montant: f.montantTotal, status: f.status })),
+        details: unpaidInvoices.map((f) => ({
+          numero: f.numero,
+          montant: f.montantTotal,
+          status: f.status,
+        })),
       };
     }
 
@@ -95,7 +102,8 @@ export class InscriptionService {
     if (!annee || annee.semestres.length === 0) {
       return {
         eligible: true,
-        reason: "Aucune donnée académique pour l'année actuelle, passage autorisé par défaut",
+        reason:
+          "Aucune donnée académique pour l'année actuelle, passage autorisé par défaut",
       };
     }
 
@@ -119,17 +127,26 @@ export class InscriptionService {
     }
 
     if (countSemestres === 0) {
-      return { eligible: true, reason: 'Aucun bulletin disponible, passage autorisé' };
+      return {
+        eligible: true,
+        reason: 'Aucun bulletin disponible, passage autorisé',
+      };
     }
 
     const moyenneAnnuelle = totalMoyenne / countSemestres;
 
     // Récupérer les seuils depuis les paramètres globaux (avec valeurs par défaut si non configurés)
-    const passingGradeStr = await this.globalSettingService.getValue('ACADEMIC_PASSING_GRADE');
-    const eliminationThresholdStr = await this.globalSettingService.getValue('ACADEMIC_ELIMINATION_THRESHOLD');
-    
+    const passingGradeStr = await this.globalSettingService.getValue(
+      'ACADEMIC_PASSING_GRADE',
+    );
+    const eliminationThresholdStr = await this.globalSettingService.getValue(
+      'ACADEMIC_ELIMINATION_THRESHOLD',
+    );
+
     const passingGrade = passingGradeStr ? parseFloat(passingGradeStr) : 10;
-    const eliminationThreshold = eliminationThresholdStr ? parseFloat(eliminationThresholdStr) : 4;
+    const eliminationThreshold = eliminationThresholdStr
+      ? parseFloat(eliminationThresholdStr)
+      : 4;
 
     if (moyenneAnnuelle < passingGrade) {
       return {
@@ -185,7 +202,9 @@ export class InscriptionService {
       });
 
       if (!etudiant || !annee || !classe || !niveau)
-        throw new NotFoundException('Une ou plusieurs entités sont introuvables');
+        throw new NotFoundException(
+          'Une ou plusieurs entités sont introuvables',
+        );
 
       // 2. Clôturer l'ancienne inscription
       const oldInscription = etudiant.inscriptions.find(
@@ -236,10 +255,10 @@ export class InscriptionService {
       }
 
       await queryRunner.commitTransaction();
-      return { 
-        message: 'Réinscription effectuée avec succès et facturation générée.', 
+      return {
+        message: 'Réinscription effectuée avec succès et facturation générée.',
         inscription: newInscription,
-        moyenneAnnuelle: eligibility.moyenneAnnuelle 
+        moyenneAnnuelle: eligibility.moyenneAnnuelle,
       };
     } catch (err) {
       await queryRunner.rollbackTransaction();
@@ -296,10 +315,10 @@ export class InscriptionService {
       await queryRunner.manager.save(etudiant);
 
       await queryRunner.commitTransaction();
-      return { 
-        message: 'L\'étudiant a été marqué comme diplômé avec succès.', 
+      return {
+        message: "L'étudiant a été marqué comme diplômé avec succès.",
         status: etudiant.status,
-        moyenneFinale: eligibility.moyenneAnnuelle 
+        moyenneFinale: eligibility.moyenneAnnuelle,
       };
     } catch (err) {
       await queryRunner.rollbackTransaction();

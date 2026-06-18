@@ -10,7 +10,7 @@ export async function generateReceiptPdf(paiement: Paiement): Promise<string> {
       const doc = new PDFDocument({ size: 'A4', margin: 50 });
       const filename = `receipt_${paiement.reference}_${Date.now()}.pdf`;
       const directory = path.join(process.cwd(), 'uploads', 'receipts');
-      
+
       if (!fs.existsSync(directory)) {
         fs.mkdirSync(directory, { recursive: true });
       }
@@ -21,7 +21,9 @@ export async function generateReceiptPdf(paiement: Paiement): Promise<string> {
       doc.pipe(stream);
 
       // Header
-      const schoolName = paiement.etudiant.etablissement?.name?.toUpperCase() || 'REÇU DE PAIEMENT';
+      const schoolName =
+        paiement.etudiant.etablissement?.name?.toUpperCase() ||
+        'REÇU DE PAIEMENT';
       doc
         .fontSize(18)
         .font('Helvetica-Bold')
@@ -41,7 +43,9 @@ export async function generateReceiptPdf(paiement: Paiement): Promise<string> {
         .fontSize(14)
         .text('Informations Étudiant', { underline: true })
         .fontSize(12)
-        .text(`Nom: ${paiement.etudiant.lastName} ${paiement.etudiant.firstName}`)
+        .text(
+          `Nom: ${paiement.etudiant.lastName} ${paiement.etudiant.firstName}`,
+        )
         .text(`Matricule: ${paiement.etudiant.matricule}`)
         .moveDown();
 
@@ -58,9 +62,7 @@ export async function generateReceiptPdf(paiement: Paiement): Promise<string> {
       }
 
       doc.moveDown(2);
-      doc
-        .fontSize(10)
-        .text('Merci pour votre paiement.', { align: 'center' });
+      doc.fontSize(10).text('Merci pour votre paiement.', { align: 'center' });
 
       doc.end();
 
@@ -84,7 +86,7 @@ export async function generateQuittancePdf(facture: Facture): Promise<string> {
       const doc = new PDFDocument({ size: 'A4', margin: 50 });
       const filename = `quittance_${facture.numero}_${Date.now()}.pdf`;
       const directory = path.join(process.cwd(), 'uploads', 'receipts');
-      
+
       if (!fs.existsSync(directory)) {
         fs.mkdirSync(directory, { recursive: true });
       }
@@ -95,7 +97,9 @@ export async function generateQuittancePdf(facture: Facture): Promise<string> {
       doc.pipe(stream);
 
       // Header
-      const schoolName = facture.etudiant.etablissement?.name?.toUpperCase() || 'QUITTANCE DE PAIEMENT DÉFINITIVE';
+      const schoolName =
+        facture.etudiant.etablissement?.name?.toUpperCase() ||
+        'QUITTANCE DE PAIEMENT DÉFINITIVE';
       doc
         .fontSize(18)
         .font('Helvetica-Bold')
@@ -124,7 +128,9 @@ export async function generateQuittancePdf(facture: Facture): Promise<string> {
         .fontSize(14)
         .text('Objet de la Quittance', { underline: true })
         .fontSize(12)
-        .text(`Nous soussignés, certifions que l'étudiant susmentionné s'est acquitté de l'intégralité des frais liés à la facture ${facture.numero}.`)
+        .text(
+          `Nous soussignés, certifions que l'étudiant susmentionné s'est acquitté de l'intégralité des frais liés à la facture ${facture.numero}.`,
+        )
         .moveDown();
 
       doc

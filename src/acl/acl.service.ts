@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException, ConflictException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  ConflictException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, In } from 'typeorm';
 import { Role } from './entities/role.entity';
@@ -19,8 +23,11 @@ export class AclService {
   }
 
   async createPermission(data: Partial<Permission>): Promise<Permission> {
-    const existing = await this.permissionRepository.findOne({ where: { name: data.name } });
-    if (existing) throw new ConflictException(`La permission ${data.name} existe déjà`);
+    const existing = await this.permissionRepository.findOne({
+      where: { name: data.name },
+    });
+    if (existing)
+      throw new ConflictException(`La permission ${data.name} existe déjà`);
     const permission = this.permissionRepository.create(data);
     return await this.permissionRepository.save(permission);
   }
@@ -49,24 +56,36 @@ export class AclService {
     });
   }
 
-  async createRole(data: Partial<Role> & { permissionIds?: number[] }): Promise<Role> {
+  async createRole(
+    data: Partial<Role> & { permissionIds?: number[] },
+  ): Promise<Role> {
     const { permissionIds, ...roleData } = data;
-    const existing = await this.roleRepository.findOne({ where: { name: roleData.name } });
-    if (existing) throw new ConflictException(`Le rôle ${roleData.name} existe déjà`);
+    const existing = await this.roleRepository.findOne({
+      where: { name: roleData.name },
+    });
+    if (existing)
+      throw new ConflictException(`Le rôle ${roleData.name} existe déjà`);
 
     const role = this.roleRepository.create(roleData);
     if (permissionIds && permissionIds.length > 0) {
-      role.permissions = await this.permissionRepository.findBy({ id: In(permissionIds) });
+      role.permissions = await this.permissionRepository.findBy({
+        id: In(permissionIds),
+      });
     }
     return await this.roleRepository.save(role);
   }
 
-  async updateRole(id: number, data: Partial<Role> & { permissionIds?: number[] }): Promise<Role> {
+  async updateRole(
+    id: number,
+    data: Partial<Role> & { permissionIds?: number[] },
+  ): Promise<Role> {
     const { permissionIds, ...roleData } = data;
     const role = await this.findOneRole(id);
 
     if (permissionIds) {
-      role.permissions = await this.permissionRepository.findBy({ id: In(permissionIds) });
+      role.permissions = await this.permissionRepository.findBy({
+        id: In(permissionIds),
+      });
     }
 
     Object.assign(role, roleData);

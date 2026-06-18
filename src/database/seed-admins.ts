@@ -24,7 +24,9 @@ async function seedAdmins() {
 
     // 1. Création du SuperAdmin (Accès global)
     const superAdminEmail = 'superadmin@espm.sn';
-    let superAdmin = await userRepo.findOne({ where: { email: superAdminEmail } });
+    let superAdmin = await userRepo.findOne({
+      where: { email: superAdminEmail },
+    });
 
     if (!superAdmin) {
       superAdmin = userRepo.create({
@@ -58,7 +60,7 @@ async function seedAdmins() {
     if (!admin) {
       // On tente de lier l'admin au premier établissement trouvé
       const firstEtab = await etablissementRepo.findOne({ where: {} });
-      
+
       admin = userRepo.create({
         email: adminEmail,
         username: 'admin',
@@ -69,7 +71,9 @@ async function seedAdmins() {
         etablissement: firstEtab || undefined,
       });
       await userRepo.save(admin);
-      const etabInfo = firstEtab ? ` (Lié à ${firstEtab.name})` : ' (Sans établissement)';
+      const etabInfo = firstEtab
+        ? ` (Lié à ${firstEtab.name})`
+        : ' (Sans établissement)';
       console.log(`✅ Admin créé : ${adminEmail} / password123${etabInfo}`);
     } else {
       console.log('ℹ️ Admin existe déjà.');

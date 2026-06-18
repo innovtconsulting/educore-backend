@@ -39,10 +39,13 @@ export class AuthService {
   }
 
   async login(user: any) {
+    const permissions = user.aclRole?.permissions?.map((p: any) => p.name) || [];
+
     const payload = {
       email: user.email,
       sub: user.id,
       role: user.role,
+      permissions: permissions,
       etablissementId:
         user.etablissementId ||
         user.etudiant?.etablissement?.id ||
@@ -118,53 +121,9 @@ export class AuthService {
         // Pour les parents, l'identifiant (stocké dans le champ email de User) est le numéro de téléphone
         email = registerDto.parentData.phoneNumber;
         profile = await this.parentService.create(registerDto.parentData);
-      } else if (
-        [UserRole.ADMIN, UserRole.COMPTABLE, UserRole.SURVEILLANT].includes(role)
-      ) {
-        if (!registerDto.id) {
-          throw new BadRequestException(
-            "L'ID est obligatoire pour l'inscription d'un personnel (Admin, Comptable, Surveillant)",
-          );
-        }
-
-        const userToActivate = await this.userService.findOne(registerDto.id);
-        if (!userToActivate) {
-          throw new BadRequestException(
-            `Aucun utilisateur trouvé avec l'ID ${registerDto.id}.`,
-          );
-        }
-
-        if (userToActivate.role !== role) {
-          throw new BadRequestException(
-            `Le rôle demandé (${role}) ne correspond pas au rôle du compte trouvé (${userToActivate.role}).`,
-          );
-        }
-
-        // Si l'utilisateur a déjà un mot de passe, on considère qu'il est déjà activé
-        // Note: Selon les besoins, on pourrait permettre la ré-activation ou rediriger vers forgot-password
-        if (userToActivate.password) {
-          throw new BadRequestException(
-            'Ce compte est déjà activé. Veuillez vous connecter ou réinitialiser votre mot de passe.',
-          );
-        }
-
-        // Mise à jour de l'utilisateur existant
-        const activatedUser = await this.userService.update(userToActivate.id, {
-          password: password,
-          isActive: true, // Activer le compte lors de l'activation par ID
-        });
-
-        return {
-          message: 'Activation du compte réussie.',
-          user: {
-            id: activatedUser.id,
-            email: activatedUser.email,
-            role: activatedUser.role,
-          },
-        };
       } else {
         throw new BadRequestException(
-          "Rôle non supporté pour l'auto-inscription",
+          `L'auto-inscription n'est pas disponible pour le rôle ${role}. Votre compte doit être créé par l'administration.`,
         );
       }
 
@@ -187,12 +146,13 @@ export class AuthService {
         password: password,
         role: role,
         etablissement:
-          role === UserRole.ETUDIANT || role === UserRole.ENSEIGNANT
+          (role as any) === UserRole.ETUDIANT ||
+          (role as any) === UserRole.ENSEIGNANT
             ? profile.etablissement || profile.affectations?.[0]?.etablissement
             : null,
-        etudiant: role === UserRole.ETUDIANT ? profile : null,
-        enseignant: role === UserRole.ENSEIGNANT ? profile : null,
-        parent: role === UserRole.PARENT ? profile : null,
+        etudiant: (role as any) === UserRole.ETUDIANT ? profile : null,
+        enseignant: (role as any) === UserRole.ENSEIGNANT ? profile : null,
+        parent: (role as any) === UserRole.PARENT ? profile : null,
       });
 
       return {
@@ -208,7 +168,8 @@ export class AuthService {
       if (profile && profile.id) {
         if (role === UserRole.ENSEIGNANT)
           await this.enseignantService.remove(profile.id);
-        if (role === UserRole.PARENT) await this.parentService.remove(profile.id);
+        if (role === UserRole.PARENT)
+          await this.parentService.remove(profile.id);
       }
       throw error;
     }
