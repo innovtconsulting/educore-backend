@@ -6,6 +6,13 @@ import { EnrollmentStatus } from '../entities/etudiant.entity';
 
 export class EtudiantFilterDto extends PaginationQueryDto {
   @ApiPropertyOptional({
+    description: "Filtrer par établissement (réservé au SuperAdmin)",
+  })
+  @IsOptional()
+  @Type(() => Number)
+  etablissementId?: number;
+
+  @ApiPropertyOptional({
     enum: EnrollmentStatus,
     description: "Filtrer par statut d'inscription",
   })
