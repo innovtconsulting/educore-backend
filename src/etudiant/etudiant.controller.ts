@@ -34,7 +34,11 @@ import { Permissions } from '../auth/decorators/permissions.decorator';
 import { Role } from '../user/entities/user.entity';
 import { Public } from '../auth/decorators/public.decorator';
 
-import { ConfirmImportDto } from './dto/import-student.dto';
+import {
+  CheckImportResultDto,
+  RunImportDto,
+  ImportReportDto,
+} from './dto/import-student.dto';
 
 @ApiTags('etudiants')
 @ApiBearerAuth()
@@ -209,9 +213,71 @@ export class EtudiantController {
 
   @Post('import/confirm')
   @Permissions('STUDENT_CREATE')
-  @ApiOperation({ summary: 'Confirmer l\'importation des étudiants' })
-  async confirmImport(@Body() confirmDto: ConfirmImportDto) {
+  @ApiOperation({
+    summary: "Confirmer l'importation des étudiants (ancienne version)",
+  })
+  async confirmImport(@Body() confirmDto: any) {
     const data = await this.etudiantService.confirmImport(confirmDto.students);
+    return {
+      message: 'Importation terminée',
+      data,
+    };
+  }
+
+  @Post('import/v2/check')
+  @Permissions('STUDENT_CREATE')
+  @ApiOperation({ summary: 'Vérifier un fichier Excel avant importation (v2)' })
+  @ApiConsumes('multipart/form-data')
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        file: { type: 'string', format: 'binary' },
+      },
+    },
+  })
+  @UseInterceptors(FileInterceptor('file'))
+  async checkImportV2(
+    @UploadedFile() file: Express.Multer.File,
+  ): Promise<{ message: string; data: CheckImportResultDto }> {
+    if (!file) throw new BadRequestException('Fichier Excel manquant');
+    const data = await this.etudiantService.checkImport(file.buffer);
+    return {
+      message: 'Vérification terminée',
+      data,
+    };
+  }
+
+  @Post('import/v2/run')
+  @Permissions('STUDENT_CREATE')
+  @ApiOperation({ summary: "Exécuter l'importation des étudiants (v2)" })
+  @ApiConsumes('multipart/form-data')
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        file: { type: 'string', format: 'binary' },
+        data: { type: 'string' },
+      },
+    },
+  })
+  @UseInterceptors(FileInterceptor('file'))
+  async runImportV2(
+    @UploadedFile() file: Express.Multer.File,
+    @Body('data') dataStr?: string,
+  ): Promise<{ message: string; data: ImportReportDto }> {
+    if (!file) throw new BadRequestException('Fichier Excel manquant');
+
+    let runDto: RunImportDto = {};
+    if (dataStr) {
+      try {
+        runDto = JSON.parse(dataStr);
+      } catch (e) {
+        throw new BadRequestException('Données JSON invalides');
+      }
+    }
+
+    const data = await this.etudiantService.runImport(file.buffer, runDto);
     return {
       message: 'Importation terminée',
       data,

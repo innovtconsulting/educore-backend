@@ -16,6 +16,9 @@ export class Etablissement {
   @Column({ nullable: false })
   name!: string;
 
+  @Column({ nullable: true, unique: true, length: 50 })
+  acronyme!: string;
+
   @Column({ nullable: false, length: 50 })
   address!: string;
 

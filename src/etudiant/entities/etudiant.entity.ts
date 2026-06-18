@@ -59,6 +59,9 @@ export class Etudiant {
   @Column({ nullable: true })
   phoneNumber!: string;
 
+  @Column('simple-array', { nullable: true })
+  telephonesSupplementaires!: string[];
+
   @Column({ type: 'text', nullable: true })
   address!: string;
 

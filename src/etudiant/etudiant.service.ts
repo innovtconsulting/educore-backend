@@ -6,7 +6,13 @@ import {
   forwardRef,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, ILike, FindOptionsWhere, DataSource, QueryRunner } from 'typeorm';
+import {
+  Repository,
+  ILike,
+  FindOptionsWhere,
+  DataSource,
+  QueryRunner,
+} from 'typeorm';
 import { CreateEtudiantDto } from './dto/create-etudiant.dto';
 import { UpdateEtudiantDto } from './dto/update-etudiant.dto';
 import { Etudiant, EnrollmentStatus } from './entities/etudiant.entity';
@@ -25,7 +31,15 @@ import { existsSync } from 'fs';
 import * as ExcelJS from 'exceljs';
 import { ClasseService } from '../classe/classe.service';
 import { NiveauService } from '../niveau/niveau.service';
-import { StudentImportRowDto } from './dto/import-student.dto';
+import {
+  CheckImportResultDto,
+  CheckImportResultSheetDto,
+  RunImportDto,
+  ImportReportDto,
+  ImportReportSheetDto,
+  StudentImportRowDto,
+  ConfirmImportDto,
+} from './dto/import-student.dto';
 
 @Injectable()
 export class EtudiantService {
@@ -162,14 +176,23 @@ export class EtudiantService {
   }
 
   async findAll(
-    paginationQuery: PaginationQueryDto & { status?: EnrollmentStatus },
+    paginationQuery: PaginationQueryDto & {
+      status?: EnrollmentStatus;
+      etablissementId?: number;
+    },
   ): Promise<{
     items: Etudiant[];
     total: number;
     page: number;
     limit: number;
   }> {
-    const { page = 1, limit = 15, search, status } = paginationQuery;
+    const {
+      page = 1,
+      limit = 15,
+      search,
+      status,
+      etablissementId,
+    } = paginationQuery;
     const skip = (page - 1) * limit;
 
     const tenantId = TenantContext.getTenantId();
@@ -178,6 +201,8 @@ export class EtudiantService {
     const baseWhere: any = {};
     if (status) baseWhere.status = status;
     if (tenantId) baseWhere.etablissement = { id: tenantId };
+    if (etablissementId && !tenantId)
+      baseWhere.etablissement = { id: etablissementId };
 
     if (search) {
       where.push(
@@ -382,13 +407,16 @@ export class EtudiantService {
     return await this.etudiantRepository.save(etudiant);
   }
 
-  async validateImport(fileBuffer: Buffer, sheetName?: string): Promise<{
+  async validateImport(
+    fileBuffer: Buffer,
+    sheetName?: string,
+  ): Promise<{
     validStudents: StudentImportRowDto[];
     errors: { line: number; message: string }[];
   }> {
     const workbook = new ExcelJS.Workbook();
     await workbook.xlsx.load(fileBuffer as any);
-    
+
     let worksheet: ExcelJS.Worksheet | undefined;
     if (sheetName) {
       worksheet = workbook.getWorksheet(sheetName);
@@ -403,7 +431,11 @@ export class EtudiantService {
       throw new BadRequestException("ID d'établissement manquant");
     }
     if (!worksheet) {
-      throw new BadRequestException(sheetName ? `Feuille "${sheetName}" introuvable` : 'Fiche de calcul introuvable');
+      throw new BadRequestException(
+        sheetName
+          ? `Feuille "${sheetName}" introuvable`
+          : 'Fiche de calcul introuvable',
+      );
     }
 
     const validStudents: StudentImportRowDto[] = [];
@@ -425,14 +457,21 @@ export class EtudiantService {
         const email = row.getCell(12).text?.trim();
 
         if (!lastName || !firstName || !className || !levelName) {
-          throw new Error('Champs obligatoires manquants (Nom, Prénom, Classe, Niveau)');
+          throw new Error(
+            'Champs obligatoires manquants (Nom, Prénom, Classe, Niveau)',
+          );
         }
 
         const studentEmail = email || undefined;
 
         if (studentEmail) {
-          const existing = await this.etudiantRepository.findOne({ where: { email: studentEmail } });
-          if (existing) throw new Error(`L'étudiant avec l'email ${studentEmail} existe déjà`);
+          const existing = await this.etudiantRepository.findOne({
+            where: { email: studentEmail },
+          });
+          if (existing)
+            throw new Error(
+              `L'étudiant avec l'email ${studentEmail} existe déjà`,
+            );
         }
 
         const classe = await this.classeService.findByName(className);
@@ -466,7 +505,9 @@ export class EtudiantService {
     return { validStudents, errors };
   }
 
-  async confirmImport(students: StudentImportRowDto[]): Promise<{ success: number; failed: number }> {
+  async confirmImport(
+    students: StudentImportRowDto[],
+  ): Promise<{ success: number; failed: number }> {
     const tenantId = TenantContext.getTenantId();
     if (!tenantId) throw new BadRequestException("ID d'établissement manquant");
 
@@ -478,7 +519,9 @@ export class EtudiantService {
     let failedCount = 0;
 
     try {
-      const etablissement = await this.etablissementRepository.findOneBy({ id: tenantId });
+      const etablissement = await this.etablissementRepository.findOneBy({
+        id: tenantId,
+      });
       if (!etablissement) throw new Error('Établissement introuvable');
 
       for (const s of students) {
@@ -532,5 +575,473 @@ export class EtudiantService {
     }
 
     return { success: successCount, failed: failedCount };
+  }
+
+  // Column alias mapping
+  private getColumnAliases(): Record<string, string[]> {
+    return {
+      matricule: [
+        'matricule',
+        'matricule étudiant',
+        'numero matricule',
+        'matricule_etudiant',
+      ],
+      nom: ['nom', 'nom de famille', 'lastname', 'last name', 'nom_famille'],
+      prenom: [
+        'prenom',
+        'prénom',
+        'firstname',
+        'first name',
+        'prenom_etudiant',
+      ],
+      nomprenom: ['nom et prénom', 'nomprenom', 'nom et prenom', 'nom_prenom'],
+      telephone: [
+        'telephone',
+        'téléphone',
+        'tel',
+        'phone',
+        'numero telephone',
+        'numéro téléphone',
+      ],
+      datenaissance: [
+        'datenaissance',
+        'date de naissance',
+        'date_naissance',
+        'birthdate',
+        'birth date',
+      ],
+      lieunaissance: [
+        'lieunaissance',
+        'lieu de naissance',
+        'lieu_naissance',
+        'birthplace',
+        'birth place',
+      ],
+      sexe: ['sexe', 'genre', 'gender'],
+      email: ['email', 'mail', 'adresse email', 'adresse mail', 'e-mail'],
+      classe: ['classe', 'class'],
+      niveau: ['niveau', 'level', 'grade'],
+      parcours: ['parcours', 'filière', 'filiere', 'course', 'program'],
+    };
+  }
+
+  // Normalize column name
+  private normalizeColumnName(colName: string): string {
+    return colName
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/[^a-z0-9]/g, '')
+      .trim();
+  }
+
+  // Map raw headers to normalized fields
+  private mapHeaders(headers: string[]): Record<string, number> {
+    const aliases = this.getColumnAliases();
+    const headerMap: Record<string, number> = {};
+
+    headers.forEach((header, index) => {
+      const normalizedHeader = this.normalizeColumnName(header);
+      for (const [field, aliasList] of Object.entries(aliases)) {
+        if (
+          aliasList.some(
+            (alias) => this.normalizeColumnName(alias) === normalizedHeader,
+          )
+        ) {
+          headerMap[field] = index;
+          break;
+        }
+      }
+    });
+
+    return headerMap;
+  }
+
+  // Clean phone number
+  private cleanPhoneNumber(phone: any): string {
+    let cleaned = String(phone).replace(/\s/g, '');
+    if (/^\d{9}$/.test(cleaned)) {
+      cleaned = '0' + cleaned;
+    }
+    return cleaned;
+  }
+
+  // Split multiple phones
+  private splitPhones(phoneStr: any): {
+    main: string;
+    supplementary: string[];
+  } {
+    if (!phoneStr) return { main: '', supplementary: [] };
+    const phones = String(phoneStr)
+      .split(/[\/,;]/)
+      .map((p) => this.cleanPhoneNumber(p))
+      .filter((p) => p);
+    return {
+      main: phones[0] || '',
+      supplementary: phones.slice(1),
+    };
+  }
+
+  // Generate unique matricule
+  private async generateMatricule(
+    acronyme: string,
+    queryRunner?: QueryRunner,
+  ): Promise<string> {
+    const year = new Date().getFullYear();
+    const prefix = `${acronyme.toUpperCase()}-${year}-`;
+
+    const repo = queryRunner
+      ? queryRunner.manager.getRepository(Etudiant)
+      : this.etudiantRepository;
+    const lastMatricule = await repo.findOne({
+      where: { matricule: ILike(`${prefix}%`) },
+      order: { matricule: 'DESC' },
+    });
+
+    let nextNum = 1;
+    if (lastMatricule && lastMatricule.matricule) {
+      const match = lastMatricule.matricule.match(/-(\d{4})$/);
+      if (match) {
+        nextNum = parseInt(match[1], 10) + 1;
+      }
+    }
+
+    return `${prefix}${String(nextNum).padStart(4, '0')}`;
+  }
+
+  // Find or create Niveau
+  private async findOrCreateNiveau(
+    nom: string,
+    etablissement: Etablissement,
+    queryRunner: QueryRunner,
+  ): Promise<Niveau> {
+    const repo = queryRunner.manager.getRepository(Niveau);
+    let niveau = await repo.findOne({ where: { name: nom } });
+    if (!niveau) {
+      niveau = repo.create({ name: nom });
+      niveau = await repo.save(niveau);
+    }
+    return niveau;
+  }
+
+  // Find or create Classe (Parcours)
+  private async findOrCreateClasse(
+    nom: string,
+    niveau: Niveau,
+    etablissement: Etablissement,
+    estGenereParDefaut: boolean,
+    queryRunner: QueryRunner,
+  ): Promise<Classe> {
+    const repo = queryRunner.manager.getRepository(Classe);
+    let classe = await repo.findOne({
+      where: { name: nom },
+      relations: { niveaux: true, etablissements: true },
+    });
+
+    if (!classe) {
+      classe = repo.create({
+        name: nom,
+        niveaux: [niveau],
+        etablissements: [etablissement],
+      });
+      classe = await repo.save(classe);
+    } else {
+      // Ensure relations are present
+      if (!classe.niveaux.find((n) => n.id === niveau.id)) {
+        classe.niveaux.push(niveau);
+        classe = await repo.save(classe);
+      }
+      if (!classe.etablissements.find((e) => e.id === etablissement.id)) {
+        classe.etablissements.push(etablissement);
+        classe = await repo.save(classe);
+      }
+    }
+    return classe;
+  }
+
+  // Resolve or create default Classe (Parcours) for Niveau
+  private async resolveOrCreateDefaultClasseForNiveau(
+    niveau: Niveau,
+    etablissement: Etablissement,
+    queryRunner: QueryRunner,
+  ): Promise<Classe> {
+    const defaultName = `${niveau.name} - Parcours unique`;
+    return await this.findOrCreateClasse(
+      defaultName,
+      niveau,
+      etablissement,
+      true,
+      queryRunner,
+    );
+  }
+
+  // Check import (validate file without saving)
+  async checkImport(fileBuffer: Buffer): Promise<CheckImportResultDto> {
+    const workbook = new ExcelJS.Workbook();
+    await workbook.xlsx.load(fileBuffer as any);
+    const sheets: CheckImportResultSheetDto[] = [];
+
+    for (const worksheet of workbook.worksheets) {
+      const acronyme = worksheet.name;
+      const existingEtab = await this.etablissementRepository.findOne({
+        where: { acronyme },
+      });
+
+      // Get headers
+      const headerRow = worksheet.getRow(1);
+      const headers: string[] = [];
+      headerRow.eachCell((cell, colNumber) => {
+        headers.push(cell.text?.trim() || `Colonne ${colNumber}`);
+      });
+
+      // Count data rows
+      let nombreLignes = 0;
+      for (let i = 2; i <= worksheet.rowCount; i++) {
+        const row = worksheet.getRow(i);
+        if (row.hasValues) nombreLignes++;
+      }
+
+      sheets.push({
+        acronyme,
+        existeDeja: !!existingEtab,
+        nombreLignes,
+        headers,
+      });
+    }
+
+    return { sheets };
+  }
+
+  // Run import
+  async runImport(
+    fileBuffer: Buffer,
+    runDto: RunImportDto,
+  ): Promise<ImportReportDto> {
+    const workbook = new ExcelJS.Workbook();
+    await workbook.xlsx.load(fileBuffer as any);
+    const queryRunner = this.dataSource.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
+
+    const feuilles: ImportReportSheetDto[] = [];
+    let totalEtudiantsImportes = 0;
+    let totalErreurs = 0;
+
+    try {
+      // First, create any new establishments
+      const etabMap = new Map<string, Etablissement>();
+
+      // Load existing establishments
+      const existingEtabs = await this.etablissementRepository.find();
+      existingEtabs.forEach((etab) => {
+        if (etab.acronyme) etabMap.set(etab.acronyme, etab);
+      });
+
+      // Create new establishments
+      if (runDto.etablissementsACreer) {
+        for (const etabToCreate of runDto.etablissementsACreer) {
+          if (!etabMap.has(etabToCreate.acronyme)) {
+            const newEtab = queryRunner.manager
+              .getRepository(Etablissement)
+              .create({
+                name: etabToCreate.name,
+                acronyme: etabToCreate.acronyme,
+                address: 'À définir',
+                email: `contact@${etabToCreate.acronyme.toLowerCase()}.edu`,
+              });
+            const savedEtab = await queryRunner.manager.save(newEtab);
+            etabMap.set(etabToCreate.acronyme, savedEtab);
+          }
+        }
+      }
+
+      // Process each sheet
+      for (const worksheet of workbook.worksheets) {
+        const acronyme = worksheet.name;
+        const sheetReport: ImportReportSheetDto = {
+          acronyme,
+          nombreEtudiantsImportes: 0,
+          nombreErreurs: 0,
+          erreurs: [],
+          aEteCree:
+            !existingEtabs.find((e) => e.acronyme === acronyme) &&
+            !!runDto.etablissementsACreer?.find((e) => e.acronyme === acronyme),
+        };
+
+        const etablissement = etabMap.get(acronyme);
+        if (!etablissement) {
+          sheetReport.erreurs.push(
+            `Établissement "${acronyme}" non trouvé et non marqué pour création`,
+          );
+          feuilles.push(sheetReport);
+          continue;
+        }
+
+        // Get and map headers
+        const headerRow = worksheet.getRow(1);
+        const headers: string[] = [];
+        headerRow.eachCell((cell) => {
+          headers.push(cell.text?.trim() || '');
+        });
+        const headerMap = this.mapHeaders(headers);
+
+        // Determine mode (with or without parcours)
+        const hasParcours = 'parcours' in headerMap;
+        const hasClasse = 'classe' in headerMap;
+        const hasNiveau = 'niveau' in headerMap;
+
+        // Process each student row
+        for (let i = 2; i <= worksheet.rowCount; i++) {
+          const row = worksheet.getRow(i);
+          if (!row.hasValues) continue;
+
+          try {
+            // Extract data from row
+            const getCellValue = (field: string) => {
+              if (!(field in headerMap)) return undefined;
+              const cell = row.getCell(headerMap[field] + 1);
+              return cell.value;
+            };
+
+            const getCellText = (field: string) => {
+              const val = getCellValue(field);
+              return val ? String(val).trim() : undefined;
+            };
+
+            let nom = getCellText('nom');
+            let prenom = getCellText('prenom');
+            const nomprenom = getCellText('nomprenom');
+
+            if (!nom && !prenom && nomprenom) {
+              // Split combined name (heuristic: first word = nom, rest = prenom)
+              const parts = nomprenom.split(/\s+/);
+              nom = parts[0];
+              prenom = parts.slice(1).join(' ');
+            }
+
+            if (!nom || !prenom) {
+              throw new Error(`Ligne ${i}: Nom et prénom obligatoires`);
+            }
+
+            const matricule = getCellText('matricule');
+            const telephoneRaw = getCellValue('telephone');
+            const {
+              main: telephone,
+              supplementary: telephonesSupplementaires,
+            } = this.splitPhones(telephoneRaw);
+            const email = getCellText('email');
+            const sexe = getCellText('sexe');
+            const dateNaissanceRaw = getCellValue('datenaissance');
+            let dateNaissance: Date | undefined;
+
+            if (dateNaissanceRaw) {
+              if (dateNaissanceRaw instanceof Date) {
+                dateNaissance = dateNaissanceRaw;
+              } else {
+                dateNaissance = new Date(String(dateNaissanceRaw));
+                if (isNaN(dateNaissance.getTime())) dateNaissance = undefined;
+              }
+            }
+
+            // Resolve niveau
+            let niveauName = getCellText('niveau');
+            if (!niveauName && hasClasse && !hasParcours) {
+              niveauName = getCellText('classe');
+            }
+            if (!niveauName) {
+              throw new Error(`Ligne ${i}: Niveau ou classe obligatoire`);
+            }
+
+            const niveau = await this.findOrCreateNiveau(
+              niveauName,
+              etablissement,
+              queryRunner,
+            );
+
+            // Resolve classe (parcours)
+            let classe: Classe;
+            if (hasParcours) {
+              const parcoursName = getCellText('parcours');
+              if (!parcoursName)
+                throw new Error(`Ligne ${i}: Parcours obligatoire`);
+              classe = await this.findOrCreateClasse(
+                parcoursName,
+                niveau,
+                etablissement,
+                false,
+                queryRunner,
+              );
+            } else {
+              classe = await this.resolveOrCreateDefaultClasseForNiveau(
+                niveau,
+                etablissement,
+                queryRunner,
+              );
+            }
+
+            // Check for existing student by matricule
+            let finalMatricule = matricule;
+            if (finalMatricule) {
+              const existingStudent = await queryRunner.manager
+                .getRepository(Etudiant)
+                .findOne({
+                  where: { matricule: finalMatricule },
+                });
+              if (existingStudent) {
+                throw new Error(
+                  `Ligne ${i}: Matricule ${finalMatricule} déjà existant`,
+                );
+              }
+            } else {
+              finalMatricule = await this.generateMatricule(
+                acronyme,
+                queryRunner,
+              );
+            }
+
+            // Create student
+            const etudiant = queryRunner.manager
+              .getRepository(Etudiant)
+              .create({
+                matricule: finalMatricule,
+                lastName: nom,
+                firstName: prenom,
+                gender: sexe,
+                birthDate: dateNaissance,
+                email: email || null,
+                phoneNumber: telephone,
+                telephonesSupplementaires,
+                status: EnrollmentStatus.ACTIF,
+                etablissement,
+                classe,
+                niveau,
+              });
+
+            await queryRunner.manager.save(etudiant);
+            sheetReport.nombreEtudiantsImportes++;
+            totalEtudiantsImportes++;
+          } catch (error) {
+            sheetReport.nombreErreurs++;
+            sheetReport.erreurs.push(error.message || `Erreur ligne ${i}`);
+            totalErreurs++;
+          }
+        }
+
+        feuilles.push(sheetReport);
+      }
+
+      await queryRunner.commitTransaction();
+    } catch (error) {
+      await queryRunner.rollbackTransaction();
+      throw error;
+    } finally {
+      await queryRunner.release();
+    }
+
+    return {
+      feuilles,
+      totalEtudiantsImportes,
+      totalErreurs,
+    };
   }
 }

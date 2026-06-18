@@ -1,5 +1,5 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
-import { IsOptional, IsEnum } from 'class-validator';
+import { IsOptional, IsEnum, IsInt } from 'class-validator';
 import { PaginationQueryDto } from '../../common/dto/pagination-query.dto';
 import { EnrollmentStatus } from '../entities/etudiant.entity';
 
@@ -11,4 +11,11 @@ export class EtudiantFilterDto extends PaginationQueryDto {
   @IsOptional()
   @IsEnum(EnrollmentStatus)
   status?: EnrollmentStatus;
+
+  @ApiPropertyOptional({
+    description: "Filtrer par établissement",
+  })
+  @IsOptional()
+  @IsInt()
+  etablissementId?: number;
 }
