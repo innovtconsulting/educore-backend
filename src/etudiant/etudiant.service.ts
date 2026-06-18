@@ -26,6 +26,7 @@ import * as ExcelJS from 'exceljs';
 import { ClasseService } from '../classe/classe.service';
 import { NiveauService } from '../niveau/niveau.service';
 import { StudentImportRowDto } from './dto/import-student.dto';
+import { EtudiantFilterDto } from './dto/etudiant-filter.dto';
 
 @Injectable()
 export class EtudiantService {
@@ -162,14 +163,14 @@ export class EtudiantService {
   }
 
   async findAll(
-    paginationQuery: PaginationQueryDto & { status?: EnrollmentStatus },
+    paginationQuery: EtudiantFilterDto,
   ): Promise<{
     items: Etudiant[];
     total: number;
     page: number;
     limit: number;
   }> {
-    const { page = 1, limit = 15, search, status } = paginationQuery;
+    const { page = 1, limit = 15, search, status, etablissementId } = paginationQuery;
     const skip = (page - 1) * limit;
 
     const tenantId = TenantContext.getTenantId();
@@ -177,7 +178,15 @@ export class EtudiantService {
 
     const baseWhere: any = {};
     if (status) baseWhere.status = status;
-    if (tenantId) baseWhere.etablissement = { id: tenantId };
+
+    // Si on est dans un tenant (Admin), on force le filtre
+    if (tenantId) {
+      baseWhere.etablissement = { id: tenantId };
+    } 
+    // Sinon (SuperAdmin), on autorise le filtre optionnel par etablissementId
+    else if (etablissementId) {
+      baseWhere.etablissement = { id: etablissementId };
+    }
 
     if (search) {
       where.push(
