@@ -53,8 +53,8 @@ export class Etudiant {
   @Column({ nullable: true })
   gender!: string;
 
-  @Column({ unique: true })
-  email!: string;
+  @Column({ type: 'varchar', unique: true, nullable: true })
+  email: string | null;
 
   @Column({ nullable: true })
   phoneNumber!: string;

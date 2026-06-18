@@ -40,10 +40,10 @@ export class CreateEtudiantDto {
   @IsOptional()
   gender?: string;
 
-  @ApiProperty({ example: 'ousmane.sow@email.sn' })
+  @ApiProperty({ example: 'ousmane.sow@email.sn', required: false })
   @IsEmail()
-  @IsNotEmpty()
-  email!: string;
+  @IsOptional()
+  email?: string;
 
   @ApiProperty({ example: 'password123', required: false })
   @IsString()

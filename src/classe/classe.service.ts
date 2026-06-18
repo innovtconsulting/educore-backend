@@ -4,7 +4,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { In, Repository } from 'typeorm';
+import { In, Repository, ILike } from 'typeorm';
 import { TenantContext } from '../common/tenant/tenant.context';
 import { CreateClasseDto } from './dto/create-classe.dto';
 import { UpdateClasseDto } from './dto/update-classe.dto';
@@ -151,6 +151,17 @@ export class ClasseService {
     }
 
     return await this.classeRepository.save(classe);
+  }
+
+  async findByName(name: string): Promise<Classe | null> {
+    const tenantId = TenantContext.getTenantId();
+    const where: any = { name: ILike(name) };
+    if (tenantId) {
+      where.etablissements = { id: tenantId };
+    }
+    return await this.classeRepository.findOne({
+      where,
+    });
   }
 
   async remove(id: number): Promise<void> {

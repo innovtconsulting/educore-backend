@@ -35,9 +35,9 @@ export class User {
   @ApiProperty()
   id!: number;
 
-  @Column({ unique: true })
+  @Column({ type: 'varchar', unique: true, nullable: true })
   @ApiProperty()
-  email!: string;
+  email: string | null;
 
   @Column({ nullable: true })
   @ApiProperty()

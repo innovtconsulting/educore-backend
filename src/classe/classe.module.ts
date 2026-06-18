@@ -10,5 +10,6 @@ import { Niveau } from '../niveau/entities/niveau.entity';
   imports: [TypeOrmModule.forFeature([Classe, Etablissement, Niveau])],
   controllers: [ClasseController],
   providers: [ClasseService],
+  exports: [ClasseService],
 })
 export class ClasseModule {}

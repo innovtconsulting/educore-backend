@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, ILike } from 'typeorm';
 import { CreateNiveauDto } from './dto/create-niveau.dto';
 import { UpdateNiveauDto } from './dto/update-niveau.dto';
 import { Niveau } from './entities/niveau.entity';
@@ -38,13 +38,23 @@ export class NiveauService {
       'classes.etablissements',
     );
 
-    const niveau = await this.niveauRepository.findOneBy(where);
+    const niveau = await this.niveauRepository.findOne({ where });
     if (!niveau) {
       throw new NotFoundException(
         `Le niveau avec l'ID ${id} n'a pas été trouvé`,
       );
     }
     return niveau;
+  }
+
+  async findByName(name: string): Promise<Niveau | null> {
+    const tenantId = TenantContext.getTenantId();
+    const where = TenantHelper.addTenantFilter(
+      { name: ILike(name) },
+      tenantId,
+      'classes.etablissements',
+    ) as any;
+    return await this.niveauRepository.findOne({ where });
   }
 
   async update(id: number, updateNiveauDto: UpdateNiveauDto): Promise<Niveau> {

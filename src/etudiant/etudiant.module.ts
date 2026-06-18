@@ -8,12 +8,16 @@ import { Classe } from '../classe/entities/classe.entity';
 import { Niveau } from '../niveau/entities/niveau.entity';
 import { ParentModule } from '../parent/parent.module';
 import { UserModule } from '../user/user.module';
+import { ClasseModule } from '../classe/classe.module';
+import { NiveauModule } from '../niveau/niveau.module';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([Etudiant, Etablissement, Classe, Niveau]),
     ParentModule,
     forwardRef(() => UserModule),
+    ClasseModule,
+    NiveauModule,
   ],
   controllers: [EtudiantController],
   providers: [EtudiantService],

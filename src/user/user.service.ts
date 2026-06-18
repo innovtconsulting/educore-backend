@@ -34,11 +34,13 @@ export class UserService {
   ) {}
 
   async create(userData: Partial<User>): Promise<User> {
-    const existingUser = await this.userRepository.findOne({
-      where: { email: userData.email },
-    });
-    if (existingUser) {
-      throw new ConflictException('Email déjà utilisé');
+    if (userData.email) {
+      const existingUser = await this.userRepository.findOne({
+        where: { email: userData.email },
+      });
+      if (existingUser) {
+        throw new ConflictException('Email déjà utilisé');
+      }
     }
 
     const password = userData.password || '12345678';
@@ -54,6 +56,24 @@ export class UserService {
 
     const user = this.userRepository.create(userData);
     return await this.userRepository.save(user);
+  }
+
+  async createWithRunner(
+    queryRunner: any,
+    userData: Partial<User>,
+  ): Promise<User> {
+    const password = userData.password || '12345678';
+    userData.password = await bcrypt.hash(password, 10);
+
+    if (userData.role && !userData.aclRole) {
+      const aclRole = await this.aclService.findRoleByName(userData.role);
+      if (aclRole) {
+        userData.aclRole = aclRole;
+      }
+    }
+
+    const user = queryRunner.manager.create(User, userData);
+    return await queryRunner.manager.save(user);
   }
 
   async findByEmail(email: string): Promise<User | null> {

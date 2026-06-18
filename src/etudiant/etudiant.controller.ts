@@ -34,6 +34,8 @@ import { Permissions } from '../auth/decorators/permissions.decorator';
 import { Role } from '../user/entities/user.entity';
 import { Public } from '../auth/decorators/public.decorator';
 
+import { ConfirmImportDto } from './dto/import-student.dto';
+
 @ApiTags('etudiants')
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard, RolesGuard)
@@ -170,6 +172,48 @@ export class EtudiantController {
     );
     return {
       message: 'Photo de profil mise à jour avec succès',
+      data,
+    };
+  }
+
+  @Post('import/validate')
+  @Permissions('STUDENT_CREATE')
+  @ApiOperation({ summary: 'Valider un fichier Excel avant importation' })
+  @ApiConsumes('multipart/form-data')
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        file: {
+          type: 'string',
+          format: 'binary',
+        },
+      },
+    },
+  })
+  @UseInterceptors(FileInterceptor('file'))
+  async validateImport(
+    @UploadedFile() file: Express.Multer.File,
+    @Query('sheetName') sheetName?: string,
+  ) {
+    if (!file) throw new BadRequestException('Fichier Excel manquant');
+    const data = await this.etudiantService.validateImport(
+      file.buffer,
+      sheetName,
+    );
+    return {
+      message: 'Validation terminée',
+      data,
+    };
+  }
+
+  @Post('import/confirm')
+  @Permissions('STUDENT_CREATE')
+  @ApiOperation({ summary: 'Confirmer l\'importation des étudiants' })
+  async confirmImport(@Body() confirmDto: ConfirmImportDto) {
+    const data = await this.etudiantService.confirmImport(confirmDto.students);
+    return {
+      message: 'Importation terminée',
       data,
     };
   }

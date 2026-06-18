@@ -194,11 +194,13 @@ export class AuthService {
     });
 
     // Envoi de l'e-mail réel
-    await this.mailService.sendPasswordResetEmail(
-      user.email,
-      token,
-      user.etablissement?.name,
-    );
+    if (user.email) {
+      await this.mailService.sendPasswordResetEmail(
+        user.email,
+        token,
+        user.etablissement?.name,
+      );
+    }
 
     return {
       message: 'Si cet email existe, un lien de réinitialisation a été envoyé.',
