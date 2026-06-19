@@ -11,6 +11,16 @@ describe('Parent Module (e2e)', () => {
   let dataSource: DataSource;
   let accessToken: string;
 
+  async function clearDatabase(dataSource: DataSource) {
+    const entities = dataSource.entityMetadatas;
+    for (const entity of entities) {
+      const repository = dataSource.getRepository(entity.name);
+      await repository.query(
+        `TRUNCATE "${entity.tableName}" RESTART IDENTITY CASCADE;`,
+      );
+    }
+  }
+
   beforeAll(async () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
       imports: [AppModule],
@@ -21,32 +31,25 @@ describe('Parent Module (e2e)', () => {
     app.useGlobalPipes(new ValidationPipe());
     app.useGlobalInterceptors(new TransformInterceptor());
     await app.init();
-
     dataSource = app.get(DataSource);
+  });
 
+  beforeEach(async () => {
+    await clearDatabase(dataSource);
     // Créer un utilisateur admin pour les tests
     const passwordHash = await require('bcrypt').hash('password123', 10);
     await dataSource.query(
-      `INSERT INTO "user" (email, password, role) VALUES ('admin@test.com', '${passwordHash}', '${Role.SUPER_ADMIN}')`,
+      `INSERT INTO "user" (email, password, role, "isActive") VALUES ('admin@test.com', '${passwordHash}', '${Role.SUPER_ADMIN}', true)`,
     );
 
     const loginRes = await request(app.getHttpServer())
       .post('/api/auth/login')
       .send({ email: 'admin@test.com', password: 'password123' });
 
-    // console.log('Login Response:', loginRes.body);
-    accessToken = loginRes.body.access_token;
+    accessToken = loginRes.body.data.access_token;
   });
 
   afterAll(async () => {
-    // Clean up
-    const entities = dataSource.entityMetadatas;
-    for (const entity of entities) {
-      const repository = dataSource.getRepository(entity.name);
-      await repository.query(
-        `TRUNCATE "${entity.tableName}" RESTART IDENTITY CASCADE;`,
-      );
-    }
     await app.close();
   });
 
@@ -112,7 +115,15 @@ describe('Parent Module (e2e)', () => {
         etablissementId: etablissement.body.data.id,
         classeId: classe.body.data.id,
         niveauId: niveau.body.data.id,
-        parentIds: [parentId],
+        parentsData: [
+          {
+            firstName: 'Jean',
+            lastName: 'Dupont',
+            gender: 'Père',
+            email: 'jean.dupont@email.com',
+            phoneNumber: '+221 77 123 45 67',
+          },
+        ],
       })
       .expect(201);
 
@@ -125,6 +136,9 @@ describe('Parent Module (e2e)', () => {
     const etablissement = await request(app.getHttpServer())
       .get('/api/etablissement')
       .set('Authorization', `Bearer ${accessToken}`);
+    
+    console.log('DEBUG - Etablissement body:', JSON.stringify(etablissement.body, null, 2));
+
     const niveau = await request(app.getHttpServer())
       .get('/api/niveau')
       .set('Authorization', `Bearer ${accessToken}`);
@@ -140,9 +154,9 @@ describe('Parent Module (e2e)', () => {
         lastName: 'SansParent',
         email: 'sans.parent@email.sn',
         matricule: 'ETU-SANS-001',
-        etablissementId: etablissement.body.data.items[0].id,
-        classeId: classe.body.data.items[0].id,
-        niveauId: niveau.body.data.items[0].id,
+        etablissementId: etablissement.body.data[0].id,
+        classeId: classe.body.data[0].id,
+        niveauId: niveau.body.data[0].id,
         parentIds: [],
       })
       .expect(400);
@@ -179,10 +193,24 @@ describe('Parent Module (e2e)', () => {
         lastName: 'DeuxPeres',
         email: 'deux.peres@email.sn',
         matricule: 'ETU-PERES-001',
-        etablissementId: etablissement.body.data.items[0].id,
-        classeId: classe.body.data.items[0].id,
-        niveauId: niveau.body.data.items[0].id,
-        parentIds: [parentId, p2Id],
+        etablissementId: etablissement.body.data[0].id,
+        classeId: classe.body.data[0].id,
+        niveauId: niveau.body.data[0].id,
+        parentsData: [
+          {
+            firstName: 'Jean',
+            lastName: 'Dupont',
+            gender: 'Père',
+            email: 'jean.dupont@email.com',
+            phoneNumber: '+221 77 123 45 67',
+          },
+          {
+            firstName: 'Marc',
+            lastName: 'Dupont',
+            gender: 'Père',
+            phoneNumber: '000',
+          },
+        ],
       })
       .expect(400);
   });

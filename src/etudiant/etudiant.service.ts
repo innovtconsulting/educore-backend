@@ -158,6 +158,7 @@ export class EtudiantService {
         where: { email: rest.email },
       });
       if (existingEmail) {
+        console.log('DEBUG - Email already exists:', rest.email);
         throw new BadRequestException("L'email existe déjà");
       }
     }
@@ -172,7 +173,12 @@ export class EtudiantService {
       parents,
     }) as Etudiant;
 
-    return await this.etudiantRepository.save(etudiant);
+    try {
+      return await this.etudiantRepository.save(etudiant);
+    } catch (error) {
+      console.log('DEBUG - Error saving student:', error);
+      throw error;
+    }
   }
 
   async findAll(
@@ -186,14 +192,10 @@ export class EtudiantService {
     page: number;
     limit: number;
   }> {
-    const {
-      page = 1,
-      limit = 15,
-      search,
-      status,
-      etablissementId,
-    } = paginationQuery;
-    const skip = (page - 1) * limit;
+    const { page, limit, search, status, etablissementId } = paginationQuery;
+    const p = page ?? 1;
+    const l = limit ?? 20;
+    const skip = (p - 1) * l;
 
     const tenantId = TenantContext.getTenantId();
     const where: FindOptionsWhere<Etudiant>[] = [];
@@ -225,15 +227,15 @@ export class EtudiantService {
         user: true,
       },
       skip,
-      take: limit,
+      take: l,
       order: { id: 'DESC' },
     });
 
     return {
       items,
       total,
-      page,
-      limit,
+      page: p,
+      limit: l,
     };
   }
 
@@ -586,13 +588,21 @@ export class EtudiantService {
         'numero matricule',
         'matricule_etudiant',
       ],
-      nom: ['nom', 'nom de famille', 'lastname', 'last name', 'nom_famille'],
+      nom: [
+        'nom',
+        'nom de famille',
+        'lastname',
+        'last name',
+        'nom_famille',
+        'noms',
+      ],
       prenom: [
         'prenom',
         'prénom',
         'firstname',
         'first name',
         'prenom_etudiant',
+        'prenoms',
       ],
       nomprenom: ['nom et prénom', 'nomprenom', 'nom et prenom', 'nom_prenom'],
       telephone: [
@@ -997,6 +1007,18 @@ export class EtudiantService {
                 acronyme,
                 queryRunner,
               );
+            }
+
+            // Check for existing student by email
+            if (email) {
+              const existingStudent = await queryRunner.manager
+                .getRepository(Etudiant)
+                .findOne({
+                  where: { email },
+                });
+              if (existingStudent) {
+                throw new Error(`Ligne ${i}: Email ${email} déjà existant`);
+              }
             }
 
             // Create student
