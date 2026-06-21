@@ -185,6 +185,8 @@ export class EtudiantService {
     paginationQuery: PaginationQueryDto & {
       status?: EnrollmentStatus;
       etablissementId?: number;
+      classeId?: number;
+      niveauId?: number;
     },
   ): Promise<{
     items: Etudiant[];
@@ -192,12 +194,14 @@ export class EtudiantService {
     page: number;
     limit: number;
   }> {
-    const { page, limit, search, status, etablissementId } = paginationQuery;
+    const { page, limit, search, status, etablissementId, classeId, niveauId } = paginationQuery;
+    console.log('DEBUG backend - findAll query parameters:', { page, limit, search, status, etablissementId, classeId, niveauId });
     const p = page ?? 1;
     const l = limit ?? 20;
     const skip = (p - 1) * l;
 
     const tenantId = TenantContext.getTenantId();
+    console.log('DEBUG backend - tenantId:', tenantId);
     const where: FindOptionsWhere<Etudiant>[] = [];
 
     const baseWhere: any = {};
@@ -205,6 +209,8 @@ export class EtudiantService {
     if (tenantId) baseWhere.etablissement = { id: tenantId };
     if (etablissementId && !tenantId)
       baseWhere.etablissement = { id: etablissementId };
+    if (classeId) baseWhere.classe = { id: classeId };
+    if (niveauId) baseWhere.niveau = { id: niveauId };
 
     if (search) {
       where.push(
@@ -216,6 +222,7 @@ export class EtudiantService {
     } else {
       where.push(baseWhere);
     }
+    console.log('DEBUG backend - constructed where clause:', JSON.stringify(where));
 
     const [items, total] = await this.etudiantRepository.findAndCount({
       where,

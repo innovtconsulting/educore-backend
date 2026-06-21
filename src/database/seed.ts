@@ -139,13 +139,22 @@ async function seed() {
 
       // Finances
       { name: 'FINANCE_VIEW', description: 'Voir les finances' },
-      { name: 'FINANCE_MANAGE', description: 'Gérer les factures et paiements' },
+      {
+        name: 'FINANCE_MANAGE',
+        description: 'Gérer les factures et paiements',
+      },
       { name: 'FINANCE_REPORT', description: 'Voir les rapports financiers' },
 
       // Académique
       { name: 'ACADEMIC_VIEW', description: 'Voir les notes et bulletins' },
-      { name: 'ACADEMIC_MANAGE', description: 'Gérer les notes et évaluations' },
-      { name: 'ACADEMIC_CONFIG', description: 'Configurer les classes/matières' },
+      {
+        name: 'ACADEMIC_MANAGE',
+        description: 'Gérer les notes et évaluations',
+      },
+      {
+        name: 'ACADEMIC_CONFIG',
+        description: 'Configurer les classes/matières',
+      },
 
       // Planning & Présence
       { name: 'SCHEDULE_VIEW', description: 'Voir l emploi du temps' },
@@ -153,8 +162,14 @@ async function seed() {
       { name: 'ATTENDANCE_MANAGE', description: 'Gérer les présences' },
 
       // Discipline & Vie Scolaire
-      { name: 'DISCIPLINE_MANAGE', description: 'Gérer les sanctions et règlements' },
-      { name: 'REPORT_DAILY_MANAGE', description: 'Gérer les rapports quotidiens' },
+      {
+        name: 'DISCIPLINE_MANAGE',
+        description: 'Gérer les sanctions et règlements',
+      },
+      {
+        name: 'REPORT_DAILY_MANAGE',
+        description: 'Gérer les rapports quotidiens',
+      },
 
       // Administration & Système
       { name: 'USER_MANAGE', description: 'Gérer les comptes utilisateurs' },
@@ -165,7 +180,8 @@ async function seed() {
       perms.map((p) => permissionRepo.create(p)),
     );
 
-    const getPerms = (names: string[]) => savedPerms.filter(p => names.includes(p.name));
+    const getPerms = (names: string[]) =>
+      savedPerms.filter((p) => names.includes(p.name));
 
     const roleAdminAcl = roleAclRepo.create({
       name: 'Admin',
@@ -176,25 +192,37 @@ async function seed() {
       name: 'Comptable',
       description: 'Gestionnaire financier',
       permissions: getPerms([
-        'FINANCE_VIEW', 'FINANCE_MANAGE', 'FINANCE_REPORT',
-        'STUDENT_VIEW', 'ACADEMIC_VIEW'
+        'FINANCE_VIEW',
+        'FINANCE_MANAGE',
+        'FINANCE_REPORT',
+        'STUDENT_VIEW',
+        'ACADEMIC_VIEW',
       ]),
     });
     const roleSurveillantAcl = roleAclRepo.create({
       name: 'Surveillant',
       description: 'Gestionnaire de la vie scolaire',
       permissions: getPerms([
-        'STUDENT_VIEW', 'STUDENT_CREATE', 'STUDENT_EDIT', 'STUDENT_VALIDATE',
-        'ATTENDANCE_MANAGE', 'DISCIPLINE_MANAGE', 'REPORT_DAILY_MANAGE',
-        'SCHEDULE_VIEW', 'ACADEMIC_VIEW'
+        'STUDENT_VIEW',
+        'STUDENT_CREATE',
+        'STUDENT_EDIT',
+        'STUDENT_VALIDATE',
+        'ATTENDANCE_MANAGE',
+        'DISCIPLINE_MANAGE',
+        'REPORT_DAILY_MANAGE',
+        'SCHEDULE_VIEW',
+        'ACADEMIC_VIEW',
       ]),
     });
     const roleEnseignantAcl = roleAclRepo.create({
       name: 'Enseignant',
       description: 'Personnel académique',
       permissions: getPerms([
-        'STUDENT_VIEW', 'ACADEMIC_VIEW', 'ACADEMIC_MANAGE',
-        'SCHEDULE_VIEW', 'ATTENDANCE_MANAGE'
+        'STUDENT_VIEW',
+        'ACADEMIC_VIEW',
+        'ACADEMIC_MANAGE',
+        'SCHEDULE_VIEW',
+        'ATTENDANCE_MANAGE',
       ]),
     });
     await roleAclRepo.save([
@@ -408,7 +436,201 @@ async function seed() {
       classe: informatique,
       niveau: l1,
     });
-    await etudiantRepo.save([etudiant1, etudiant2, etudiant3, etudiantWait]);
+
+    const fstStudentsList = [
+      etudiant1,
+      etudiantWait,
+      etudiantRepo.create({
+        firstName: 'Alassane',
+        lastName: 'Diop',
+        email: 'alassane.diop@email.sn',
+        matricule: 'ETU-FST-001',
+        status: EnrollmentStatus.ACTIF,
+        etablissement: fst,
+        classe: informatique,
+        niveau: l1,
+      }),
+      etudiantRepo.create({
+        firstName: 'Bineta',
+        lastName: 'Fall',
+        email: 'bineta.fall@email.sn',
+        matricule: 'ETU-FST-002',
+        status: EnrollmentStatus.ACTIF,
+        etablissement: fst,
+        classe: informatique,
+        niveau: l1,
+      }),
+      etudiantRepo.create({
+        firstName: 'Cheikh',
+        lastName: 'Gueye',
+        email: 'cheikh.gueye@email.sn',
+        matricule: 'ETU-FST-003',
+        status: EnrollmentStatus.ACTIF,
+        etablissement: fst,
+        classe: informatique,
+        niveau: l1,
+      }),
+      etudiantRepo.create({
+        firstName: 'Dior',
+        lastName: 'Mbacke',
+        email: 'dior.mbacke@email.sn',
+        matricule: 'ETU-FST-004',
+        status: EnrollmentStatus.ACTIF,
+        etablissement: fst,
+        classe: informatique,
+        niveau: l1,
+      }),
+      etudiantRepo.create({
+        firstName: 'El Hadji',
+        lastName: 'Ndiaye',
+        email: 'elhadji.ndiaye@email.sn',
+        matricule: 'ETU-FST-005',
+        status: EnrollmentStatus.ACTIF,
+        etablissement: fst,
+        classe: informatique,
+        niveau: l1,
+      }),
+      etudiantRepo.create({
+        firstName: 'Aminata',
+        lastName: 'Toure',
+        email: 'aminata.toure@email.sn',
+        matricule: 'ETU-FST-006',
+        status: EnrollmentStatus.ACTIF,
+        etablissement: fst,
+        classe: informatique,
+        niveau: l1,
+      }),
+      etudiantRepo.create({
+        firstName: 'Bocar',
+        lastName: 'Kane',
+        email: 'bocar.kane@email.sn',
+        status: EnrollmentStatus.EN_ATTENTE,
+        etablissement: fst,
+        classe: informatique,
+        niveau: l1,
+      }),
+      etudiantRepo.create({
+        firstName: 'Coumba',
+        lastName: 'Ly',
+        email: 'coumba.ly@email.sn',
+        status: EnrollmentStatus.EN_ATTENTE,
+        etablissement: fst,
+        classe: informatique,
+        niveau: l1,
+      }),
+    ];
+
+    const espStudentsList = [
+      etudiant2,
+      etudiantRepo.create({
+        firstName: 'Gorgui',
+        lastName: 'Cisse',
+        email: 'gorgui.cisse@email.sn',
+        matricule: 'ETU-ESP-001',
+        status: EnrollmentStatus.ACTIF,
+        etablissement: esp,
+        classe: informatique,
+        niveau: l2,
+      }),
+      etudiantRepo.create({
+        firstName: 'Haby',
+        lastName: 'Dia',
+        email: 'haby.dia@email.sn',
+        matricule: 'ETU-ESP-002',
+        status: EnrollmentStatus.ACTIF,
+        etablissement: esp,
+        classe: informatique,
+        niveau: l2,
+      }),
+      etudiantRepo.create({
+        firstName: 'Ibrahima',
+        lastName: 'Diagne',
+        email: 'ibrahima.diagne@email.sn',
+        matricule: 'ETU-ESP-003',
+        status: EnrollmentStatus.ACTIF,
+        etablissement: esp,
+        classe: informatique,
+        niveau: l2,
+      }),
+      etudiantRepo.create({
+        firstName: 'Khadija',
+        lastName: 'Faye',
+        email: 'khadija.faye@email.sn',
+        matricule: 'ETU-ESP-004',
+        status: EnrollmentStatus.ACTIF,
+        etablissement: esp,
+        classe: informatique,
+        niveau: l2,
+      }),
+      etudiantRepo.create({
+        firstName: 'Lamine',
+        lastName: 'Seck',
+        email: 'lamine.seck@email.sn',
+        status: EnrollmentStatus.EN_ATTENTE,
+        etablissement: esp,
+        classe: informatique,
+        niveau: l2,
+      }),
+      etudiantRepo.create({
+        firstName: 'Marieme',
+        lastName: 'Gadiaga',
+        email: 'marieme.g@email.sn',
+        status: EnrollmentStatus.EN_ATTENTE,
+        etablissement: esp,
+        classe: informatique,
+        niveau: l2,
+      }),
+    ];
+
+    const iutStudentsList = [
+      etudiant3,
+      etudiantRepo.create({
+        firstName: 'Maimouna',
+        lastName: 'Badiane',
+        email: 'maimouna.badiane@email.sn',
+        matricule: 'ETU-IUT-001',
+        status: EnrollmentStatus.ACTIF,
+        etablissement: iut,
+        classe: genieElectrique,
+        niveau: dut1,
+      }),
+      etudiantRepo.create({
+        firstName: 'Ndeye',
+        lastName: 'Sarr',
+        email: 'ndeye.sarr@email.sn',
+        matricule: 'ETU-IUT-002',
+        status: EnrollmentStatus.ACTIF,
+        etablissement: iut,
+        classe: genieElectrique,
+        niveau: dut1,
+      }),
+      etudiantRepo.create({
+        firstName: 'Oumar',
+        lastName: 'Thiam',
+        email: 'oumar.thiam@email.sn',
+        matricule: 'ETU-IUT-003',
+        status: EnrollmentStatus.ACTIF,
+        etablissement: iut,
+        classe: genieElectrique,
+        niveau: dut1,
+      }),
+      etudiantRepo.create({
+        firstName: 'Penda',
+        lastName: 'Wade',
+        email: 'penda.wade@email.sn',
+        status: EnrollmentStatus.EN_ATTENTE,
+        etablissement: iut,
+        classe: genieElectrique,
+        niveau: dut1,
+      }),
+    ];
+
+    const allStudents = [
+      ...fstStudentsList,
+      ...espStudentsList,
+      ...iutStudentsList,
+    ];
+    await etudiantRepo.save(allStudents);
 
     // 8.1 Salles
     const salle101 = salleRepo.create({
@@ -669,12 +891,14 @@ async function seed() {
         role: Role.SUPER_ADMIN,
         photoPath: 'uploads/profiles/default-admin.png',
       }),
+      // --- FST Tenant ---
       userRepo.create({
         email: 'admin@espm.sn',
         username: 'admin',
         password: passwordHash,
         role: Role.ADMIN,
         aclRole: roleAdminAcl,
+        etablissement: fst,
       }),
       // Utilisateur Admin prêt à être activé (pas de mot de passe)
       userRepo.create({
@@ -683,6 +907,7 @@ async function seed() {
         role: Role.ADMIN,
         isActive: false,
         aclRole: roleAdminAcl,
+        etablissement: fst,
       }),
       userRepo.create({
         email: 'comptable@espm.sn',
@@ -690,6 +915,7 @@ async function seed() {
         password: passwordHash,
         role: Role.COMPTABLE,
         aclRole: roleComptableAcl,
+        etablissement: fst,
       }),
       userRepo.create({
         email: 'surveillant@espm.sn',
@@ -697,7 +923,62 @@ async function seed() {
         password: passwordHash,
         role: Role.SURVEILLANT,
         aclRole: roleSurveillantAcl,
+        etablissement: fst,
       }),
+
+      // --- ESP Tenant ---
+      userRepo.create({
+        email: 'admin.esp@espm.sn',
+        username: 'admin_esp',
+        password: passwordHash,
+        role: Role.ADMIN,
+        aclRole: roleAdminAcl,
+        etablissement: esp,
+      }),
+      userRepo.create({
+        email: 'comptable.esp@espm.sn',
+        username: 'comptable_esp',
+        password: passwordHash,
+        role: Role.COMPTABLE,
+        aclRole: roleComptableAcl,
+        etablissement: esp,
+      }),
+      userRepo.create({
+        email: 'surveillant.esp@espm.sn',
+        username: 'surveillant_esp',
+        password: passwordHash,
+        role: Role.SURVEILLANT,
+        aclRole: roleSurveillantAcl,
+        etablissement: esp,
+      }),
+
+      // --- IUT Tenant ---
+      userRepo.create({
+        email: 'admin.iut@espm.sn',
+        username: 'admin_iut',
+        password: passwordHash,
+        role: Role.ADMIN,
+        aclRole: roleAdminAcl,
+        etablissement: iut,
+      }),
+      userRepo.create({
+        email: 'comptable.iut@espm.sn',
+        username: 'comptable_iut',
+        password: passwordHash,
+        role: Role.COMPTABLE,
+        aclRole: roleComptableAcl,
+        etablissement: iut,
+      }),
+      userRepo.create({
+        email: 'surveillant.iut@espm.sn',
+        username: 'surveillant_iut',
+        password: passwordHash,
+        role: Role.SURVEILLANT,
+        aclRole: roleSurveillantAcl,
+        etablissement: iut,
+      }),
+
+      // --- Common Profiles ---
       userRepo.create({
         email: 'prof.diallo@espm.sn',
         username: profDiallo.firstName,

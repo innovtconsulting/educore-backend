@@ -18,6 +18,8 @@ import { Niveau } from '../niveau/entities/niveau.entity';
 import { PaginationQueryDto } from '../common/dto/pagination-query.dto';
 import { UserService } from '../user/user.service';
 import { Role } from '../user/entities/user.entity';
+import { TenantContext } from '../common/tenant/tenant.context';
+
 
 @Injectable()
 export class EnseignantService {
@@ -74,15 +76,17 @@ export class EnseignantService {
   async findAll(paginationQuery: PaginationQueryDto) {
     const { page = 1, limit = 15, search } = paginationQuery;
     const skip = (page - 1) * limit;
+    const tenantId = TenantContext.getTenantId();
 
     let where: FindOptionsWhere<Enseignant> | FindOptionsWhere<Enseignant>[] =
-      {};
+      tenantId ? { affectations: { etablissement: { id: tenantId } } } : {};
     if (search) {
+      const baseSearch = tenantId ? { affectations: { etablissement: { id: tenantId } } } : {};
       where = [
-        { lastName: ILike(`%${search}%`) },
-        { firstName: ILike(`%${search}%`) },
-        { matricule: ILike(`%${search}%`) },
-        { email: ILike(`%${search}%`) },
+        { ...baseSearch, lastName: ILike(`%${search}%`) },
+        { ...baseSearch, firstName: ILike(`%${search}%`) },
+        { ...baseSearch, matricule: ILike(`%${search}%`) },
+        { ...baseSearch, email: ILike(`%${search}%`) },
       ];
     }
 

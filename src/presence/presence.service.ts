@@ -11,6 +11,7 @@ import { BulkRecordPresenceDto } from './dto/record-presence.dto';
 import { EmploiDuTemp } from '../emploi-du-temps/entities/emploi-du-temp.entity';
 import { Etudiant } from '../etudiant/entities/etudiant.entity';
 import { PaginationQueryDto } from '../common/dto/pagination-query.dto';
+import { PresenceFilterDto } from './dto/presence-filter.dto';
 import { Role } from '../user/entities/user.entity';
 import { TenantContext } from '../common/tenant/tenant.context';
 import { TenantHelper } from '../common/tenant/tenant.helper';
@@ -89,15 +90,22 @@ export class PresenceService {
     return results;
   }
 
-  async findAll(paginationQuery: PaginationQueryDto) {
-    const { page = 1, limit = 15 } = paginationQuery;
+  async findAll(filterDto: PresenceFilterDto) {
+    const { page = 1, limit = 15, classeId, niveauId } = filterDto;
     const skip = (page - 1) * limit;
     const tenantId = TenantContext.getTenantId();
     const where = TenantHelper.addTenantFilter(
       {},
       tenantId,
       'etudiant.etablissement',
-    );
+    ) as any;
+
+    if (classeId) {
+      where.emploiDuTemp = { ...(where.emploiDuTemp || {}), classe: { id: classeId } };
+    }
+    if (niveauId) {
+      where.emploiDuTemp = { ...(where.emploiDuTemp || {}), niveau: { id: niveauId } };
+    }
 
     const [items, total] = await this.presenceRepository.findAndCount({
       where: where,

@@ -7,7 +7,7 @@ import { DailyReport } from './entities/daily-report.entity';
 import { SubmitDailyReportDto } from './dto/submit-daily-report.dto';
 import { PaginationQueryDto } from '../common/dto/pagination-query.dto';
 import { generateDailyReportPdf } from './utils/daily-report-pdf-generator';
-import { Etudiant } from '../etudiant/entities/etudiant.entity';
+import { Etudiant, EnrollmentStatus } from '../etudiant/entities/etudiant.entity';
 import { Enseignant } from '../enseignant/entities/enseignant.entity';
 import { Classe } from '../classe/entities/classe.entity';
 import { Facture } from '../finance/entities/facture.entity';
@@ -41,7 +41,7 @@ export class ReportingService {
 
     const [totalEtudiants, totalEnseignants, totalClasses] = await Promise.all([
       this.etudiantRepository.count({
-        where: TenantHelper.addTenantFilter({}, tenantId) as any,
+        where: TenantHelper.addTenantFilter({ status: EnrollmentStatus.ACTIF }, tenantId) as any,
       }),
       this.enseignantRepository.count({
         where: tenantId

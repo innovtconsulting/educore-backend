@@ -12,7 +12,7 @@ import {
 import { PresenceService } from './presence.service';
 import { BulkRecordPresenceDto } from './dto/record-presence.dto';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
-import { PaginationQueryDto } from '../common/dto/pagination-query.dto';
+import { PresenceFilterDto } from './dto/presence-filter.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
@@ -38,8 +38,8 @@ export class PresenceController {
   @Get()
   @Permissions('ATTENDANCE_MANAGE')
   @ApiOperation({ summary: 'Liste de toutes les présences' })
-  async findAll(@Query() paginationQuery: PaginationQueryDto) {
-    const data = await this.presenceService.findAll(paginationQuery);
+  async findAll(@Query() filterDto: PresenceFilterDto) {
+    const data = await this.presenceService.findAll(filterDto);
     return {
       message: 'Liste des présences récupérée avec succès',
       data,
