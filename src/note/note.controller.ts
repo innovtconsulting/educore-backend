@@ -9,6 +9,7 @@ import {
   Query,
   UseGuards,
   Request,
+  ParseIntPipe,
 } from '@nestjs/common';
 import { NoteService } from './note.service';
 import { CreateNoteDto } from './dto/create-note.dto';
@@ -54,19 +55,47 @@ export class NoteController {
     return this.noteService.bulkCreate(bulkCreateNoteDto, req.user);
   }
 
-  @Get()
-  @Roles(Role.ETUDIANT)
-  @Permissions('ACADEMIC_VIEW')
+  @Get('etudiant/:etudiantId')
+  @Roles(Role.PARENT, Role.ETUDIANT)
   @ApiOperation({
-    summary: 'Lister toutes les notes',
+    summary: "Lister les notes d'un étudiant",
     description:
-      "Récupère la liste des notes. Si c'est un étudiant, il ne voit que les siennes.",
+      'Parents : notes de leurs enfants. Étudiants : uniquement les leurs.',
   })
-  async findAll(
+  async findByEtudiant(
+    @Param('etudiantId', ParseIntPipe) etudiantId: number,
     @Query() paginationQuery: PaginationQueryDto,
     @Request() req: any,
   ) {
-    const data = await this.noteService.findAll(paginationQuery, req.user);
+    const data = await this.noteService.findAll(
+      paginationQuery,
+      req.user,
+      etudiantId,
+    );
+    return {
+      message: 'Liste des notes récupérée avec succès',
+      data,
+    };
+  }
+
+  @Get()
+  @Roles(Role.ETUDIANT, Role.PARENT)
+  @Permissions('ACADEMIC_VIEW')
+  @ApiOperation({
+    summary: 'Lister les notes',
+    description:
+      "Étudiant : ses notes. Parent : notes d'un enfant (etudiantId requis). Staff : liste filtrée.",
+  })
+  async findAll(
+    @Query() paginationQuery: PaginationQueryDto,
+    @Query('etudiantId') etudiantId: string | undefined,
+    @Request() req: any,
+  ) {
+    const data = await this.noteService.findAll(
+      paginationQuery,
+      req.user,
+      etudiantId ? +etudiantId : undefined,
+    );
     return {
       message: 'Liste des notes récupérée avec succès',
       data,

@@ -40,13 +40,13 @@ export class EmploiDuTempsController {
   }
 
   @Get()
-  @Roles(Role.ETUDIANT)
-  @Permissions('SCHEDULE_VIEW')
+  @Roles(Role.ETUDIANT, Role.ENSEIGNANT, Role.ADMIN, Role.SURVEILLANT)
   @ApiOperation({
     summary: "Récupérer l'emploi du temps (avec filtres optionnels)",
   })
   @ApiQuery({ name: 'classeId', required: false, type: Number })
   @ApiQuery({ name: 'niveauId', required: false, type: Number })
+  @ApiQuery({ name: 'enseignantId', required: false, type: Number })
   @ApiQuery({
     name: 'start',
     required: false,
@@ -63,6 +63,7 @@ export class EmploiDuTempsController {
     @Query() paginationQuery: PaginationQueryDto,
     @Query('classeId') classeId?: string,
     @Query('niveauId') niveauId?: string,
+    @Query('enseignantId') enseignantId?: string,
     @Query('start') start?: string,
     @Query('end') end?: string,
   ) {
@@ -72,12 +73,12 @@ export class EmploiDuTempsController {
       niveauId ? +niveauId : undefined,
       start,
       end,
+      enseignantId ? +enseignantId : undefined,
     );
   }
 
   @Get(':id')
-  @Roles(Role.ETUDIANT)
-  @Permissions('SCHEDULE_VIEW')
+  @Roles(Role.ETUDIANT, Role.ENSEIGNANT, Role.ADMIN, Role.SURVEILLANT)
   @ApiOperation({ summary: 'Récupérer un créneau par son ID' })
   findOne(@Param('id') id: string) {
     return this.emploiDuTempsService.findOne(+id);

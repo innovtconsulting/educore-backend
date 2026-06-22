@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { CreateParentDto } from './dto/create-parent.dto';
@@ -71,6 +75,29 @@ export class ParentService {
   async remove(id: number): Promise<void> {
     const parent = await this.findOne(id);
     await this.parentRepository.remove(parent);
+  }
+
+  async assertParentOfEtudiant(
+    parentId: number,
+    etudiantId: number,
+  ): Promise<void> {
+    const parent = await this.parentRepository.findOne({
+      where: { id: parentId },
+      relations: { etudiants: true },
+    });
+
+    if (!parent) {
+      throw new NotFoundException('Profil parent introuvable');
+    }
+
+    const isLinked = parent.etudiants.some(
+      (etudiant) => etudiant.id === etudiantId,
+    );
+    if (!isLinked) {
+      throw new ForbiddenException(
+        'Vous ne pouvez consulter que les données de vos enfants',
+      );
+    }
   }
 
   async getContacts(search?: string): Promise<Parent[]> {

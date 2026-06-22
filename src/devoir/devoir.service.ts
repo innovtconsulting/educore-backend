@@ -96,7 +96,19 @@ export class DevoirService {
     }
 
     if (user && user.role === Role.ETUDIANT) {
-      // Pour un étudiant, on pourrait filtrer davantage ici si nécessaire
+      const etudiant = (await this.devoirRepository.manager
+        .getRepository('Etudiant')
+        .findOne({
+          where: { id: user.etudiantId },
+          relations: { classe: true, niveau: true },
+        })) as any;
+
+      if (etudiant) {
+        query.andWhere('classe.id = :classeId AND niveau.id = :niveauId', {
+          classeId: etudiant.classe.id,
+          niveauId: etudiant.niveau.id,
+        });
+      }
     }
 
     const [items, total] = await query

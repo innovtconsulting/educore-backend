@@ -80,9 +80,9 @@ export class UserService {
     return await this.userRepository.findOne({
       where: { email },
       relations: {
-        enseignant: true,
-        etudiant: true,
-        parent: true,
+        enseignant: { affectations: { etablissement: true } },
+        etudiant: { etablissement: true },
+        parent: { etudiants: { etablissement: true } },
         etablissement: true,
         aclRole: { permissions: true },
       },
@@ -132,7 +132,7 @@ export class UserService {
     const user = await this.userRepository.findOne({
       where: { id },
       relations: {
-        enseignant: true,
+        enseignant: { affectations: { matiere: true, niveau: true, etablissement: true } },
         etudiant: true,
         parent: true,
         aclRole: { permissions: true },

@@ -1,6 +1,21 @@
 import { FindOptionsWhere } from 'typeorm';
+import { UserRole } from '../../user/entities/user.entity';
 
 export class TenantHelper {
+  static shouldApplyTenant(user?: { role?: string }): boolean {
+    return user?.role !== UserRole.PARENT;
+  }
+
+  static resolveTenantId(
+    user?: { role?: string },
+    tenantId?: number,
+  ): number | undefined {
+    if (!this.shouldApplyTenant(user)) {
+      return undefined;
+    }
+    return tenantId;
+  }
+
   static addTenantFilter<T>(
     where: FindOptionsWhere<T> | FindOptionsWhere<T>[],
     tenantId: number | undefined,

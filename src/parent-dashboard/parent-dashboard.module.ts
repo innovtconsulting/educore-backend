@@ -7,6 +7,7 @@ import { NoteModule } from '../note/note.module';
 import { PresenceModule } from '../presence/presence.module';
 import { FinanceModule } from '../finance/finance.module';
 import { SanctionModule } from '../sanction/sanction.module';
+import { AuthModule } from '../auth/auth.module';
 
 @Module({
   imports: [
@@ -15,6 +16,7 @@ import { SanctionModule } from '../sanction/sanction.module';
     PresenceModule,
     FinanceModule,
     SanctionModule,
+    AuthModule,
   ],
   controllers: [ParentDashboardController],
   providers: [ParentDashboardService],

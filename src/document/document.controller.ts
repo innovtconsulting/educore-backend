@@ -31,6 +31,7 @@ import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { Permissions } from '../auth/decorators/permissions.decorator';
 import { Role } from '../user/entities/user.entity';
+import { DocumentCategory } from './entities/document.entity';
 
 @ApiTags('documents')
 @ApiBearerAuth()
@@ -40,7 +41,8 @@ export class DocumentController {
   constructor(private readonly documentService: DocumentService) {}
 
   @Post('upload')
-  @Permissions('DOCUMENT_MANAGE')
+  @Roles(Role.ADMIN, Role.ENSEIGNANT, Role.SUPER_ADMIN)
+  @Permissions('DOCUMENT_MANAGE', 'ACADEMIC_MANAGE')
   @ApiOperation({
     summary: 'Uploader un nouveau document',
     description:
@@ -97,9 +99,59 @@ export class DocumentController {
     };
   }
 
+  @Post('upload/rendu')
+  @Roles(Role.ETUDIANT)
+  @ApiOperation({ summary: 'Uploader un rendu de devoir (étudiant)' })
+  @ApiConsumes('multipart/form-data')
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        file: { type: 'string', format: 'binary' },
+        title: { type: 'string' },
+        description: { type: 'string' },
+      },
+    },
+  })
+  @UseInterceptors(
+    FileInterceptor('file', {
+      storage: diskStorage({
+        destination: './uploads/documents',
+        filename: (req, file, cb) => {
+          const randomName = Array(32)
+            .fill(null)
+            .map(() => Math.round(Math.random() * 16).toString(16))
+            .join('');
+          cb(null, `${randomName}${extname(file.originalname)}`);
+        },
+      }),
+      limits: { fileSize: 10 * 1024 * 1024 },
+    }),
+  )
+  async uploadStudentRendu(
+    @UploadedFile() file: Express.Multer.File,
+    @Body('title') title?: string,
+    @Body('description') description?: string,
+  ) {
+    if (!file) {
+      throw new BadRequestException('Le fichier est obligatoire');
+    }
+    const data = await this.documentService.create(
+      {
+        title: title || file.originalname,
+        description: description || 'Rendu de devoir',
+        category: DocumentCategory.PEDAGOGIQUE,
+      },
+      file,
+    );
+    return {
+      message: 'Rendu uploadé avec succès',
+      data,
+    };
+  }
+
   @Get()
-  @Roles(Role.ETUDIANT, Role.PARENT, Role.ENSEIGNANT)
-  @Permissions('DOCUMENT_MANAGE')
+  @Roles(Role.ETUDIANT, Role.PARENT, Role.ENSEIGNANT, Role.ADMIN, Role.SURVEILLANT, Role.COMPTABLE)
   @ApiOperation({
     summary: 'Récupérer tous les documents',
     description:
@@ -114,8 +166,7 @@ export class DocumentController {
   }
 
   @Get(':id')
-  @Roles(Role.ETUDIANT, Role.PARENT, Role.ENSEIGNANT)
-  @Permissions('DOCUMENT_MANAGE')
+  @Roles(Role.ETUDIANT, Role.PARENT, Role.ENSEIGNANT, Role.ADMIN, Role.SURVEILLANT, Role.COMPTABLE)
   @ApiOperation({
     summary: 'Récupérer un document par son ID',
     description:

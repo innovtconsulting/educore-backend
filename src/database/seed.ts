@@ -410,12 +410,13 @@ async function seed() {
     });
     const etudiant2 = etudiantRepo.create({
       firstName: 'Fatou',
-      lastName: 'Ndiaye',
-      email: 'fatou.ndiaye@email.sn',
+      lastName: 'Sow',
+      email: 'fatou.sow@email.sn',
       matricule: 'ETU-2026-002',
       etablissement: esp,
       classe: informatique,
       niveau: l2,
+      parents: [parent1],
     });
     const etudiant3 = etudiantRepo.create({
       firstName: 'Amadou',

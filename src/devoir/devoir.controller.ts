@@ -38,7 +38,6 @@ export class DevoirController {
 
   @Get()
   @Roles(Role.ETUDIANT, Role.PARENT)
-  @Permissions('ACADEMIC_VIEW')
   @ApiOperation({ summary: 'Lister les devoirs' })
   findAll(@Query() paginationQuery: PaginationQueryDto, @Request() req: any) {
     return this.devoirService.findAll(paginationQuery, req.user);
@@ -46,7 +45,6 @@ export class DevoirController {
 
   @Get('classe/:classeId/niveau/:niveauId')
   @Roles(Role.ETUDIANT, Role.PARENT)
-  @Permissions('ACADEMIC_VIEW')
   @ApiOperation({ summary: 'Lister les devoirs par classe et niveau' })
   findByClasse(
     @Param('classeId') classeId: string,
@@ -57,7 +55,6 @@ export class DevoirController {
 
   @Get(':id')
   @Roles(Role.ETUDIANT, Role.PARENT)
-  @Permissions('ACADEMIC_VIEW')
   @ApiOperation({ summary: 'Récupérer un devoir par ID' })
   findOne(@Param('id') id: string) {
     return this.devoirService.findOne(+id);

@@ -6,6 +6,8 @@ import { NoteService } from '../note/note.service';
 import { PresenceService } from '../presence/presence.service';
 import { FinanceService } from '../finance/finance.service';
 import { SanctionService } from '../sanction/sanction.service';
+import { TenantContext } from '../common/tenant/tenant.context';
+import { Role } from '../user/entities/user.entity';
 
 @Injectable()
 export class ParentDashboardService {
@@ -22,7 +24,7 @@ export class ParentDashboardService {
     const parentId = user.parentId;
     if (!parentId) {
       throw new NotFoundException(
-        'Identifiant parent non trouvé dans le jeton',
+        'Identifiant parent non trouvé dans le jeton. Déconnectez-vous et reconnectez-vous.',
       );
     }
 
@@ -32,6 +34,7 @@ export class ParentDashboardService {
         etudiants: {
           classe: true,
           niveau: true,
+          etablissement: true,
         },
       },
     });
@@ -40,55 +43,69 @@ export class ParentDashboardService {
       throw new NotFoundException('Profil parent non trouvé');
     }
 
+    const parentUser = {
+      role: Role.PARENT,
+      parentId,
+    };
+
     const childrenData = await Promise.all(
       parent.etudiants.map(async (etudiant) => {
-        const [notes, presenceStats, absencesToday, invoices, sanctions] =
-          await Promise.all([
-            this.noteService.findAll(
-              { page: 1, limit: 5 },
-              { etudiantId: etudiant.id },
-            ),
-            this.presenceService.getStudentStats(etudiant.id, {
-              etudiantId: etudiant.id,
-            }),
-            this.presenceService.getStudentAbsencesToday(etudiant.id),
-            this.financeService.findByEtudiant(etudiant.id),
-            this.sanctionService.findByEtudiant(etudiant.id),
-          ]);
+        const tenantId = etudiant.etablissement?.id;
 
-        const totalRemaining = invoices.reduce((acc, inv) => {
-          const total = Number(inv.montantTotal) || 0;
-          const paid = (inv.paiements || []).reduce(
-            (sum, p) => sum + (Number(p.montant) || 0),
-            0,
-          );
-          return acc + (total - paid);
-        }, 0);
+        const loadChildData = async () => {
+          const [notes, presenceStats, absencesToday, invoices, sanctions] =
+            await Promise.all([
+              this.noteService.findAll(
+                { page: 1, limit: 5 },
+                { etudiantId: etudiant.id },
+              ),
+              this.presenceService.getStudentStats(etudiant.id, parentUser),
+              this.presenceService.getStudentAbsencesToday(etudiant.id),
+              this.financeService.findByEtudiant(etudiant.id),
+              this.sanctionService.findByEtudiant(etudiant.id),
+            ]);
 
-        return {
-          id: etudiant.id,
-          fullName: `${etudiant.firstName} ${etudiant.lastName}`,
-          matricule: etudiant.matricule,
-          classe: etudiant.classe.name,
-          niveau: etudiant.niveau.name,
-          recentNotes: notes.items,
-          presence: {
-            absentsTotal: presenceStats.absents,
-            retardsTotal: presenceStats.retards,
-            absencesToday: absencesToday.map((p) => ({
-              matiere: p.emploiDuTemp.matiere.name,
-              startTime: p.emploiDuTemp.startTime,
-              remark: p.remark,
-            })),
-          },
-          finances: {
-            totalInvoices: invoices.length,
-            unpaidInvoicesCount: invoices.filter((f) => f.status !== 'Payée')
-              .length,
-            totalRemaining: totalRemaining,
-          },
-          recentSanctions: sanctions.slice(0, 3),
+          const totalRemaining = invoices.reduce((acc, inv) => {
+            const total = Number(inv.montantTotal) || 0;
+            const paid = (inv.paiements || []).reduce(
+              (sum, p) => sum + (Number(p.montant) || 0),
+              0,
+            );
+            return acc + (total - paid);
+          }, 0);
+
+          return {
+            id: etudiant.id,
+            fullName: `${etudiant.firstName} ${etudiant.lastName}`,
+            matricule: etudiant.matricule,
+            classe: etudiant.classe.name,
+            niveau: etudiant.niveau.name,
+            etablissement: etudiant.etablissement?.name ?? '',
+            recentNotes: notes.items,
+            presence: {
+              absentsTotal: presenceStats.absents,
+              retardsTotal: presenceStats.retards,
+              absencesToday: absencesToday.map((p) => ({
+                matiere: p.emploiDuTemp.matiere.name,
+                startTime: p.emploiDuTemp.startTime,
+                remark: p.remark,
+              })),
+            },
+            finances: {
+              totalInvoices: invoices.length,
+              unpaidInvoicesCount: invoices.filter((f) => f.status !== 'Payée')
+                .length,
+              totalRemaining: totalRemaining,
+            },
+            recentSanctions: sanctions.slice(0, 3),
+          };
         };
+
+        if (tenantId) {
+          return TenantContext.run(tenantId, loadChildData);
+        }
+
+        return loadChildData();
       }),
     );
 

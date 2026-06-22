@@ -6,6 +6,7 @@ import {
 } from '@nestjs/common';
 import { Observable } from 'rxjs';
 import { TenantContext } from './tenant.context';
+import { UserRole } from '../../user/entities/user.entity';
 
 @Injectable()
 export class TenantInterceptor implements NestInterceptor {
@@ -13,18 +14,17 @@ export class TenantInterceptor implements NestInterceptor {
     const request = context.switchToHttp().getRequest();
     const user = request.user;
 
-    console.log('DEBUG - TenantInterceptor - User:', user ? { role: user.role, etablissementId: user.etablissementId } : 'No user');
+    if (user?.role === UserRole.SUPER_ADMIN || user?.role === UserRole.PARENT) {
+      return next.handle();
+    }
 
-    // Le SuperAdmin ne doit pas être restreint par un tenantId automatique
-    if (user && user.etablissementId && user.role !== 'SuperAdmin') {
-      console.log('Setting tenant ID:', user.etablissementId);
+    if (user?.etablissementId) {
       return new Observable((subscriber) => {
         TenantContext.run(user.etablissementId, () => {
           next.handle().subscribe(subscriber);
         });
       });
     }
-    console.log('No etablissementId in user or no user or user is SuperAdmin');
 
     return next.handle();
   }

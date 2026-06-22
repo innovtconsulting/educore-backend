@@ -15,6 +15,7 @@ import { PresenceFilterDto } from './dto/presence-filter.dto';
 import { Role } from '../user/entities/user.entity';
 import { TenantContext } from '../common/tenant/tenant.context';
 import { TenantHelper } from '../common/tenant/tenant.helper';
+import { ParentService } from '../parent/parent.service';
 
 @Injectable()
 export class PresenceService {
@@ -25,6 +26,7 @@ export class PresenceService {
     private readonly emploiRepo: Repository<EmploiDuTemp>,
     @InjectRepository(Etudiant)
     private readonly etudiantRepo: Repository<Etudiant>,
+    private readonly parentService: ParentService,
   ) {}
 
   async bulkRecord(dto: BulkRecordPresenceDto): Promise<Presence[]> {
@@ -144,9 +146,18 @@ export class PresenceService {
       );
     }
 
-    const tenantId = TenantContext.getTenantId();
+    if (user && user.role === Role.PARENT) {
+      await this.parentService.assertParentOfEtudiant(
+        user.parentId,
+        etudiantId,
+      );
+    }
+
+    const tenantId = TenantHelper.resolveTenantId(user, TenantContext.getTenantId());
     const where: any = { etudiant: { id: etudiantId } };
-    if (tenantId) where.etudiant.etablissement = { id: tenantId };
+    if (tenantId) {
+      where.etudiant.etablissement = { id: tenantId };
+    }
 
     const presences = await this.presenceRepository.find({
       where,
@@ -187,7 +198,9 @@ export class PresenceService {
         startTime: Between(today, tomorrow),
       },
     };
-    if (tenantId) where.etudiant = { etablissement: { id: tenantId } };
+    if (tenantId) {
+      where.etudiant.etablissement = { id: tenantId };
+    }
 
     return await this.presenceRepository.find({
       where,

@@ -18,7 +18,6 @@ export class RolesGuard implements CanActivate {
       return true;
     }
 
-    // 1. Vérification par Permissions (Nouveau système dynamique)
     const requiredPermissions = this.reflector.getAllAndOverride<string[]>(
       PERMISSIONS_KEY,
       [context.getHandler(), context.getClass()],
@@ -27,18 +26,16 @@ export class RolesGuard implements CanActivate {
     const { user } = context.switchToHttp().getRequest();
     if (!user) return false;
 
-    // Le SuperAdmin a toujours tous les accès
     if (user.role === UserRole.SUPER_ADMIN) return true;
 
     if (requiredPermissions && requiredPermissions.length > 0) {
       const userPermissions = user.permissions || [];
-      const hasPermission = requiredPermissions.every((permission) =>
+      const hasPermission = requiredPermissions.some((permission) =>
         userPermissions.includes(permission),
       );
       if (hasPermission) return true;
     }
 
-    // 2. Vérification par Rôles (Ancien système statique pour compatibilité)
     const requiredUserRoles = this.reflector.getAllAndOverride<UserRole[]>(
       ROLES_KEY,
       [context.getHandler(), context.getClass()],

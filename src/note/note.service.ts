@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   ForbiddenException,
   Injectable,
   NotFoundException,
@@ -15,6 +16,7 @@ import { Role } from '../user/entities/user.entity';
 import { TenantContext } from '../common/tenant/tenant.context';
 import { TenantHelper } from '../common/tenant/tenant.helper';
 import { BulkCreateNoteDto } from './dto/bulk-create-note.dto';
+import { ParentService } from '../parent/parent.service';
 
 @Injectable()
 export class NoteService {
@@ -24,6 +26,7 @@ export class NoteService {
     @InjectRepository(Evaluation)
     private readonly evaluationRepository: Repository<Evaluation>,
     private readonly enseignantService: EnseignantService,
+    private readonly parentService: ParentService,
   ) {}
 
   async create(createNoteDto: CreateNoteDto, user: any) {
@@ -133,13 +136,28 @@ export class NoteService {
     return savedNotes;
   }
 
-  async findAll(paginationQuery: PaginationQueryDto, user?: any) {
+  async findAll(
+    paginationQuery: PaginationQueryDto,
+    user?: any,
+    etudiantId?: number,
+  ) {
     const { page = 1, limit = 15 } = paginationQuery;
     const skip = (page - 1) * limit;
     const tenantId = TenantContext.getTenantId();
 
     let where: any = {};
-    if (user && user.role === Role.ETUDIANT) {
+    if (user && user.role === Role.PARENT) {
+      if (!etudiantId) {
+        throw new BadRequestException(
+          'Le paramètre etudiantId est requis pour consulter les notes',
+        );
+      }
+      await this.parentService.assertParentOfEtudiant(
+        user.parentId,
+        etudiantId,
+      );
+      where.etudiant = { id: etudiantId };
+    } else if (user && user.role === Role.ETUDIANT) {
       where.etudiant = { id: user.etudiantId };
     } else if (user && user.etudiantId) {
       where.etudiant = { id: user.etudiantId };
@@ -147,7 +165,7 @@ export class NoteService {
 
     where = TenantHelper.addTenantFilter(
       where,
-      tenantId,
+      TenantHelper.resolveTenantId(user, tenantId),
       'etudiant.etablissement',
     );
 

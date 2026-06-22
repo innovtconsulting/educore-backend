@@ -204,6 +204,7 @@ export class EmploiDuTempsService {
     niveauId?: number,
     start?: string,
     end?: string,
+    enseignantId?: number,
   ) {
     const { page = 1, limit = 15 } = paginationQuery;
     const skip = (page - 1) * limit;
@@ -221,6 +222,7 @@ export class EmploiDuTempsService {
     if (tenantId) query.andWhere('e.etablissementId = :tenantId', { tenantId });
     if (classeId) query.andWhere('e.classeId = :classeId', { classeId });
     if (niveauId) query.andWhere('e.niveauId = :niveauId', { niveauId });
+    if (enseignantId) query.andWhere('e.enseignantId = :enseignantId', { enseignantId });
     if (start && end) {
       query.andWhere('e.startTime BETWEEN :start AND :end', {
         start: new Date(start),

@@ -2,7 +2,9 @@ import { AppDataSource } from './src/data-source';
 import { Presence } from './src/presence/entities/presence.entity';
 import { EmploiDuTemp } from './src/emploi-du-temps/entities/emploi-du-temp.entity';
 import { Etudiant } from './src/etudiant/entities/etudiant.entity';
+import { Parent } from './src/parent/entities/parent.entity';
 import { PresenceService } from './src/presence/presence.service';
+import { ParentService } from './src/parent/parent.service';
 import { TenantContext } from './src/common/tenant/tenant.context';
 
 async function main() {
@@ -11,8 +13,15 @@ async function main() {
   const presenceRepo = AppDataSource.getRepository(Presence);
   const emploiRepo = AppDataSource.getRepository(EmploiDuTemp);
   const etudiantRepo = AppDataSource.getRepository(Etudiant);
-  
-  const presenceService = new PresenceService(presenceRepo, emploiRepo, etudiantRepo);
+  const parentRepo = AppDataSource.getRepository(Parent);
+
+  const parentService = new ParentService(parentRepo);
+  const presenceService = new PresenceService(
+    presenceRepo,
+    emploiRepo,
+    etudiantRepo,
+    parentService,
+  );
   
   // Test findAll with tenantId = 1
   await TenantContext.run(1, async () => {
