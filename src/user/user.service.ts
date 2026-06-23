@@ -105,20 +105,37 @@ export class UserService {
     const { page = 1, limit = 20, search } = query;
     const skip = (page - 1) * limit;
 
-    const where: any = {};
+    const qb = this.userRepository
+      .createQueryBuilder('u')
+      .leftJoinAndSelect('u.enseignant', 'enseignant')
+      .leftJoinAndSelect('u.etudiant', 'etudiant')
+      .leftJoinAndSelect('u.parent', 'parent')
+      .orderBy('u.createdAt', 'DESC')
+      .skip(skip)
+      .take(limit);
+
     if (search) {
-      where.email = Like(`%${search}%`);
-      // Note: role est un enum, Like peut ne pas fonctionner selon la DB,
-      // mais restons simple ou utilisons un queryBuilder si besoin de OR complexe.
+      qb.where(
+        `u.email ILIKE :search
+        OR u.username ILIKE :search
+        OR enseignant.firstName ILIKE :search
+        OR enseignant.lastName ILIKE :search
+        OR enseignant.email ILIKE :search
+        OR enseignant.phone ILIKE :search
+        OR etudiant.firstName ILIKE :search
+        OR etudiant.lastName ILIKE :search
+        OR etudiant.email ILIKE :search
+        OR etudiant.phoneNumber ILIKE :search
+        OR etudiant.matricule ILIKE :search
+        OR parent.firstName ILIKE :search
+        OR parent.lastName ILIKE :search
+        OR parent.email ILIKE :search
+        OR parent.phoneNumber ILIKE :search`,
+        { search: `%${search}%` },
+      );
     }
 
-    const [items, total] = await this.userRepository.findAndCount({
-      where: search ? [{ email: Like(`%${search}%`) }] : {},
-      relations: { enseignant: true, etudiant: true, parent: true },
-      skip,
-      take: limit,
-      order: { createdAt: 'DESC' },
-    });
+    const [items, total] = await qb.getManyAndCount();
 
     return {
       items,
@@ -292,3 +309,4 @@ export class UserService {
     });
   }
 }
+
