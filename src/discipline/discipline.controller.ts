@@ -45,7 +45,7 @@ export class DisciplineController {
   }
 
   @Get()
-  @Roles(Role.ETUDIANT, Role.PARENT, Role.ENSEIGNANT)
+  @Roles(Role.ETUDIANT, Role.PARENT, Role.ENSEIGNANT, Role.SURVEILLANT)
   @Permissions('DISCIPLINE_MANAGE')
   @ApiOperation({
     summary: 'Lister toutes les règles de discipline',
@@ -58,7 +58,7 @@ export class DisciplineController {
   }
 
   @Get(':id')
-  @Roles(Role.ETUDIANT, Role.PARENT, Role.ENSEIGNANT)
+  @Roles(Role.ETUDIANT, Role.PARENT, Role.ENSEIGNANT, Role.SURVEILLANT)
   @Permissions('DISCIPLINE_MANAGE')
   @ApiOperation({
     summary: 'Récupérer une règle par ID',
@@ -94,3 +94,4 @@ export class DisciplineController {
     return this.disciplineService.remove(id);
   }
 }
+
