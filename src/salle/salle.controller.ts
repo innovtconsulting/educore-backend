@@ -19,6 +19,7 @@ import { Roles } from '../auth/decorators/roles.decorator';
 import { Permissions } from '../auth/decorators/permissions.decorator';
 import { Role } from '../user/entities/user.entity';
 import { PaginationQueryDto } from '../common/dto/pagination-query.dto';
+import { CurrentEtablissement } from '../auth/decorators/current-etablissement.decorator';
 
 @ApiTags('salles')
 @ApiBearerAuth()
@@ -37,28 +38,28 @@ export class SalleController {
   @Get()
   @Permissions('ACADEMIC_VIEW')
   @ApiOperation({ summary: 'Lister toutes les salles' })
-  findAll(@Query() paginationQuery: PaginationQueryDto) {
-    return this.salleService.findAll(paginationQuery);
+  findAll(@Query() paginationQuery: PaginationQueryDto, @CurrentEtablissement() tenantId?: number) {
+    return this.salleService.findAll(paginationQuery, tenantId);
   }
 
   @Get(':id')
   @Permissions('ACADEMIC_VIEW')
   @ApiOperation({ summary: 'Récupérer une salle par ID' })
-  findOne(@Param('id') id: string) {
-    return this.salleService.findOne(+id);
+  findOne(@Param('id') id: string, @CurrentEtablissement() tenantId?: number) {
+    return this.salleService.findOne(+id, tenantId);
   }
 
   @Patch(':id')
   @Permissions('ACADEMIC_CONFIG')
   @ApiOperation({ summary: 'Modifier une salle' })
-  update(@Param('id') id: string, @Body() updateSalleDto: UpdateSalleDto) {
-    return this.salleService.update(+id, updateSalleDto);
+  update(@Param('id') id: string, @Body() updateSalleDto: UpdateSalleDto, @CurrentEtablissement() tenantId?: number) {
+    return this.salleService.update(+id, updateSalleDto, tenantId);
   }
 
   @Delete(':id')
   @Permissions('ACADEMIC_CONFIG')
   @ApiOperation({ summary: 'Supprimer une salle' })
-  remove(@Param('id') id: string) {
-    return this.salleService.remove(+id);
+  remove(@Param('id') id: string, @CurrentEtablissement() tenantId?: number) {
+    return this.salleService.remove(+id, tenantId);
   }
 }

@@ -20,6 +20,7 @@ import { Roles } from '../auth/decorators/roles.decorator';
 import { Permissions } from '../auth/decorators/permissions.decorator';
 import { Role } from '../user/entities/user.entity';
 import { PaginationQueryDto } from '../common/dto/pagination-query.dto';
+import { CurrentEtablissement } from '../auth/decorators/current-etablissement.decorator';
 
 @ApiTags('certificates')
 @ApiBearerAuth()
@@ -86,10 +87,12 @@ export class CertificateController {
   async getHistory(
     @Query() paginationQuery: PaginationQueryDto,
     @Query('etudiantId') etudiantId?: number,
+    @CurrentEtablissement() tenantId?: number,
   ) {
     const data = await this.certificateService.getHistory(
       paginationQuery,
       etudiantId,
+      tenantId,
     );
     return {
       message: 'Historique des documents récupéré avec succès',
@@ -103,10 +106,12 @@ export class CertificateController {
   async getMyHistory(
     @Query() paginationQuery: PaginationQueryDto,
     @Req() req: any,
+    @CurrentEtablissement() tenantId?: number,
   ) {
     const data = await this.certificateService.getHistory(
       paginationQuery,
       req.user.etudiantId,
+      tenantId,
     );
     return {
       message: 'Mon historique de documents récupéré avec succès',

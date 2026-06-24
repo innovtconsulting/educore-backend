@@ -6,7 +6,6 @@ import { UpdateSanctionDto } from './dto/update-sanction.dto';
 import { Sanction } from './entities/sanction.entity';
 import { Etudiant } from '../etudiant/entities/etudiant.entity';
 import { PaginationQueryDto } from '../common/dto/pagination-query.dto';
-import { TenantContext } from '../common/tenant/tenant.context';
 import { TenantHelper } from '../common/tenant/tenant.helper';
 
 @Injectable()
@@ -18,7 +17,7 @@ export class SanctionService {
     private readonly etudiantRepository: Repository<Etudiant>,
   ) {}
 
-  async create(createSanctionDto: CreateSanctionDto): Promise<Sanction> {
+  async create(createSanctionDto: CreateSanctionDto, tenantId?: number): Promise<Sanction> {
     const { etudiantId, ...rest } = createSanctionDto;
 
     const etudiant = await this.etudiantRepository.findOne({
@@ -40,10 +39,9 @@ export class SanctionService {
     return await this.sanctionRepository.save(sanction);
   }
 
-  async findAll(paginationQuery: PaginationQueryDto) {
+  async findAll(paginationQuery: PaginationQueryDto, tenantId?: number) {
     const { page = 1, limit = 15, search } = paginationQuery;
     const skip = (page - 1) * limit;
-    const tenantId = TenantContext.getTenantId();
 
     let where: FindOptionsWhere<Sanction> | FindOptionsWhere<Sanction>[] = [];
     if (search) {
@@ -74,8 +72,7 @@ export class SanctionService {
     };
   }
 
-  async findByEtudiant(etudiantId: number): Promise<Sanction[]> {
-    const tenantId = TenantContext.getTenantId();
+  async findByEtudiant(etudiantId: number, tenantId?: number): Promise<Sanction[]> {
     const where = TenantHelper.addTenantFilter(
       { etudiant: { id: etudiantId } },
       tenantId,
@@ -89,8 +86,7 @@ export class SanctionService {
     });
   }
 
-  async findOne(id: number): Promise<Sanction> {
-    const tenantId = TenantContext.getTenantId();
+  async findOne(id: number, tenantId?: number): Promise<Sanction> {
     const where = TenantHelper.addTenantFilter(
       { id },
       tenantId,
@@ -110,8 +106,9 @@ export class SanctionService {
   async update(
     id: number,
     updateSanctionDto: UpdateSanctionDto,
+    tenantId?: number,
   ): Promise<Sanction> {
-    const sanction = await this.findOne(id);
+    const sanction = await this.findOne(id, tenantId);
     const { etudiantId, ...rest } = updateSanctionDto;
 
     if (etudiantId) {
@@ -134,8 +131,8 @@ export class SanctionService {
     return await this.sanctionRepository.save(sanction);
   }
 
-  async remove(id: number): Promise<void> {
-    const sanction = await this.findOne(id);
+  async remove(id: number, tenantId?: number): Promise<void> {
+    const sanction = await this.findOne(id, tenantId);
     await this.sanctionRepository.remove(sanction);
   }
 }

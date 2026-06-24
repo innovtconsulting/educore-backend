@@ -1,11 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import {
-  ArrayNotEmpty,
-  IsArray,
-  IsNotEmpty,
-  IsNumber,
-  IsString,
-} from 'class-validator';
+import { IsNotEmpty, IsNumber, IsString } from 'class-validator';
 
 export class CreateMatiereDto {
   @ApiProperty({ example: 'INF101', description: 'Code de la matière' })
@@ -23,25 +17,11 @@ export class CreateMatiereDto {
   @IsNotEmpty({ message: 'Le coefficient est obligatoire' })
   coefficient!: number;
 
-  @ApiProperty({ example: [1], description: 'Liste des IDs des classes' })
-  @IsArray({
-    message: 'Les classes doivent être fournies sous forme de tableau',
+  @ApiProperty({
+    example: 1,
+    description: 'ID du niveau',
   })
-  @ArrayNotEmpty({ message: 'Au moins une classe est obligatoire' })
-  @IsNumber(
-    {},
-    { each: true, message: 'Chaque ID de classe doit être un nombre' },
-  )
-  classeIds!: number[];
-
-  @ApiProperty({ example: [1], description: 'Liste des IDs des niveaux' })
-  @IsArray({
-    message: 'Les niveaux doivent être fournis sous forme de tableau',
-  })
-  @ArrayNotEmpty({ message: 'Au moins un niveau est obligatoire' })
-  @IsNumber(
-    {},
-    { each: true, message: 'Chaque ID de niveau doit être un nombre' },
-  )
-  niveauIds!: number[];
+  @IsNumber({}, { message: 'L\'ID du niveau doit être un nombre' })
+  @IsNotEmpty({ message: 'L\'ID du niveau est obligatoire' })
+  niveauId!: number;
 }

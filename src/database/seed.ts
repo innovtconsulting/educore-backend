@@ -262,64 +262,120 @@ async function seed() {
     });
     await etablissementRepo.save([fst, esp, iut]);
 
-    // 2. Niveaux
-    const l1 = niveauRepo.create({ name: 'Licence 1' });
-    const l2 = niveauRepo.create({ name: 'Licence 2' });
-    const l3 = niveauRepo.create({ name: 'Licence 3' });
-    const m1 = niveauRepo.create({ name: 'Master 1' });
-    const m2 = niveauRepo.create({ name: 'Master 2' });
-    const dut1 = niveauRepo.create({ name: 'DUT 1' });
-    const dut2 = niveauRepo.create({ name: 'DUT 2' });
-    await niveauRepo.save([l1, l2, l3, m1, m2, dut1, dut2]);
-
-    // 3. Classes
-    const informatique = classeRepo.create({
+    // 3. Classes (Parcours)
+    const informatiqueFst = classeRepo.create({
       name: 'Informatique',
-      niveaux: [l1, l2, l3, m1, m2],
-      etablissements: [fst, esp],
+      etablissement: fst,
     });
-    const mathematiques = classeRepo.create({
+    const informatiqueEsp = classeRepo.create({
+      name: 'Informatique',
+      etablissement: esp,
+    });
+    const mathematiquesFst = classeRepo.create({
       name: 'Mathématiques',
-      niveaux: [l1, l2, l3],
-      etablissements: [fst],
+      etablissement: fst,
     });
-    const genieElectrique = classeRepo.create({
+    const genieElectriqueIut = classeRepo.create({
       name: 'Génie Électrique',
-      niveaux: [dut1, dut2],
-      etablissements: [iut],
+      etablissement: iut,
     });
-    await classeRepo.save([informatique, mathematiques, genieElectrique]);
+    await classeRepo.save([
+      informatiqueFst,
+      informatiqueEsp,
+      mathematiquesFst,
+      genieElectriqueIut,
+    ]);
+
+    // 2. Niveaux (now after Classes)
+    const l1Fst = niveauRepo.create({
+      name: 'Licence 1',
+      classe: informatiqueFst,
+    });
+    const l2Fst = niveauRepo.create({
+      name: 'Licence 2',
+      classe: informatiqueFst,
+    });
+    const l3Fst = niveauRepo.create({
+      name: 'Licence 3',
+      classe: informatiqueFst,
+    });
+    const m1Fst = niveauRepo.create({
+      name: 'Master 1',
+      classe: informatiqueFst,
+    });
+    const m2Fst = niveauRepo.create({
+      name: 'Master 2',
+      classe: informatiqueFst,
+    });
+    const l2Esp = niveauRepo.create({
+      name: 'Licence 2',
+      classe: informatiqueEsp,
+    });
+    const l1Math = niveauRepo.create({
+      name: 'Licence 1',
+      classe: mathematiquesFst,
+    });
+    const l2Math = niveauRepo.create({
+      name: 'Licence 2',
+      classe: mathematiquesFst,
+    });
+    const l3Math = niveauRepo.create({
+      name: 'Licence 3',
+      classe: mathematiquesFst,
+    });
+    const dut1Iut = niveauRepo.create({
+      name: 'DUT 1',
+      classe: genieElectriqueIut,
+    });
+    const dut2Iut = niveauRepo.create({
+      name: 'DUT 2',
+      classe: genieElectriqueIut,
+    });
+    await niveauRepo.save([
+      l1Fst,
+      l2Fst,
+      l3Fst,
+      m1Fst,
+      m2Fst,
+      l2Esp,
+      l1Math,
+      l2Math,
+      l3Math,
+      dut1Iut,
+      dut2Iut,
+    ]);
 
     // 4. Matières
-    const algo = matiereRepo.create({
+    const algoFst = matiereRepo.create({
       code: 'INF101',
       name: 'Algorithmique 1',
       coefficient: 4,
-      classes: [informatique],
-      niveaux: [l1],
+      niveau: l1Fst,
     });
-    const baseDonnees = matiereRepo.create({
+    const baseDonneesFst = matiereRepo.create({
       code: 'INF201',
       name: 'Bases de Données',
       coefficient: 3,
-      classes: [informatique],
-      niveaux: [l2],
+      niveau: l2Fst,
     });
-    const reseaux = matiereRepo.create({
+    const reseauxFst = matiereRepo.create({
       code: 'INF301',
       name: 'Réseaux Informatiques',
       coefficient: 3,
-      classes: [informatique],
-      niveaux: [l3],
+      niveau: l3Fst,
     });
-    const electronique = matiereRepo.create({
+    const electroniqueIut = matiereRepo.create({
       code: 'GE101',
       name: 'Électronique Fondamentale',
       coefficient: 3,
-      classes: [genieElectrique],
-      niveaux: [dut1],
+      niveau: dut1Iut,
     });
-    await matiereRepo.save([algo, baseDonnees, reseaux, electronique]);
+    await matiereRepo.save([
+      algoFst,
+      baseDonneesFst,
+      reseauxFst,
+      electroniqueIut,
+    ]);
 
     // 5. Enseignants
     const profDiallo = enseignantRepo.create({
@@ -351,27 +407,27 @@ async function seed() {
     // 6. Affectations
     const aff1 = affectationRepo.create({
       enseignant: profDiallo,
-      matiere: algo,
+      matiere: algoFst,
       etablissement: fst,
-      niveau: l1,
+      niveau: l1Fst,
     });
     const aff2 = affectationRepo.create({
       enseignant: profDiallo,
-      matiere: baseDonnees,
+      matiere: baseDonneesFst,
       etablissement: esp,
-      niveau: l2,
+      niveau: l2Esp,
     });
     const aff3 = affectationRepo.create({
       enseignant: profSow,
-      matiere: algo,
+      matiere: algoFst,
       etablissement: fst,
-      niveau: l1,
+      niveau: l1Fst,
     });
     const aff4 = affectationRepo.create({
       enseignant: profNdiaye,
-      matiere: electronique,
+      matiere: electroniqueIut,
       etablissement: iut,
-      niveau: dut1,
+      niveau: dut1Iut,
     });
     await affectationRepo.save([aff1, aff2, aff3, aff4]);
 
@@ -404,8 +460,8 @@ async function seed() {
       email: 'ousmane.sow@email.sn',
       matricule: 'ETU-2026-001',
       etablissement: fst,
-      classe: informatique,
-      niveau: l1,
+      classe: informatiqueFst,
+      niveau: l1Fst,
       parents: [parent1, parent2],
     });
     const etudiant2 = etudiantRepo.create({
@@ -414,8 +470,8 @@ async function seed() {
       email: 'fatou.sow@email.sn',
       matricule: 'ETU-2026-002',
       etablissement: esp,
-      classe: informatique,
-      niveau: l2,
+      classe: informatiqueEsp,
+      niveau: l2Esp,
       parents: [parent1],
     });
     const etudiant3 = etudiantRepo.create({
@@ -424,8 +480,8 @@ async function seed() {
       email: 'amadou.ndiaye@email.sn',
       matricule: 'ETU-2026-003',
       etablissement: iut,
-      classe: genieElectrique,
-      niveau: dut1,
+      classe: genieElectriqueIut,
+      niveau: dut1Iut,
       parents: [parent3],
     });
     const etudiantWait = etudiantRepo.create({
@@ -434,8 +490,8 @@ async function seed() {
       email: 'jean.dupont@email.sn',
       status: EnrollmentStatus.EN_ATTENTE,
       etablissement: fst,
-      classe: informatique,
-      niveau: l1,
+      classe: informatiqueFst,
+      niveau: l1Fst,
     });
 
     const fstStudentsList = [
@@ -448,8 +504,8 @@ async function seed() {
         matricule: 'ETU-FST-001',
         status: EnrollmentStatus.ACTIF,
         etablissement: fst,
-        classe: informatique,
-        niveau: l1,
+        classe: informatiqueFst,
+        niveau: l1Fst,
       }),
       etudiantRepo.create({
         firstName: 'Bineta',
@@ -458,8 +514,8 @@ async function seed() {
         matricule: 'ETU-FST-002',
         status: EnrollmentStatus.ACTIF,
         etablissement: fst,
-        classe: informatique,
-        niveau: l1,
+        classe: informatiqueFst,
+        niveau: l1Fst,
       }),
       etudiantRepo.create({
         firstName: 'Cheikh',
@@ -468,8 +524,8 @@ async function seed() {
         matricule: 'ETU-FST-003',
         status: EnrollmentStatus.ACTIF,
         etablissement: fst,
-        classe: informatique,
-        niveau: l1,
+        classe: informatiqueFst,
+        niveau: l1Fst,
       }),
       etudiantRepo.create({
         firstName: 'Dior',
@@ -478,8 +534,8 @@ async function seed() {
         matricule: 'ETU-FST-004',
         status: EnrollmentStatus.ACTIF,
         etablissement: fst,
-        classe: informatique,
-        niveau: l1,
+        classe: informatiqueFst,
+        niveau: l1Fst,
       }),
       etudiantRepo.create({
         firstName: 'El Hadji',
@@ -488,8 +544,8 @@ async function seed() {
         matricule: 'ETU-FST-005',
         status: EnrollmentStatus.ACTIF,
         etablissement: fst,
-        classe: informatique,
-        niveau: l1,
+        classe: informatiqueFst,
+        niveau: l1Fst,
       }),
       etudiantRepo.create({
         firstName: 'Aminata',
@@ -498,8 +554,8 @@ async function seed() {
         matricule: 'ETU-FST-006',
         status: EnrollmentStatus.ACTIF,
         etablissement: fst,
-        classe: informatique,
-        niveau: l1,
+        classe: informatiqueFst,
+        niveau: l1Fst,
       }),
       etudiantRepo.create({
         firstName: 'Bocar',
@@ -507,8 +563,8 @@ async function seed() {
         email: 'bocar.kane@email.sn',
         status: EnrollmentStatus.EN_ATTENTE,
         etablissement: fst,
-        classe: informatique,
-        niveau: l1,
+        classe: informatiqueFst,
+        niveau: l1Fst,
       }),
       etudiantRepo.create({
         firstName: 'Coumba',
@@ -516,8 +572,8 @@ async function seed() {
         email: 'coumba.ly@email.sn',
         status: EnrollmentStatus.EN_ATTENTE,
         etablissement: fst,
-        classe: informatique,
-        niveau: l1,
+        classe: informatiqueFst,
+        niveau: l1Fst,
       }),
     ];
 
@@ -530,8 +586,8 @@ async function seed() {
         matricule: 'ETU-ESP-001',
         status: EnrollmentStatus.ACTIF,
         etablissement: esp,
-        classe: informatique,
-        niveau: l2,
+        classe: informatiqueEsp,
+        niveau: l2Esp,
       }),
       etudiantRepo.create({
         firstName: 'Haby',
@@ -540,8 +596,8 @@ async function seed() {
         matricule: 'ETU-ESP-002',
         status: EnrollmentStatus.ACTIF,
         etablissement: esp,
-        classe: informatique,
-        niveau: l2,
+        classe: informatiqueEsp,
+        niveau: l2Esp,
       }),
       etudiantRepo.create({
         firstName: 'Ibrahima',
@@ -550,8 +606,8 @@ async function seed() {
         matricule: 'ETU-ESP-003',
         status: EnrollmentStatus.ACTIF,
         etablissement: esp,
-        classe: informatique,
-        niveau: l2,
+        classe: informatiqueEsp,
+        niveau: l2Esp,
       }),
       etudiantRepo.create({
         firstName: 'Khadija',
@@ -560,8 +616,8 @@ async function seed() {
         matricule: 'ETU-ESP-004',
         status: EnrollmentStatus.ACTIF,
         etablissement: esp,
-        classe: informatique,
-        niveau: l2,
+        classe: informatiqueEsp,
+        niveau: l2Esp,
       }),
       etudiantRepo.create({
         firstName: 'Lamine',
@@ -569,8 +625,8 @@ async function seed() {
         email: 'lamine.seck@email.sn',
         status: EnrollmentStatus.EN_ATTENTE,
         etablissement: esp,
-        classe: informatique,
-        niveau: l2,
+        classe: informatiqueEsp,
+        niveau: l2Esp,
       }),
       etudiantRepo.create({
         firstName: 'Marieme',
@@ -578,8 +634,8 @@ async function seed() {
         email: 'marieme.g@email.sn',
         status: EnrollmentStatus.EN_ATTENTE,
         etablissement: esp,
-        classe: informatique,
-        niveau: l2,
+        classe: informatiqueEsp,
+        niveau: l2Esp,
       }),
     ];
 
@@ -592,8 +648,8 @@ async function seed() {
         matricule: 'ETU-IUT-001',
         status: EnrollmentStatus.ACTIF,
         etablissement: iut,
-        classe: genieElectrique,
-        niveau: dut1,
+        classe: genieElectriqueIut,
+        niveau: dut1Iut,
       }),
       etudiantRepo.create({
         firstName: 'Ndeye',
@@ -602,8 +658,8 @@ async function seed() {
         matricule: 'ETU-IUT-002',
         status: EnrollmentStatus.ACTIF,
         etablissement: iut,
-        classe: genieElectrique,
-        niveau: dut1,
+        classe: genieElectriqueIut,
+        niveau: dut1Iut,
       }),
       etudiantRepo.create({
         firstName: 'Oumar',
@@ -612,8 +668,8 @@ async function seed() {
         matricule: 'ETU-IUT-003',
         status: EnrollmentStatus.ACTIF,
         etablissement: iut,
-        classe: genieElectrique,
-        niveau: dut1,
+        classe: genieElectriqueIut,
+        niveau: dut1Iut,
       }),
       etudiantRepo.create({
         firstName: 'Penda',
@@ -621,8 +677,8 @@ async function seed() {
         email: 'penda.wade@email.sn',
         status: EnrollmentStatus.EN_ATTENTE,
         etablissement: iut,
-        classe: genieElectrique,
-        niveau: dut1,
+        classe: genieElectriqueIut,
+        niveau: dut1Iut,
       }),
     ];
 
@@ -655,11 +711,11 @@ async function seed() {
     const cours1 = emploiRepo.create({
       startTime: new Date('2026-06-08T08:00:00Z'),
       endTime: new Date('2026-06-08T10:00:00Z'),
-      matiere: algo,
+      matiere: algoFst,
       enseignant: profDiallo,
       etablissement: fst,
-      classe: informatique,
-      niveau: l1,
+      classe: informatiqueFst,
+      niveau: l1Fst,
       salle: salle101,
     });
     await emploiRepo.save(cours1);
@@ -688,15 +744,15 @@ async function seed() {
       name: 'Scolarité Licence 1 Informatique',
       amount: 500000,
       type: FeeType.SCOLARITE,
-      classe: informatique,
-      niveau: l1,
+      classe: informatiqueFst,
+      niveau: l1Fst,
     });
     const fraisInscr = fraisRepo.create({
       name: "Frais d'inscription L1",
       amount: 50000,
       type: FeeType.INSCRIPTION,
-      classe: informatique,
-      niveau: l1,
+      classe: informatiqueFst,
+      niveau: l1Fst,
     });
     await fraisRepo.save([fraisL1, fraisInscr]);
 
@@ -814,9 +870,9 @@ async function seed() {
       session: EvaluationSession.NORMALE,
       weight: 0.4,
       date: new Date('2026-11-15'),
-      matiere: algo,
-      classe: informatique,
-      niveau: l1,
+      matiere: algoFst,
+      classe: informatiqueFst,
+      niveau: l1Fst,
       semestre: semestre1,
     });
     const evalExam = evaluationRepo.create({
@@ -825,9 +881,9 @@ async function seed() {
       session: EvaluationSession.NORMALE,
       weight: 0.6,
       date: new Date('2027-01-20'),
-      matiere: algo,
-      classe: informatique,
-      niveau: l1,
+      matiere: algoFst,
+      classe: informatiqueFst,
+      niveau: l1Fst,
       semestre: semestre1,
     });
     await evaluationRepo.save([evalCC, evalExam]);
@@ -851,9 +907,9 @@ async function seed() {
       session: EvaluationSession.RATTRAPAGE,
       weight: 0.6,
       date: new Date('2027-02-15'),
-      matiere: algo,
-      classe: informatique,
-      niveau: l1,
+      matiere: algoFst,
+      classe: informatiqueFst,
+      niveau: l1Fst,
       semestre: semestre1,
     });
     await evaluationRepo.save(evalRattrapage);
@@ -1013,18 +1069,18 @@ async function seed() {
       title: 'TP Liste Chaînée',
       description: 'Implémenter une liste simplement chaînée en C.',
       deadline: new Date('2026-06-25T23:59:59Z'),
-      matiere: algo,
-      classe: informatique,
-      niveau: l1,
+      matiere: algoFst,
+      classe: informatiqueFst,
+      niveau: l1Fst,
       enseignant: profDiallo,
     });
     const devoir2 = devoirRepo.create({
       title: 'Projet Base de Données',
       description: "Concevoir le schéma MCD/MLD d'une gestion de stock.",
       deadline: new Date('2026-06-30T23:59:59Z'),
-      matiere: baseDonnees,
-      classe: informatique,
-      niveau: l2,
+      matiere: baseDonneesFst,
+      classe: informatiqueFst,
+      niveau: l2Fst,
       enseignant: profDiallo,
     });
     const savedDevoirs = await devoirRepo.save([devoir1, devoir2]);

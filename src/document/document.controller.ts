@@ -32,6 +32,7 @@ import { Roles } from '../auth/decorators/roles.decorator';
 import { Permissions } from '../auth/decorators/permissions.decorator';
 import { Role } from '../user/entities/user.entity';
 import { DocumentCategory } from './entities/document.entity';
+import { CurrentEtablissement } from '../auth/decorators/current-etablissement.decorator';
 
 @ApiTags('documents')
 @ApiBearerAuth()
@@ -88,11 +89,12 @@ export class DocumentController {
   async create(
     @UploadedFile() file: Express.Multer.File,
     @Body() createDocumentDto: CreateDocumentDto,
+    @CurrentEtablissement() tenantId?: number,
   ) {
     if (!file) {
       throw new BadRequestException('Le fichier est obligatoire');
     }
-    const data = await this.documentService.create(createDocumentDto, file);
+    const data = await this.documentService.create(createDocumentDto, file, tenantId);
     return {
       message: 'Document uploadé avec succès',
       data,
@@ -132,6 +134,7 @@ export class DocumentController {
     @UploadedFile() file: Express.Multer.File,
     @Body('title') title?: string,
     @Body('description') description?: string,
+    @CurrentEtablissement() tenantId?: number,
   ) {
     if (!file) {
       throw new BadRequestException('Le fichier est obligatoire');
@@ -143,6 +146,7 @@ export class DocumentController {
         category: DocumentCategory.PEDAGOGIQUE,
       },
       file,
+      tenantId,
     );
     return {
       message: 'Rendu uploadé avec succès',
@@ -157,8 +161,8 @@ export class DocumentController {
     description:
       'Liste tous les documents enregistrés dans la GED (Gestion Électronique de Documents).',
   })
-  async findAll(@Query() paginationQuery: PaginationQueryDto) {
-    const data = await this.documentService.findAll(paginationQuery);
+  async findAll(@Query() paginationQuery: PaginationQueryDto, @CurrentEtablissement() tenantId?: number) {
+    const data = await this.documentService.findAll(paginationQuery, tenantId);
     return {
       message: 'Liste des documents récupérée avec succès',
       data,
@@ -172,8 +176,8 @@ export class DocumentController {
     description:
       "Affiche les informations détaillées d'un document et son lien de téléchargement.",
   })
-  async findOne(@Param('id') id: string) {
-    const data = await this.documentService.findOne(+id);
+  async findOne(@Param('id') id: string, @CurrentEtablissement() tenantId?: number) {
+    const data = await this.documentService.findOne(+id, tenantId);
     return {
       message: `Document #${id} récupéré avec succès`,
       data,
@@ -190,8 +194,9 @@ export class DocumentController {
   async update(
     @Param('id') id: string,
     @Body() updateDocumentDto: UpdateDocumentDto,
+    @CurrentEtablissement() tenantId?: number,
   ) {
-    const data = await this.documentService.update(+id, updateDocumentDto);
+    const data = await this.documentService.update(+id, updateDocumentDto, tenantId);
     return {
       message: `Document #${id} mis à jour avec succès`,
       data,
@@ -205,8 +210,8 @@ export class DocumentController {
     description:
       "Supprime l'entrée en base de données ET le fichier physique sur le serveur.",
   })
-  async remove(@Param('id') id: string) {
-    await this.documentService.remove(+id);
+  async remove(@Param('id') id: string, @CurrentEtablissement() tenantId?: number) {
+    await this.documentService.remove(+id, tenantId);
     return {
       message: `Document #${id} supprimé avec succès`,
     };

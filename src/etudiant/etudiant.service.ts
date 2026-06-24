@@ -21,7 +21,6 @@ import { Classe } from '../classe/entities/classe.entity';
 import { Niveau } from '../niveau/entities/niveau.entity';
 import { Parent, ParentGender } from '../parent/entities/parent.entity';
 import { PaginationQueryDto } from '../common/dto/pagination-query.dto';
-import { TenantContext } from '../common/tenant/tenant.context';
 import { UserService } from '../user/user.service';
 import { User, UserRole, Role } from '../user/entities/user.entity';
 import { ValidateEtudiantDto } from './dto/validate-etudiant.dto';
@@ -188,18 +187,19 @@ export class EtudiantService {
       classeId?: number;
       niveauId?: number;
     },
+    tenantId?: number,
   ): Promise<{
     items: Etudiant[];
     total: number;
     page: number;
     limit: number;
   }> {
-    const { page, limit, search, status, etablissementId, classeId, niveauId } = paginationQuery;
+    const { page, limit, search, status, etablissementId, classeId, niveauId } =
+      paginationQuery;
     const p = page ?? 1;
     const l = limit ?? 20;
     const skip = (p - 1) * l;
 
-    const tenantId = TenantContext.getTenantId();
     const where: FindOptionsWhere<Etudiant>[] = [];
 
     const baseWhere: any = {};
@@ -243,8 +243,7 @@ export class EtudiantService {
     };
   }
 
-  async findOne(id: number): Promise<Etudiant> {
-    const tenantId = TenantContext.getTenantId();
+  async findOne(id: number, tenantId?: number): Promise<Etudiant> {
     const where: any = { id };
     if (tenantId) where.etablissement = { id: tenantId };
 
@@ -278,8 +277,9 @@ export class EtudiantService {
   async update(
     id: number,
     updateEtudiantDto: UpdateEtudiantDto,
+    tenantId?: number,
   ): Promise<Etudiant> {
-    const etudiant = await this.findOne(id);
+    const etudiant = await this.findOne(id, tenantId);
     const { etablissementId, classeId, niveauId, parentsData, ...rest } =
       updateEtudiantDto;
 
@@ -343,8 +343,9 @@ export class EtudiantService {
   async validateEnrollment(
     id: number,
     validateDto: ValidateEtudiantDto,
+    tenantId?: number,
   ): Promise<Etudiant> {
-    const etudiant = await this.findOne(id);
+    const etudiant = await this.findOne(id, tenantId);
 
     // Vérifier si le matricule est déjà pris
     const existing = await this.etudiantRepository.findOne({
@@ -383,8 +384,8 @@ export class EtudiantService {
     return savedEtudiant;
   }
 
-  async remove(id: number): Promise<void> {
-    const etudiant = await this.findOne(id);
+  async remove(id: number, tenantId?: number): Promise<void> {
+    const etudiant = await this.findOne(id, tenantId);
 
     // Supprimer la photo si elle existe
     if (etudiant.photoPath) {
@@ -397,8 +398,12 @@ export class EtudiantService {
     await this.etudiantRepository.remove(etudiant);
   }
 
-  async updateProfilePicture(id: number, filePath: string): Promise<Etudiant> {
-    const etudiant = await this.findOne(id);
+  async updateProfilePicture(
+    id: number,
+    filePath: string,
+    tenantId?: number,
+  ): Promise<Etudiant> {
+    const etudiant = await this.findOne(id, tenantId);
 
     // Supprimer l'ancienne photo si elle existe
     if (etudiant.photoPath) {
@@ -416,6 +421,7 @@ export class EtudiantService {
   async validateImport(
     fileBuffer: Buffer,
     sheetName?: string,
+    tenantId?: number,
   ): Promise<{
     validStudents: StudentImportRowDto[];
     errors: { line: number; message: string }[];
@@ -429,8 +435,6 @@ export class EtudiantService {
     } else {
       worksheet = workbook.getWorksheet(1);
     }
-
-    const tenantId = TenantContext.getTenantId();
 
     if (!tenantId) {
       console.log('Tenant ID missing in EtudiantService');
@@ -480,10 +484,10 @@ export class EtudiantService {
             );
         }
 
-        const classe = await this.classeService.findByName(className);
+        const classe = await this.classeService.findByName(className, tenantId);
         if (!classe) throw new Error(`Classe "${className}" introuvable`);
 
-        const niveau = await this.niveauService.findByName(levelName);
+        const niveau = await this.niveauService.findByName(levelName, tenantId);
         if (!niveau) throw new Error(`Niveau "${levelName}" introuvable`);
 
         let birthDateStr: string | undefined;
@@ -513,8 +517,8 @@ export class EtudiantService {
 
   async confirmImport(
     students: StudentImportRowDto[],
+    tenantId?: number,
   ): Promise<{ success: number; failed: number }> {
-    const tenantId = TenantContext.getTenantId();
     if (!tenantId) throw new BadRequestException("ID d'établissement manquant");
 
     const queryRunner = this.dataSource.createQueryRunner();
@@ -532,8 +536,14 @@ export class EtudiantService {
 
       for (const s of students) {
         try {
-          const classe = await this.classeService.findByName(s.className);
-          const niveau = await this.niveauService.findByName(s.levelName);
+          const classe = await this.classeService.findByName(
+            s.className,
+            tenantId,
+          );
+          const niveau = await this.niveauService.findByName(
+            s.levelName,
+            tenantId,
+          );
 
           if (!classe || !niveau) {
             throw new Error(`Classe ou Niveau introuvable pour ${s.email}`);
@@ -748,27 +758,22 @@ export class EtudiantService {
   ): Promise<Classe> {
     const repo = queryRunner.manager.getRepository(Classe);
     let classe = await repo.findOne({
-      where: { name: nom },
-      relations: { niveaux: true, etablissements: true },
+      where: { name: nom, etablissement: { id: etablissement.id } },
+      relations: { niveaux: true, etablissement: true },
     });
 
     if (!classe) {
       classe = repo.create({
         name: nom,
-        niveaux: [niveau],
-        etablissements: [etablissement],
+        etablissement,
       });
       classe = await repo.save(classe);
-    } else {
-      // Ensure relations are present
-      if (!classe.niveaux.find((n) => n.id === niveau.id)) {
-        classe.niveaux.push(niveau);
-        classe = await repo.save(classe);
-      }
-      if (!classe.etablissements.find((e) => e.id === etablissement.id)) {
-        classe.etablissements.push(etablissement);
-        classe = await repo.save(classe);
-      }
+    }
+    // Also, set the niveau's classe!
+    const niveauRepo = queryRunner.manager.getRepository(Niveau);
+    if (!niveau.classe || niveau.classe.id !== classe.id) {
+      niveau.classe = classe;
+      await niveauRepo.save(niveau);
     }
     return classe;
   }

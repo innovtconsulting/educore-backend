@@ -15,7 +15,6 @@ import { Role } from '../user/entities/user.entity';
 import { Document } from '../document/entities/document.entity';
 import { Classe } from '../classe/entities/classe.entity';
 import { PaginationQueryDto } from '../common/dto/pagination-query.dto';
-import { TenantContext } from '../common/tenant/tenant.context';
 import { CreateSubmissionDto } from './dto/create-submission.dto';
 
 @Injectable()
@@ -39,13 +38,13 @@ export class DevoirService {
         this.devoirRepository.manager.connection.createQueryRunner();
       const classe = await queryRunner.manager.getRepository(Classe).findOne({
         where: { id: classeId },
-        relations: { etablissements: true },
+        relations: { etablissement: true },
       });
       await queryRunner.release();
 
       if (!classe) throw new NotFoundException('Classe introuvable');
 
-      const etablissementIds = classe.etablissements.map((e) => e.id);
+      const etablissementIds = [classe.etablissement.id];
       const isResponsible = await this.enseignantService.isResponsibleFor(
         user.enseignantId,
         matiereId,
@@ -77,22 +76,25 @@ export class DevoirService {
     return await this.devoirRepository.save(devoir);
   }
 
-  async findAll(paginationQuery: PaginationQueryDto, user?: any) {
+  async findAll(
+    paginationQuery: PaginationQueryDto,
+    user?: any,
+    tenantId?: number,
+  ) {
     const { page = 1, limit = 15 } = paginationQuery;
     const skip = (page - 1) * limit;
-    const tenantId = TenantContext.getTenantId();
 
     const query = this.devoirRepository
       .createQueryBuilder('d')
       .leftJoinAndSelect('d.matiere', 'matiere')
       .leftJoinAndSelect('d.classe', 'classe')
-      .leftJoin('classe.etablissements', 'etablissements')
+      .leftJoinAndSelect('classe.etablissement', 'etablissement')
       .leftJoinAndSelect('d.niveau', 'niveau')
       .leftJoinAndSelect('d.enseignant', 'enseignant')
       .leftJoinAndSelect('d.documents', 'documents');
 
     if (tenantId) {
-      query.andWhere('etablissements.id = :tenantId', { tenantId });
+      query.andWhere('etablissement.id = :tenantId', { tenantId });
     }
 
     if (user && user.role === Role.ETUDIANT) {
@@ -125,39 +127,39 @@ export class DevoirService {
     };
   }
 
-  async findByClasse(classeId: number, niveauId: number) {
-    const tenantId = TenantContext.getTenantId();
-    const where: any = {
-      classe: { id: classeId },
-      niveau: { id: niveauId },
-    };
-    if (tenantId) where.classe.etablissements = { id: tenantId };
+  async findByClasse(classeId: number, niveauId: number, tenantId?: number) {
+    const query = this.devoirRepository
+      .createQueryBuilder('d')
+      .leftJoinAndSelect('d.classe', 'classe')
+      .leftJoinAndSelect('classe.etablissement', 'etablissement')
+      .where('classe.id = :classeId', { classeId })
+      .andWhere('d.niveau.id = :niveauId', { niveauId });
 
-    return await this.devoirRepository.find({
-      where,
-      relations: {
-        matiere: true,
-        enseignant: true,
-        documents: true,
-      },
-      order: { deadline: 'ASC' },
-    });
+    if (tenantId) {
+      query.andWhere('etablissement.id = :tenantId', { tenantId });
+    }
+
+    return await query
+      .leftJoinAndSelect('d.matiere', 'matiere')
+      .leftJoinAndSelect('d.enseignant', 'enseignant')
+      .leftJoinAndSelect('d.documents', 'documents')
+      .orderBy('d.deadline', 'ASC')
+      .getMany();
   }
 
-  async findOne(id: number) {
-    const tenantId = TenantContext.getTenantId();
+  async findOne(id: number, tenantId?: number) {
     const query = this.devoirRepository
       .createQueryBuilder('d')
       .leftJoinAndSelect('d.matiere', 'matiere')
       .leftJoinAndSelect('d.classe', 'classe')
-      .leftJoinAndSelect('classe.etablissements', 'etablissements')
+      .leftJoinAndSelect('classe.etablissement', 'etablissement')
       .leftJoinAndSelect('d.niveau', 'niveau')
       .leftJoinAndSelect('d.enseignant', 'enseignant')
       .leftJoinAndSelect('d.documents', 'documents')
       .where('d.id = :id', { id });
 
     if (tenantId) {
-      query.andWhere('etablissements.id = :tenantId', { tenantId });
+      query.andWhere('etablissement.id = :tenantId', { tenantId });
     }
 
     const devoir = await query.getOne();
@@ -165,8 +167,13 @@ export class DevoirService {
     return devoir;
   }
 
-  async update(id: number, updateDevoirDto: UpdateDevoirDto, user: any) {
-    const devoir = await this.findOne(id);
+  async update(
+    id: number,
+    updateDevoirDto: UpdateDevoirDto,
+    user: any,
+    tenantId?: number,
+  ) {
+    const devoir = await this.findOne(id, tenantId);
 
     if (user.role === Role.ENSEIGNANT) {
       if (devoir.enseignant.id !== user.enseignantId) {
@@ -187,8 +194,8 @@ export class DevoirService {
     return await this.devoirRepository.save(devoir);
   }
 
-  async remove(id: number, user: any) {
-    const devoir = await this.findOne(id);
+  async remove(id: number, user: any, tenantId?: number) {
+    const devoir = await this.findOne(id, tenantId);
     if (
       user.role === Role.ENSEIGNANT &&
       devoir.enseignant.id !== user.enseignantId

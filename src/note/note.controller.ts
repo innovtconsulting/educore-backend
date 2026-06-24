@@ -22,6 +22,7 @@ import { Roles } from '../auth/decorators/roles.decorator';
 import { Permissions } from '../auth/decorators/permissions.decorator';
 import { Role } from '../user/entities/user.entity';
 import { BulkCreateNoteDto } from './dto/bulk-create-note.dto';
+import { CurrentEtablissement } from '../auth/decorators/current-etablissement.decorator';
 
 @ApiTags('note')
 @ApiBearerAuth()
@@ -37,8 +38,12 @@ export class NoteController {
     description:
       'Attribue une note à un étudiant pour une évaluation spécifique.',
   })
-  create(@Body() createNoteDto: CreateNoteDto, @Request() req: any) {
-    return this.noteService.create(createNoteDto, req.user);
+  create(
+    @Body() createNoteDto: CreateNoteDto,
+    @Request() req: any,
+    @CurrentEtablissement() tenantId?: number,
+  ) {
+    return this.noteService.create(createNoteDto, req.user, tenantId);
   }
 
   @Post('bulk')
@@ -51,8 +56,9 @@ export class NoteController {
   bulkCreate(
     @Body() bulkCreateNoteDto: BulkCreateNoteDto,
     @Request() req: any,
+    @CurrentEtablissement() tenantId?: number,
   ) {
-    return this.noteService.bulkCreate(bulkCreateNoteDto, req.user);
+    return this.noteService.bulkCreate(bulkCreateNoteDto, req.user, tenantId);
   }
 
   @Get('etudiant/:etudiantId')
@@ -66,11 +72,13 @@ export class NoteController {
     @Param('etudiantId', ParseIntPipe) etudiantId: number,
     @Query() paginationQuery: PaginationQueryDto,
     @Request() req: any,
+    @CurrentEtablissement() tenantId?: number,
   ) {
     const data = await this.noteService.findAll(
       paginationQuery,
       req.user,
       etudiantId,
+      tenantId,
     );
     return {
       message: 'Liste des notes récupérée avec succès',
@@ -90,11 +98,13 @@ export class NoteController {
     @Query() paginationQuery: PaginationQueryDto,
     @Query('etudiantId') etudiantId: string | undefined,
     @Request() req: any,
+    @CurrentEtablissement() tenantId?: number,
   ) {
     const data = await this.noteService.findAll(
       paginationQuery,
       req.user,
       etudiantId ? +etudiantId : undefined,
+      tenantId,
     );
     return {
       message: 'Liste des notes récupérée avec succès',
@@ -109,8 +119,12 @@ export class NoteController {
     summary: 'Récupérer une note par ID',
     description: "Affiche les détails d'une note individuelle.",
   })
-  findOne(@Param('id') id: string, @Request() req: any) {
-    return this.noteService.findOne(+id, req.user);
+  findOne(
+    @Param('id') id: string,
+    @Request() req: any,
+    @CurrentEtablissement() tenantId?: number,
+  ) {
+    return this.noteService.findOne(+id, req.user, tenantId);
   }
 
   @Patch(':id')
@@ -123,8 +137,9 @@ export class NoteController {
     @Param('id') id: string,
     @Body() updateNoteDto: UpdateNoteDto,
     @Request() req: any,
+    @CurrentEtablissement() tenantId?: number,
   ) {
-    return this.noteService.update(+id, updateNoteDto, req.user);
+    return this.noteService.update(+id, updateNoteDto, req.user, tenantId);
   }
 
   @Delete(':id')
@@ -133,7 +148,11 @@ export class NoteController {
     summary: 'Supprimer une note',
     description: 'Supprime une note du système.',
   })
-  remove(@Param('id') id: string, @Request() req: any) {
-    return this.noteService.remove(+id, req.user);
+  remove(
+    @Param('id') id: string,
+    @Request() req: any,
+    @CurrentEtablissement() tenantId?: number,
+  ) {
+    return this.noteService.remove(+id, req.user, tenantId);
   }
 }

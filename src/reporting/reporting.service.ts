@@ -7,12 +7,14 @@ import { DailyReport } from './entities/daily-report.entity';
 import { SubmitDailyReportDto } from './dto/submit-daily-report.dto';
 import { PaginationQueryDto } from '../common/dto/pagination-query.dto';
 import { generateDailyReportPdf } from './utils/daily-report-pdf-generator';
-import { Etudiant, EnrollmentStatus } from '../etudiant/entities/etudiant.entity';
+import {
+  Etudiant,
+  EnrollmentStatus,
+} from '../etudiant/entities/etudiant.entity';
 import { Enseignant } from '../enseignant/entities/enseignant.entity';
 import { Classe } from '../classe/entities/classe.entity';
 import { Facture } from '../finance/entities/facture.entity';
 import { Paiement } from '../finance/entities/paiement.entity';
-import { TenantContext } from '../common/tenant/tenant.context';
 import { TenantHelper } from '../common/tenant/tenant.helper';
 
 @Injectable()
@@ -36,12 +38,13 @@ export class ReportingService {
     private readonly paiementRepository: Repository<Paiement>,
   ) {}
 
-  async getGlobalStats() {
-    const tenantId = TenantContext.getTenantId();
-
+  async getGlobalStats(tenantId?: number) {
     const [totalEtudiants, totalEnseignants, totalClasses] = await Promise.all([
       this.etudiantRepository.count({
-        where: TenantHelper.addTenantFilter({ status: EnrollmentStatus.ACTIF }, tenantId) as any,
+        where: TenantHelper.addTenantFilter(
+          { status: EnrollmentStatus.ACTIF },
+          tenantId,
+        ) as any,
       }),
       this.enseignantRepository.count({
         where: tenantId
@@ -93,8 +96,7 @@ export class ReportingService {
     };
   }
 
-  async getDailySupervisorReport(date: string) {
-    const tenantId = TenantContext.getTenantId();
+  async getDailySupervisorReport(date: string, tenantId?: number) {
     const targetDate = new Date(date);
     const startOfDay = new Date(new Date(targetDate).setHours(0, 0, 0, 0));
     const endOfDay = new Date(new Date(targetDate).setHours(23, 59, 59, 999));
@@ -176,9 +178,8 @@ export class ReportingService {
     };
   }
 
-  async submitDailyReport(dto: SubmitDailyReportDto) {
-    const tenantId = TenantContext.getTenantId();
-    const reportData = await this.getDailySupervisorReport(dto.date);
+  async submitDailyReport(dto: SubmitDailyReportDto, tenantId?: number) {
+    const reportData = await this.getDailySupervisorReport(dto.date, tenantId);
 
     let report = await this.dailyReportRepository.findOne({
       where: TenantHelper.addTenantFilter({ date: dto.date }, tenantId),
@@ -216,8 +217,10 @@ export class ReportingService {
     return await this.dailyReportRepository.save(report);
   }
 
-  async getAllDailyReports(paginationQuery: PaginationQueryDto) {
-    const tenantId = TenantContext.getTenantId();
+  async getAllDailyReports(
+    paginationQuery: PaginationQueryDto,
+    tenantId?: number,
+  ) {
     const { page = 1, limit = 15 } = paginationQuery;
     const skip = (page - 1) * limit;
 
@@ -236,8 +239,7 @@ export class ReportingService {
     };
   }
 
-  async getDailyReportById(id: number) {
-    const tenantId = TenantContext.getTenantId();
+  async getDailyReportById(id: number, tenantId?: number) {
     const report = await this.dailyReportRepository.findOne({
       where: TenantHelper.addTenantFilter({ id }, tenantId),
     });

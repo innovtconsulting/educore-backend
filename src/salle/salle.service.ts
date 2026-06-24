@@ -4,7 +4,6 @@ import { Repository } from 'typeorm';
 import { Salle } from './entities/salle.entity';
 import { CreateSalleDto } from './dto/create-salle.dto';
 import { UpdateSalleDto } from './dto/update-salle.dto';
-import { TenantContext } from '../common/tenant/tenant.context';
 import { PaginationQueryDto } from '../common/dto/pagination-query.dto';
 
 @Injectable()
@@ -22,10 +21,9 @@ export class SalleService {
     return await this.salleRepository.save(salle);
   }
 
-  async findAll(paginationQuery: PaginationQueryDto) {
+  async findAll(paginationQuery: PaginationQueryDto, tenantId?: number) {
     const { page = 1, limit = 20 } = paginationQuery;
     const skip = (page - 1) * limit;
-    const tenantId = TenantContext.getTenantId();
 
     const query = this.salleRepository.createQueryBuilder('s');
 
@@ -43,8 +41,7 @@ export class SalleService {
     };
   }
 
-  async findOne(id: number) {
-    const tenantId = TenantContext.getTenantId();
+  async findOne(id: number, tenantId?: number) {
     const where: any = { id };
     if (tenantId) where.etablissement = { id: tenantId };
 
@@ -53,8 +50,8 @@ export class SalleService {
     return salle;
   }
 
-  async update(id: number, updateSalleDto: UpdateSalleDto) {
-    const salle = await this.findOne(id);
+  async update(id: number, updateSalleDto: UpdateSalleDto, tenantId?: number) {
+    const salle = await this.findOne(id, tenantId);
     const { etablissementId, ...data } = updateSalleDto;
 
     if (etablissementId) {
@@ -65,8 +62,8 @@ export class SalleService {
     return await this.salleRepository.save(salle);
   }
 
-  async remove(id: number) {
-    const salle = await this.findOne(id);
+  async remove(id: number, tenantId?: number) {
+    const salle = await this.findOne(id, tenantId);
     return await this.salleRepository.remove(salle);
   }
 }

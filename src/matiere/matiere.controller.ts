@@ -13,12 +13,11 @@ import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { MatiereService } from './matiere.service';
 import { CreateMatiereDto } from './dto/create-matiere.dto';
 import { UpdateMatiereDto } from './dto/update-matiere.dto';
-import { PaginationQueryDto } from '../common/dto/pagination-query.dto';
+import { MatiereFilterDto } from './dto/matiere-filter.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
-import { Roles } from '../auth/decorators/roles.decorator';
 import { Permissions } from '../auth/decorators/permissions.decorator';
-import { Role } from '../user/entities/user.entity';
+import { CurrentEtablissement } from '../auth/decorators/current-etablissement.decorator';
 
 @ApiTags('matiere')
 @ApiBearerAuth()
@@ -32,10 +31,13 @@ export class MatiereController {
   @ApiOperation({
     summary: 'Créer une matière',
     description:
-      "Enregistre une nouvelle unité d'enseignement avec son code unique et son coefficient.",
+      "Enregistre une nouvelle unité d'enseignement avec son code unique et son coefficient, associée à un niveau.",
   })
-  async create(@Body() createMatiereDto: CreateMatiereDto) {
-    const data = await this.matiereService.create(createMatiereDto);
+  async create(
+    @Body() createMatiereDto: CreateMatiereDto,
+    @CurrentEtablissement() tenantId?: number,
+  ) {
+    const data = await this.matiereService.create(createMatiereDto, tenantId);
     return {
       message: 'Matière créée avec succès',
       data,
@@ -47,10 +49,13 @@ export class MatiereController {
   @ApiOperation({
     summary: 'Lister toutes les matières',
     description:
-      'Récupère la liste complète des matières enregistrées dans le système.',
+      'Récupère la liste complète des matières avec filtres par niveau ou parcours.',
   })
-  async findAll(@Query() paginationQuery: PaginationQueryDto) {
-    const data = await this.matiereService.findAll(paginationQuery);
+  async findAll(
+    @Query() filter: MatiereFilterDto,
+    @CurrentEtablissement() tenantId?: number,
+  ) {
+    const data = await this.matiereService.findAll(filter, tenantId);
     return {
       message: 'Liste des matières récupérée avec succès',
       data,
@@ -64,8 +69,8 @@ export class MatiereController {
     description:
       "Affiche les informations détaillées d'une matière spécifique.",
   })
-  async findOne(@Param('id') id: string) {
-    const data = await this.matiereService.findOne(+id);
+  async findOne(@Param('id') id: string, @CurrentEtablissement() tenantId?: number) {
+    const data = await this.matiereService.findOne(+id, tenantId);
     return {
       message: `Matière #${id} récupérée avec succès`,
       data,
@@ -82,8 +87,9 @@ export class MatiereController {
   async update(
     @Param('id') id: string,
     @Body() updateMatiereDto: UpdateMatiereDto,
+    @CurrentEtablissement() tenantId?: number,
   ) {
-    const data = await this.matiereService.update(+id, updateMatiereDto);
+    const data = await this.matiereService.update(+id, updateMatiereDto, tenantId);
     return {
       message: `Matière #${id} mise à jour avec succès`,
       data,
@@ -96,8 +102,8 @@ export class MatiereController {
     summary: 'Supprimer une matière',
     description: 'Supprime définitivement une matière du système.',
   })
-  async remove(@Param('id') id: string) {
-    await this.matiereService.remove(+id);
+  async remove(@Param('id') id: string, @CurrentEtablissement() tenantId?: number) {
+    await this.matiereService.remove(+id, tenantId);
     return {
       message: `Matière #${id} supprimée avec succès`,
     };

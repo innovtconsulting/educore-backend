@@ -1,11 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import {
-  ArrayNotEmpty,
-  IsArray,
-  IsNotEmpty,
-  IsNumber,
-  IsString,
-} from 'class-validator';
+import { IsNotEmpty, IsNumber, IsString } from 'class-validator';
 
 export class CreateClasseDto {
   @ApiProperty({ example: 'Informatique' })
@@ -14,30 +8,10 @@ export class CreateClasseDto {
   name!: string;
 
   @ApiProperty({
-    example: [1, 2],
-    description: 'Liste des IDs des niveaux (ex: L1, L2)',
+    example: 1,
+    description: 'ID de l\'établissement',
   })
-  @IsArray({
-    message: 'Les niveaux doivent être fournis sous forme de tableau',
-  })
-  @ArrayNotEmpty({ message: 'Au moins un niveau est obligatoire' })
-  @IsNumber(
-    {},
-    { each: true, message: 'Chaque ID de niveau doit être un nombre' },
-  )
-  niveauIds!: number[];
-
-  @ApiProperty({
-    example: [1],
-    description: 'Liste des IDs des établissements',
-  })
-  @IsArray({
-    message: 'Les établissements doivent être fournis sous forme de tableau',
-  })
-  @ArrayNotEmpty({ message: 'Au moins un établissement est obligatoire' })
-  @IsNumber(
-    {},
-    { each: true, message: 'Chaque ID d établissement doit être un nombre' },
-  )
-  etablissementIds!: number[];
+  @IsNumber({}, { message: 'L\'ID de l\'établissement doit être un nombre' })
+  @IsNotEmpty({ message: 'L\'ID de l\'établissement est obligatoire' })
+  etablissementId!: number;
 }

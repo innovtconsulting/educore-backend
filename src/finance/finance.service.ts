@@ -19,7 +19,6 @@ import {
   generateReceiptPdf,
 } from './utils/pdf-generator';
 import { PaginationQueryDto } from '../common/dto/pagination-query.dto';
-import { TenantContext } from '../common/tenant/tenant.context';
 import { TenantHelper } from '../common/tenant/tenant.helper';
 
 @Injectable()
@@ -41,9 +40,8 @@ export class FinanceService {
 
   // --- Gestion des Frais (Configuration) ---
 
-  async createFrais(dto: CreateFraisDto) {
+  async createFrais(dto: CreateFraisDto, tenantId?: number) {
     const { classeId, niveauId, ...rest } = dto;
-    const tenantId = TenantContext.getTenantId();
     const frais = this.fraisRepository.create({
       ...rest,
       etablissement: tenantId ? { id: tenantId } : undefined,
@@ -66,8 +64,7 @@ export class FinanceService {
     return await this.fraisRepository.save(frais);
   }
 
-  async findAllFrais() {
-    const tenantId = TenantContext.getTenantId();
+  async findAllFrais(tenantId?: number) {
     const where = TenantHelper.addTenantFilter({}, tenantId);
 
     return await this.fraisRepository.find({
@@ -78,8 +75,7 @@ export class FinanceService {
 
   // --- Gestion des Factures ---
 
-  async createFacture(dto: CreateFactureDto) {
-    const tenantId = TenantContext.getTenantId();
+  async createFacture(dto: CreateFactureDto, tenantId?: number) {
     const etudiant = await this.etudiantRepository.findOne({
       where: TenantHelper.addTenantFilter({ id: dto.etudiantId }, tenantId),
     });
@@ -121,11 +117,13 @@ export class FinanceService {
     return savedFacture;
   }
 
-  async findAllFactures(paginationQuery: PaginationQueryDto) {
+  async findAllFactures(
+    paginationQuery: PaginationQueryDto,
+    tenantId?: number,
+  ) {
     const { page = 1, limit = 15 } = paginationQuery;
     const skip = (page - 1) * limit;
 
-    const tenantId = TenantContext.getTenantId();
     const where = TenantHelper.addTenantFilter(
       {},
       tenantId,
@@ -148,8 +146,7 @@ export class FinanceService {
     };
   }
 
-  async findOneFacture(id: number) {
-    const tenantId = TenantContext.getTenantId();
+  async findOneFacture(id: number, tenantId?: number) {
     const where = TenantHelper.addTenantFilter(
       { id },
       tenantId,
@@ -166,8 +163,7 @@ export class FinanceService {
 
   // --- Gestion des Paiements ---
 
-  async createPaiement(dto: CreatePaiementDto) {
-    const tenantId = TenantContext.getTenantId();
+  async createPaiement(dto: CreatePaiementDto, tenantId?: number) {
     const etudiant = await this.etudiantRepository.findOne({
       where: TenantHelper.addTenantFilter({ id: dto.etudiantId }, tenantId),
     });
@@ -176,7 +172,7 @@ export class FinanceService {
 
     let facture: Facture | undefined;
     if (dto.factureId) {
-      facture = await this.findOneFacture(dto.factureId);
+      facture = await this.findOneFacture(dto.factureId, tenantId);
     }
 
     const existing = await this.paiementRepository.findOneBy({
@@ -257,11 +253,13 @@ export class FinanceService {
     await this.factureRepository.save(facture);
   }
 
-  async findAllPaiements(paginationQuery: PaginationQueryDto) {
+  async findAllPaiements(
+    paginationQuery: PaginationQueryDto,
+    tenantId?: number,
+  ) {
     const { page = 1, limit = 15 } = paginationQuery;
     const skip = (page - 1) * limit;
 
-    const tenantId = TenantContext.getTenantId();
     const where = TenantHelper.addTenantFilter(
       {},
       tenantId,
@@ -286,8 +284,7 @@ export class FinanceService {
 
   // --- Tableau de Bord & Rapports ---
 
-  async getDashboardStats() {
-    const tenantId = TenantContext.getTenantId();
+  async getDashboardStats(tenantId?: number) {
     const where = TenantHelper.addTenantFilter(
       {},
       tenantId,
@@ -357,8 +354,7 @@ export class FinanceService {
     };
   }
 
-  async getFinancialReport(start?: string, end?: string) {
-    const tenantId = TenantContext.getTenantId();
+  async getFinancialReport(start?: string, end?: string, tenantId?: number) {
     let where: any = {};
     if (start && end) {
       where.datePaiement = Between(new Date(start), new Date(end));
@@ -383,8 +379,7 @@ export class FinanceService {
     };
   }
 
-  async generateManualReceipt(paiementId: number) {
-    const tenantId = TenantContext.getTenantId();
+  async generateManualReceipt(paiementId: number, tenantId?: number) {
     const where = TenantHelper.addTenantFilter(
       { id: paiementId },
       tenantId,
@@ -409,8 +404,7 @@ export class FinanceService {
     }
   }
 
-  async generateManualQuittance(factureId: number) {
-    const tenantId = TenantContext.getTenantId();
+  async generateManualQuittance(factureId: number, tenantId?: number) {
     const where = TenantHelper.addTenantFilter(
       { id: factureId },
       tenantId,
@@ -435,8 +429,11 @@ export class FinanceService {
     }
   }
 
-  async getUnpaidFactures(classeId?: number, niveauId?: number) {
-    const tenantId = TenantContext.getTenantId();
+  async getUnpaidFactures(
+    classeId?: number,
+    niveauId?: number,
+    tenantId?: number,
+  ) {
     const query = this.factureRepository
       .createQueryBuilder('facture')
       .leftJoinAndSelect('facture.etudiant', 'etudiant')

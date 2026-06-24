@@ -2,14 +2,13 @@ import {
   Column,
   CreateDateColumn,
   Entity,
-  JoinTable,
-  ManyToMany,
+  ManyToOne,
+  OneToMany,
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
 import { Etablissement } from '../../etablissement/entities/etablissement.entity';
 import { Niveau } from '../../niveau/entities/niveau.entity';
-import { Matiere } from '../../matiere/entities/matiere.entity';
 
 @Entity()
 export class Classe {
@@ -19,16 +18,11 @@ export class Classe {
   @Column({ nullable: false })
   name!: string;
 
-  @ManyToMany(() => Niveau, (niveau) => niveau.classes)
-  @JoinTable()
+  @ManyToOne(() => Etablissement, (etablissement) => etablissement.classes, { nullable: false })
+  etablissement!: Etablissement;
+
+  @OneToMany(() => Niveau, (niveau) => niveau.classe)
   niveaux!: Niveau[];
-
-  @ManyToMany(() => Etablissement, (etablissement) => etablissement.classes)
-  @JoinTable()
-  etablissements!: Etablissement[];
-
-  @ManyToMany(() => Matiere, (matiere) => matiere.classes)
-  matieres!: Matiere[];
 
   @CreateDateColumn()
   createdAt!: Date;

@@ -27,6 +27,8 @@ import { Submission } from '../devoir/entities/submission.entity';
 import { Salle } from '../salle/entities/salle.entity';
 import { Inscription } from '../etudiant/entities/inscription.entity';
 import { GlobalSetting } from '../global-setting/entities/global-setting.entity';
+import { Role as AclRole } from '../acl/entities/role.entity';
+import { Permission } from '../acl/entities/permission.entity';
 import * as bcrypt from 'bcrypt';
 import * as dotenv from 'dotenv';
 
@@ -43,6 +45,8 @@ const dataSource = new DataSource({
   synchronize: process.env.NODE_ENV !== 'production',
   logging: false,
   entities: [
+    AclRole,
+    Permission,
     Etablissement,
     Niveau,
     Classe,

@@ -2,7 +2,8 @@ import {
   Column,
   CreateDateColumn,
   Entity,
-  ManyToMany,
+  ManyToOne,
+  OneToMany,
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
@@ -17,10 +18,10 @@ export class Niveau {
   @Column({ nullable: false })
   name!: string;
 
-  @ManyToMany(() => Classe, (classe) => classe.niveaux)
-  classes!: Classe[];
+  @ManyToOne(() => Classe, (classe) => classe.niveaux, { nullable: false })
+  classe!: Classe;
 
-  @ManyToMany(() => Matiere, (matiere) => matiere.niveaux)
+  @OneToMany(() => Matiere, (matiere) => matiere.niveau)
   matieres!: Matiere[];
 
   @CreateDateColumn()

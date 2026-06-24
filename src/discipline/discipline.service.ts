@@ -4,7 +4,6 @@ import { Repository } from 'typeorm';
 import { Discipline, DisciplineCategory } from './entities/discipline.entity';
 import { CreateDisciplineDto } from './dto/create-discipline.dto';
 import { UpdateDisciplineDto } from './dto/update-discipline.dto';
-import { TenantContext } from '../common/tenant/tenant.context';
 import { TenantHelper } from '../common/tenant/tenant.helper';
 
 @Injectable()
@@ -14,8 +13,7 @@ export class DisciplineService {
     private readonly disciplineRepository: Repository<Discipline>,
   ) {}
 
-  async create(createDisciplineDto: CreateDisciplineDto): Promise<Discipline> {
-    const tenantId = TenantContext.getTenantId();
+  async create(createDisciplineDto: CreateDisciplineDto, tenantId?: number): Promise<Discipline> {
     const discipline = this.disciplineRepository.create({
       ...createDisciplineDto,
       etablissement: tenantId ? { id: tenantId } : undefined,
@@ -23,8 +21,7 @@ export class DisciplineService {
     return await this.disciplineRepository.save(discipline);
   }
 
-  async findAll(category?: DisciplineCategory): Promise<Discipline[]> {
-    const tenantId = TenantContext.getTenantId();
+  async findAll(category?: DisciplineCategory, tenantId?: number): Promise<Discipline[]> {
     let where: any = category ? { category } : {};
     where = TenantHelper.addTenantFilter(where, tenantId);
 
@@ -34,8 +31,7 @@ export class DisciplineService {
     });
   }
 
-  async findOne(id: number): Promise<Discipline> {
-    const tenantId = TenantContext.getTenantId();
+  async findOne(id: number, tenantId?: number): Promise<Discipline> {
     const where = TenantHelper.addTenantFilter({ id }, tenantId);
 
     const discipline = await this.disciplineRepository.findOneBy(where);
@@ -48,14 +44,15 @@ export class DisciplineService {
   async update(
     id: number,
     updateDisciplineDto: UpdateDisciplineDto,
+    tenantId?: number,
   ): Promise<Discipline> {
-    const discipline = await this.findOne(id);
+    const discipline = await this.findOne(id, tenantId);
     Object.assign(discipline, updateDisciplineDto);
     return await this.disciplineRepository.save(discipline);
   }
 
-  async remove(id: number): Promise<void> {
-    const discipline = await this.findOne(id);
+  async remove(id: number, tenantId?: number): Promise<void> {
+    const discipline = await this.findOne(id, tenantId);
     await this.disciplineRepository.remove(discipline);
   }
 }
