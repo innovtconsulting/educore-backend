@@ -72,7 +72,7 @@ export class EnseignantService {
   }
 
   async findAll(filter: EnseignantFilterDto, tenantId?: number) {
-    const { page = 1, limit = 20, search, etablissementId, matiereId } = filter;
+    const { page = 1, limit = 20, search, etablissementId, matiereId, niveauId } = filter;
     const skip = (page - 1) * limit;
 
     const queryBuilder = this.enseignantRepository
@@ -96,6 +96,11 @@ export class EnseignantService {
     // Apply matiereId filter
     if (matiereId) {
       queryBuilder.andWhere('matiere.id = :matiereId', { matiereId });
+    }
+
+    // Apply niveauId filter
+    if (niveauId) {
+      queryBuilder.andWhere('niveau.id = :niveauId', { niveauId });
     }
 
     // Apply search

@@ -19,4 +19,12 @@ export class EnseignantFilterDto extends PaginationQueryDto {
   @Type(() => Number)
   @IsPositive()
   matiereId?: number;
+
+  @ApiPropertyOptional({
+    description: 'ID du niveau pour filtrer les enseignants',
+  })
+  @IsOptional()
+  @Type(() => Number)
+  @IsPositive()
+  niveauId?: number;
 }
