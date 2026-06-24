@@ -25,6 +25,7 @@ import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { Permissions } from '../auth/decorators/permissions.decorator';
 import { Role } from '../user/entities/user.entity';
+import { CurrentEtablissement } from '../auth/decorators/current-etablissement.decorator';
 
 @ApiTags('parents')
 @ApiBearerAuth()
@@ -48,22 +49,22 @@ export class ParentController {
     required: false,
     description: 'Recherche par nom parent ou étudiant, ou matricule',
   })
-  getContacts(@Query('search') search?: string) {
-    return this.parentService.getContacts(search);
+  getContacts(@Query('search') search?: string, @CurrentEtablissement() tenantId?: number) {
+    return this.parentService.getContacts(search, tenantId);
   }
 
   @Get()
   @Permissions('STUDENT_VIEW')
   @ApiOperation({ summary: 'Liste de tous les parents' })
-  findAll(@Query() paginationQuery: PaginationQueryDto) {
-    return this.parentService.findAll(paginationQuery);
+  findAll(@Query() paginationQuery: PaginationQueryDto, @CurrentEtablissement() tenantId?: number) {
+    return this.parentService.findAll(paginationQuery, tenantId);
   }
 
   @Get(':id')
   @Permissions('STUDENT_VIEW')
   @ApiOperation({ summary: "Détails d'un parent" })
-  findOne(@Param('id', ParseIntPipe) id: number) {
-    return this.parentService.findOne(id);
+  findOne(@Param('id', ParseIntPipe) id: number, @CurrentEtablissement() tenantId?: number) {
+    return this.parentService.findOne(id, tenantId);
   }
 
   @Patch(':id')
@@ -72,14 +73,15 @@ export class ParentController {
   update(
     @Param('id', ParseIntPipe) id: number,
     @Body() updateParentDto: UpdateParentDto,
+    @CurrentEtablissement() tenantId?: number,
   ) {
-    return this.parentService.update(id, updateParentDto);
+    return this.parentService.update(id, updateParentDto, tenantId);
   }
 
   @Delete(':id')
   @Permissions('STUDENT_EDIT')
   @ApiOperation({ summary: 'Supprimer un parent' })
-  remove(@Param('id', ParseIntPipe) id: number) {
-    return this.parentService.remove(id);
+  remove(@Param('id', ParseIntPipe) id: number, @CurrentEtablissement() tenantId?: number) {
+    return this.parentService.remove(id, tenantId);
   }
 }

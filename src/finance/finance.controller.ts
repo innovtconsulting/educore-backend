@@ -36,6 +36,7 @@ import { join, extname } from 'path';
 import { existsSync } from 'fs';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
+import { CurrentEtablissement } from '../auth/decorators/current-etablissement.decorator';
 
 @ApiTags('finance')
 @ApiBearerAuth()
@@ -48,16 +49,19 @@ export class FinanceController {
   @Post('frais')
   @Permissions('FINANCE_MANAGE')
   @ApiOperation({ summary: 'Créer un nouveau type de frais' })
-  async createFrais(@Body() dto: CreateFraisDto) {
-    const data = await this.financeService.createFrais(dto);
+  async createFrais(
+    @Body() dto: CreateFraisDto,
+    @CurrentEtablissement() tenantId?: number,
+  ) {
+    const data = await this.financeService.createFrais(dto, tenantId);
     return { message: 'Frais créé avec succès', data };
   }
 
   @Get('frais')
   @Permissions('FINANCE_VIEW')
   @ApiOperation({ summary: 'Récupérer tous les frais configurés' })
-  async findAllFrais() {
-    const data = await this.financeService.findAllFrais();
+  async findAllFrais(@CurrentEtablissement() tenantId?: number) {
+    const data = await this.financeService.findAllFrais(tenantId);
     return { message: 'Liste des frais récupérée avec succès', data };
   }
 
@@ -65,16 +69,25 @@ export class FinanceController {
   @Post('factures')
   @Permissions('FINANCE_MANAGE')
   @ApiOperation({ summary: 'Émettre une nouvelle facture' })
-  async createFacture(@Body() dto: CreateFactureDto) {
-    const data = await this.financeService.createFacture(dto);
+  async createFacture(
+    @Body() dto: CreateFactureDto,
+    @CurrentEtablissement() tenantId?: number,
+  ) {
+    const data = await this.financeService.createFacture(dto, tenantId);
     return { message: 'Facture émise avec succès', data };
   }
 
   @Get('factures')
   @Permissions('FINANCE_VIEW')
   @ApiOperation({ summary: 'Récupérer toutes les factures' })
-  async findAllFactures(@Query() paginationQuery: PaginationQueryDto) {
-    const data = await this.financeService.findAllFactures(paginationQuery);
+  async findAllFactures(
+    @Query() paginationQuery: PaginationQueryDto,
+    @CurrentEtablissement() tenantId?: number,
+  ) {
+    const data = await this.financeService.findAllFactures(
+      paginationQuery,
+      tenantId,
+    );
     return { message: 'Liste des factures récupérée avec succès', data };
   }
 
@@ -82,8 +95,11 @@ export class FinanceController {
   @Roles(Role.PARENT, Role.ETUDIANT)
   @Permissions('FINANCE_VIEW')
   @ApiOperation({ summary: 'Récupérer une facture par ID' })
-  async findOneFacture(@Param('id', ParseIntPipe) id: number) {
-    const data = await this.financeService.findOneFacture(id);
+  async findOneFacture(
+    @Param('id', ParseIntPipe) id: number,
+    @CurrentEtablissement() tenantId?: number,
+  ) {
+    const data = await this.financeService.findOneFacture(id, tenantId);
     return { message: `Facture #${id} récupérée avec succès`, data };
   }
 
@@ -95,32 +111,50 @@ export class FinanceController {
     description:
       'Enregistre un règlement pour un étudiant. Cette action génère automatiquement un reçu PDF stocké sur le serveur et met à jour le statut de la facture associée.',
   })
-  async createPaiement(@Body() dto: CreatePaiementDto) {
-    const data = await this.financeService.createPaiement(dto);
+  async createPaiement(
+    @Body() dto: CreatePaiementDto,
+    @CurrentEtablissement() tenantId?: number,
+  ) {
+    const data = await this.financeService.createPaiement(dto, tenantId);
     return { message: 'Paiement enregistré avec succès', data };
   }
 
   @Get('paiements')
   @Permissions('FINANCE_VIEW')
   @ApiOperation({ summary: 'Récupérer tous les paiements' })
-  async findAllPaiements(@Query() paginationQuery: PaginationQueryDto) {
-    const data = await this.financeService.findAllPaiements(paginationQuery);
+  async findAllPaiements(
+    @Query() paginationQuery: PaginationQueryDto,
+    @CurrentEtablissement() tenantId?: number,
+  ) {
+    const data = await this.financeService.findAllPaiements(
+      paginationQuery,
+      tenantId,
+    );
     return { message: 'Liste des paiements récupérée avec succès', data };
   }
 
   @Post('paiements/:id/generate-recu')
   @Permissions('FINANCE_MANAGE')
   @ApiOperation({ summary: "Générer manuellement le reçu d'un paiement" })
-  async manualReceipt(@Param('id', ParseIntPipe) id: number) {
-    const data = await this.financeService.generateManualReceipt(id);
+  async manualReceipt(
+    @Param('id', ParseIntPipe) id: number,
+    @CurrentEtablissement() tenantId?: number,
+  ) {
+    const data = await this.financeService.generateManualReceipt(id, tenantId);
     return { message: 'Reçu généré avec succès', data };
   }
 
   @Post('factures/:id/generate-quittance')
   @Permissions('FINANCE_MANAGE')
   @ApiOperation({ summary: "Générer manuellement la quittance d'une facture" })
-  async manualQuittance(@Param('id', ParseIntPipe) id: number) {
-    const data = await this.financeService.generateManualQuittance(id);
+  async manualQuittance(
+    @Param('id', ParseIntPipe) id: number,
+    @CurrentEtablissement() tenantId?: number,
+  ) {
+    const data = await this.financeService.generateManualQuittance(
+      id,
+      tenantId,
+    );
     return { message: 'Quittance générée avec succès', data };
   }
 
@@ -258,8 +292,8 @@ export class FinanceController {
     description:
       "Récupère les métriques globales (encaissé, facturé, impayés) ainsi qu'une ventilation détaillée par niveau d'étude.",
   })
-  async getDashboard() {
-    const data = await this.financeService.getDashboardStats();
+  async getDashboard(@CurrentEtablissement() tenantId?: number) {
+    const data = await this.financeService.getDashboardStats(tenantId);
     return { message: 'Dashboard récupéré avec succès', data };
   }
 
@@ -280,8 +314,16 @@ export class FinanceController {
     required: false,
     description: 'Date de fin (YYYY-MM-DD)',
   })
-  async getReport(@Query('start') start?: string, @Query('end') end?: string) {
-    const data = await this.financeService.getFinancialReport(start, end);
+  async getReport(
+    @Query('start') start?: string,
+    @Query('end') end?: string,
+    @CurrentEtablissement() tenantId?: number,
+  ) {
+    const data = await this.financeService.getFinancialReport(
+      start,
+      end,
+      tenantId,
+    );
     return { message: 'Rapport financier généré avec succès', data };
   }
 
@@ -307,10 +349,12 @@ export class FinanceController {
   async getUnpaid(
     @Query('classeId') classeId?: string,
     @Query('niveauId') niveauId?: string,
+    @CurrentEtablissement() tenantId?: number,
   ) {
     const data = await this.financeService.getUnpaidFactures(
       classeId ? +classeId : undefined,
       niveauId ? +niveauId : undefined,
+      tenantId,
     );
     return { message: 'Liste des impayés récupérée avec succès', data };
   }

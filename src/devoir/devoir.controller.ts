@@ -21,6 +21,7 @@ import { Permissions } from '../auth/decorators/permissions.decorator';
 import { Role } from '../user/entities/user.entity';
 import { PaginationQueryDto } from '../common/dto/pagination-query.dto';
 import { CreateSubmissionDto } from './dto/create-submission.dto';
+import { CurrentEtablissement } from '../auth/decorators/current-etablissement.decorator';
 
 @ApiTags('devoirs')
 @ApiBearerAuth()
@@ -38,29 +39,31 @@ export class DevoirController {
 
   @Get()
   @Roles(Role.ETUDIANT, Role.PARENT)
-  @Permissions('ACADEMIC_VIEW')
   @ApiOperation({ summary: 'Lister les devoirs' })
-  findAll(@Query() paginationQuery: PaginationQueryDto, @Request() req: any) {
-    return this.devoirService.findAll(paginationQuery, req.user);
+  findAll(
+    @Query() paginationQuery: PaginationQueryDto,
+    @Request() req: any,
+    @CurrentEtablissement() tenantId?: number,
+  ) {
+    return this.devoirService.findAll(paginationQuery, req.user, tenantId);
   }
 
   @Get('classe/:classeId/niveau/:niveauId')
   @Roles(Role.ETUDIANT, Role.PARENT)
-  @Permissions('ACADEMIC_VIEW')
   @ApiOperation({ summary: 'Lister les devoirs par classe et niveau' })
   findByClasse(
     @Param('classeId') classeId: string,
     @Param('niveauId') niveauId: string,
+    @CurrentEtablissement() tenantId?: number,
   ) {
-    return this.devoirService.findByClasse(+classeId, +niveauId);
+    return this.devoirService.findByClasse(+classeId, +niveauId, tenantId);
   }
 
   @Get(':id')
   @Roles(Role.ETUDIANT, Role.PARENT)
-  @Permissions('ACADEMIC_VIEW')
   @ApiOperation({ summary: 'Récupérer un devoir par ID' })
-  findOne(@Param('id') id: string) {
-    return this.devoirService.findOne(+id);
+  findOne(@Param('id') id: string, @CurrentEtablissement() tenantId?: number) {
+    return this.devoirService.findOne(+id, tenantId);
   }
 
   @Patch(':id')
@@ -70,15 +73,20 @@ export class DevoirController {
     @Param('id') id: string,
     @Body() updateDevoirDto: UpdateDevoirDto,
     @Request() req: any,
+    @CurrentEtablissement() tenantId?: number,
   ) {
-    return this.devoirService.update(+id, updateDevoirDto, req.user);
+    return this.devoirService.update(+id, updateDevoirDto, req.user, tenantId);
   }
 
   @Delete(':id')
   @Permissions('ACADEMIC_MANAGE')
   @ApiOperation({ summary: 'Supprimer un devoir' })
-  remove(@Param('id') id: string, @Request() req: any) {
-    return this.devoirService.remove(+id, req.user);
+  remove(
+    @Param('id') id: string,
+    @Request() req: any,
+    @CurrentEtablissement() tenantId?: number,
+  ) {
+    return this.devoirService.remove(+id, req.user, tenantId);
   }
 
   // --- Submissions ---

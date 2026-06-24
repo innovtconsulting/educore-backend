@@ -6,7 +6,7 @@ import {
   forwardRef,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, ILike, FindOptionsWhere } from 'typeorm';
+import { Repository, ILike } from 'typeorm';
 import { CreateEnseignantDto } from './dto/create-enseignant.dto';
 import { UpdateEnseignantDto } from './dto/update-enseignant.dto';
 import { Enseignant } from './entities/enseignant.entity';
@@ -15,7 +15,7 @@ import { CreateAffectationDto } from './dto/create-affectation.dto';
 import { Matiere } from '../matiere/entities/matiere.entity';
 import { Etablissement } from '../etablissement/entities/etablissement.entity';
 import { Niveau } from '../niveau/entities/niveau.entity';
-import { PaginationQueryDto } from '../common/dto/pagination-query.dto';
+import { EnseignantFilterDto } from './dto/enseignant-filter.dto';
 import { UserService } from '../user/user.service';
 import { Role } from '../user/entities/user.entity';
 
@@ -71,35 +71,51 @@ export class EnseignantService {
     return savedEnseignant;
   }
 
-  async findAll(paginationQuery: PaginationQueryDto) {
-    const { page = 1, limit = 15, search } = paginationQuery;
+  async findAll(filter: EnseignantFilterDto, tenantId?: number) {
+    const { page = 1, limit = 20, search, etablissementId, matiereId, niveauId } = filter;
     const skip = (page - 1) * limit;
 
-    let where: FindOptionsWhere<Enseignant> | FindOptionsWhere<Enseignant>[] =
-      {};
-    if (search) {
-      where = [
-        { lastName: ILike(`%${search}%`) },
-        { firstName: ILike(`%${search}%`) },
-        { matricule: ILike(`%${search}%`) },
-        { email: ILike(`%${search}%`) },
-      ];
+    const queryBuilder = this.enseignantRepository
+      .createQueryBuilder('enseignant')
+      .leftJoinAndSelect('enseignant.affectations', 'affectations')
+      .leftJoinAndSelect('affectations.matiere', 'matiere')
+      .leftJoinAndSelect('affectations.etablissement', 'etablissement')
+      .leftJoinAndSelect('affectations.niveau', 'niveau')
+      .leftJoinAndSelect('enseignant.user', 'user');
+
+    // Apply tenant filter
+    if (tenantId) {
+      queryBuilder.andWhere('etablissement.id = :tenantId', { tenantId });
     }
 
-    const [items, total] = await this.enseignantRepository.findAndCount({
-      where,
-      relations: {
-        affectations: {
-          matiere: true,
-          etablissement: true,
-          niveau: true,
-        },
-        user: true,
-      },
-      skip,
-      take: limit,
-      order: { id: 'DESC' },
-    });
+    // Apply etablissementId filter
+    if (etablissementId) {
+      queryBuilder.andWhere('etablissement.id = :etablissementId', { etablissementId });
+    }
+
+    // Apply matiereId filter
+    if (matiereId) {
+      queryBuilder.andWhere('matiere.id = :matiereId', { matiereId });
+    }
+
+    // Apply niveauId filter
+    if (niveauId) {
+      queryBuilder.andWhere('niveau.id = :niveauId', { niveauId });
+    }
+
+    // Apply search
+    if (search) {
+      queryBuilder.andWhere(
+        '(enseignant.lastName ILIKE :search OR enseignant.firstName ILIKE :search OR enseignant.matricule ILIKE :search OR enseignant.email ILIKE :search)',
+        { search: `%${search}%` },
+      );
+    }
+
+    const [items, total] = await queryBuilder
+      .orderBy('enseignant.id', 'DESC')
+      .skip(skip)
+      .take(limit)
+      .getManyAndCount();
 
     return {
       items,
@@ -109,9 +125,14 @@ export class EnseignantService {
     };
   }
 
-  async findOne(id: number): Promise<Enseignant> {
+  async findOne(id: number, tenantId?: number): Promise<Enseignant> {
+    const where: any = { id };
+    if (tenantId) {
+      where.affectations = { etablissement: { id: tenantId } };
+    }
+
     const enseignant = await this.enseignantRepository.findOne({
-      where: { id },
+      where,
       relations: {
         affectations: {
           matiere: true,
@@ -130,9 +151,17 @@ export class EnseignantService {
     return enseignant;
   }
 
-  async findByMatricule(matricule: string): Promise<Enseignant | null> {
+  async findByMatricule(
+    matricule: string,
+    tenantId?: number,
+  ): Promise<Enseignant | null> {
+    const where: any = { matricule };
+    if (tenantId) {
+      where.affectations = { etablissement: { id: tenantId } };
+    }
+
     return await this.enseignantRepository.findOne({
-      where: { matricule },
+      where,
       relations: {
         affectations: {
           matiere: true,
@@ -147,8 +176,9 @@ export class EnseignantService {
   async update(
     id: number,
     updateEnseignantDto: UpdateEnseignantDto,
+    tenantId?: number,
   ): Promise<Enseignant> {
-    const enseignant = await this.findOne(id);
+    const enseignant = await this.findOne(id, tenantId);
     const { email, matricule } = updateEnseignantDto;
 
     if (email && email !== enseignant.email) {
@@ -186,16 +216,17 @@ export class EnseignantService {
     return savedEnseignant;
   }
 
-  async remove(id: number): Promise<void> {
-    const enseignant = await this.findOne(id);
+  async remove(id: number, tenantId?: number): Promise<void> {
+    const enseignant = await this.findOne(id, tenantId);
     await this.enseignantRepository.remove(enseignant);
   }
 
   async updateProfilePicture(
     id: number,
     filePath: string,
+    tenantId?: number,
   ): Promise<Enseignant> {
-    const enseignant = await this.findOne(id);
+    const enseignant = await this.findOne(id, tenantId);
     enseignant.photoPath = filePath.replace(/\\/g, '/');
     return await this.enseignantRepository.save(enseignant);
   }

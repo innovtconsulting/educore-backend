@@ -10,6 +10,8 @@ import { EnseignantModule } from '../enseignant/enseignant.module';
 import { ParentModule } from '../parent/parent.module';
 import { GlobalSettingModule } from '../global-setting/global-setting.module';
 import { JwtStrategy } from './strategies/jwt.strategy';
+import { RolesGuard } from './guards/roles.guard';
+import { JwtAuthGuard } from './guards/jwt-auth.guard';
 
 @Module({
   imports: [
@@ -28,8 +30,8 @@ import { JwtStrategy } from './strategies/jwt.strategy';
       inject: [ConfigService],
     }),
   ],
-  providers: [AuthService, JwtStrategy],
+  providers: [AuthService, JwtStrategy, RolesGuard, JwtAuthGuard],
   controllers: [AuthController],
-  exports: [AuthService],
+  exports: [AuthService, RolesGuard, JwtAuthGuard, JwtModule],
 })
 export class AuthModule {}

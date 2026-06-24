@@ -12,7 +12,6 @@ import { Classe } from '../classe/entities/classe.entity';
 import { PaginationQueryDto } from '../common/dto/pagination-query.dto';
 import { EnseignantService } from '../enseignant/enseignant.service';
 import { Role } from '../user/entities/user.entity';
-import { TenantContext } from '../common/tenant/tenant.context';
 
 @Injectable()
 export class EvaluationService {
@@ -22,7 +21,11 @@ export class EvaluationService {
     private readonly enseignantService: EnseignantService,
   ) {}
 
-  async create(createEvaluationDto: CreateEvaluationDto, user: any) {
+  async create(
+    createEvaluationDto: CreateEvaluationDto,
+    user: any,
+    tenantId?: number,
+  ) {
     const { matiereId, classeId, niveauId, semestreId, ...data } =
       createEvaluationDto;
 
@@ -32,13 +35,13 @@ export class EvaluationService {
         this.evaluationRepository.manager.connection.createQueryRunner();
       const classe = await queryRunner.manager.getRepository(Classe).findOne({
         where: { id: classeId },
-        relations: { etablissements: true },
+        relations: { etablissement: true },
       });
       await queryRunner.release();
 
       if (!classe) throw new NotFoundException('Classe introuvable');
 
-      const etablissementIds = classe.etablissements.map((e) => e.id);
+      const etablissementIds = [classe.etablissement.id];
 
       const isResponsible = await this.enseignantService.isResponsibleFor(
         user.enseignantId,
@@ -63,54 +66,48 @@ export class EvaluationService {
     return await this.evaluationRepository.save(evaluation);
   }
 
-  async findAll(paginationQuery: PaginationQueryDto) {
+  async findAll(paginationQuery: PaginationQueryDto, tenantId?: number) {
     const { page = 1, limit = 15 } = paginationQuery;
     const skip = (page - 1) * limit;
 
-    const tenantId = TenantContext.getTenantId();
-    const where: any = {};
+    const query = this.evaluationRepository
+      .createQueryBuilder('e')
+      .leftJoinAndSelect('e.matiere', 'matiere')
+      .leftJoinAndSelect('e.classe', 'classe')
+      .leftJoinAndSelect('classe.etablissement', 'etablissement')
+      .leftJoinAndSelect('e.niveau', 'niveau')
+      .leftJoinAndSelect('e.semestre', 'semestre');
+
     if (tenantId) {
-      where.classe = { etablissements: { id: tenantId } };
+      query.andWhere('etablissement.id = :tenantId', { tenantId });
     }
 
-    const [items, total] = await this.evaluationRepository.findAndCount({
-      where,
-      relations: {
-        matiere: true,
-        classe: true,
-        niveau: true,
-        semestre: true,
-      },
-      skip,
-      take: limit,
-      order: { id: 'DESC' },
-    });
+    const [items, total] = await query
+      .orderBy('e.id', 'DESC')
+      .skip(skip)
+      .take(limit)
+      .getManyAndCount();
 
-    return {
-      items,
-      total,
-      page,
-      limit,
-    };
+    return { items, total, page, limit };
   }
 
-  async findOne(id: number) {
-    const tenantId = TenantContext.getTenantId();
-    const where: any = { id };
+  async findOne(id: number, tenantId?: number) {
+    const query = this.evaluationRepository
+      .createQueryBuilder('e')
+      .leftJoinAndSelect('e.matiere', 'matiere')
+      .leftJoinAndSelect('e.classe', 'classe')
+      .leftJoinAndSelect('classe.etablissement', 'etablissement')
+      .leftJoinAndSelect('e.niveau', 'niveau')
+      .leftJoinAndSelect('e.semestre', 'semestre')
+      .leftJoinAndSelect('e.notes', 'notes')
+      .leftJoinAndSelect('notes.etudiant', 'etudiant')
+      .where('e.id = :id', { id });
+
     if (tenantId) {
-      where.classe = { etablissements: { id: tenantId } };
+      query.andWhere('etablissement.id = :tenantId', { tenantId });
     }
 
-    const evaluation = await this.evaluationRepository.findOne({
-      where,
-      relations: {
-        matiere: true,
-        classe: { etablissements: true },
-        niveau: true,
-        semestre: true,
-        notes: { etudiant: true },
-      },
-    });
+    const evaluation = await query.getOne();
     if (!evaluation)
       throw new NotFoundException(`Evaluation #${id} non trouvé`);
     return evaluation;
@@ -120,13 +117,12 @@ export class EvaluationService {
     id: number,
     updateEvaluationDto: UpdateEvaluationDto,
     user: any,
+    tenantId?: number,
   ) {
-    const evaluation = await this.findOne(id);
+    const evaluation = await this.findOne(id, tenantId);
 
     if (user.role === Role.ENSEIGNANT) {
-      const etablissementIds = evaluation.classe.etablissements.map(
-        (e) => e.id,
-      );
+      const etablissementIds = [evaluation.classe.etablissement.id];
       const isResponsible = await this.enseignantService.isResponsibleFor(
         user.enseignantId,
         evaluation.matiere.id,
@@ -144,13 +140,11 @@ export class EvaluationService {
     return await this.evaluationRepository.save(evaluation);
   }
 
-  async remove(id: number, user: any) {
-    const evaluation = await this.findOne(id);
+  async remove(id: number, user: any, tenantId?: number) {
+    const evaluation = await this.findOne(id, tenantId);
 
     if (user.role === Role.ENSEIGNANT) {
-      const etablissementIds = evaluation.classe.etablissements.map(
-        (e) => e.id,
-      );
+      const etablissementIds = [evaluation.classe.etablissement.id];
       const isResponsible = await this.enseignantService.isResponsibleFor(
         user.enseignantId,
         evaluation.matiere.id,

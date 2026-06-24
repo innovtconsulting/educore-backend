@@ -4,13 +4,12 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { In, Repository, ILike } from 'typeorm';
-import { TenantContext } from '../common/tenant/tenant.context';
+import { Repository, ILike } from 'typeorm';
 import { CreateClasseDto } from './dto/create-classe.dto';
 import { UpdateClasseDto } from './dto/update-classe.dto';
 import { Classe } from './entities/classe.entity';
 import { Etablissement } from '../etablissement/entities/etablissement.entity';
-import { Niveau } from '../niveau/entities/niveau.entity';
+import { TenantHelper } from '../common/tenant/tenant.helper';
 
 @Injectable()
 export class ClasseService {
@@ -19,79 +18,74 @@ export class ClasseService {
     private readonly classeRepository: Repository<Classe>,
     @InjectRepository(Etablissement)
     private readonly etablissementRepository: Repository<Etablissement>,
-    @InjectRepository(Niveau)
-    private readonly niveauRepository: Repository<Niveau>,
   ) {}
 
-  async create(createClasseDto: CreateClasseDto): Promise<Classe> {
-    const { name, etablissementIds, niveauIds } = createClasseDto;
+  async create(
+    createClasseDto: CreateClasseDto,
+    tenantId?: number,
+  ): Promise<Classe> {
+    const { name, etablissementId } = createClasseDto;
 
-    // Vérifier l'existence des niveaux
-    const niveaux = await this.niveauRepository.findBy({
-      id: In(niveauIds),
+    // Vérifier l'existence de l'établissement
+    const etablissement = await this.etablissementRepository.findOne({
+      where: TenantHelper.addTenantFilter({ id: etablissementId }, tenantId),
     });
 
-    if (niveaux.length !== niveauIds.length) {
-      throw new NotFoundException('Un ou plusieurs niveaux sont introuvables');
-    }
-
-    // Vérifier l'existence des établissements
-    const etablissements = await this.etablissementRepository.findBy({
-      id: In(etablissementIds),
-    });
-
-    if (etablissements.length !== etablissementIds.length) {
-      throw new NotFoundException(
-        'Un ou plusieurs établissements sont introuvables',
-      );
+    if (!etablissement) {
+      throw new NotFoundException('Établissement introuvable');
     }
 
     // Vérifier l'unicité du nom de classe par établissement
-    for (const etablissement of etablissements) {
-      const existingClasse = await this.classeRepository.findOne({
-        where: {
-          name,
-          etablissements: { id: etablissement.id },
-        },
-      });
-      if (existingClasse) {
-        throw new BadRequestException(
-          `La classe "${name}" existe déjà dans l'établissement "${etablissement.name}"`,
-        );
-      }
+    const existingClasse = await this.classeRepository.findOne({
+      where: {
+        name,
+        etablissement: { id: etablissementId },
+      },
+    });
+
+    if (existingClasse) {
+      throw new BadRequestException(
+        `La classe "${name}" existe déjà dans l'établissement "${etablissement.name}"`,
+      );
     }
 
     const classe = this.classeRepository.create({
       name,
-      niveaux,
-      etablissements,
+      etablissement,
     });
 
     return await this.classeRepository.save(classe);
   }
 
-  async findAll(): Promise<Classe[]> {
-    const tenantId = TenantContext.getTenantId();
-    const where: any = {};
+  async findAll(
+    tenantId?: number,
+    etablissementId?: number,
+  ): Promise<Classe[]> {
+    let where: any = {};
     if (tenantId) {
-      where.etablissements = { id: tenantId };
+      where.etablissement = { id: tenantId };
     }
+    if (etablissementId) {
+      where.etablissement = { id: etablissementId };
+    }
+
     return await this.classeRepository.find({
       where,
-      relations: { etablissements: true, niveaux: true },
+      relations: { etablissement: true, niveaux: true },
     });
   }
 
-  async findOne(id: number): Promise<Classe> {
-    const tenantId = TenantContext.getTenantId();
-    const where: any = { id };
+  async findOne(id: number, tenantId?: number): Promise<Classe> {
+    let where: any = { id };
     if (tenantId) {
-      where.etablissements = { id: tenantId };
+      where.etablissement = { id: tenantId };
     }
+
     const classe = await this.classeRepository.findOne({
       where,
-      relations: { etablissements: true, niveaux: true },
+      relations: { etablissement: true, niveaux: true },
     });
+
     if (!classe) {
       throw new NotFoundException(
         `La classe avec l'ID ${id} n'a pas été trouvée`,
@@ -100,52 +94,39 @@ export class ClasseService {
     return classe;
   }
 
-  async update(id: number, updateClasseDto: UpdateClasseDto): Promise<Classe> {
-    const { name, etablissementIds, niveauIds } = updateClasseDto;
-    const classe = await this.findOne(id);
+  async update(
+    id: number,
+    updateClasseDto: UpdateClasseDto,
+    tenantId?: number,
+  ): Promise<Classe> {
+    const { name, etablissementId } = updateClasseDto;
+    const classe = await this.findOne(id, tenantId);
 
     if (name) {
       classe.name = name;
     }
 
-    if (niveauIds) {
-      const niveaux = await this.niveauRepository.findBy({
-        id: In(niveauIds),
+    if (etablissementId) {
+      const etablissement = await this.etablissementRepository.findOne({
+        where: TenantHelper.addTenantFilter({ id: etablissementId }, tenantId),
       });
-      if (niveaux.length !== niveauIds.length) {
-        throw new NotFoundException(
-          'Un ou plusieurs niveaux sont introuvables',
-        );
+      if (!etablissement) {
+        throw new NotFoundException('Établissement introuvable');
       }
-      classe.niveaux = niveaux;
-    }
-
-    if (etablissementIds) {
-      const etablissements = await this.etablissementRepository.findBy({
-        id: In(etablissementIds),
-      });
-      if (etablissements.length !== etablissementIds.length) {
-        throw new NotFoundException(
-          'Un ou plusieurs établissements sont introuvables',
-        );
-      }
-      classe.etablissements = etablissements;
+      classe.etablissement = etablissement;
     }
 
     // Vérifier l'unicité lors de la mise à jour
-    const finalEtablissements = classe.etablissements;
-    const finalName = classe.name;
-
-    for (const etablissement of finalEtablissements) {
+    if (name || etablissementId) {
       const existingClasse = await this.classeRepository.findOne({
         where: {
-          name: finalName,
-          etablissements: { id: etablissement.id },
+          name: classe.name,
+          etablissement: { id: classe.etablissement.id },
         },
       });
       if (existingClasse && existingClasse.id !== id) {
         throw new BadRequestException(
-          `La classe "${finalName}" existe déjà dans l'établissement "${etablissement.name}"`,
+          `La classe "${classe.name}" existe déjà dans l'établissement "${classe.etablissement.name}"`,
         );
       }
     }
@@ -153,19 +134,19 @@ export class ClasseService {
     return await this.classeRepository.save(classe);
   }
 
-  async findByName(name: string): Promise<Classe | null> {
-    const tenantId = TenantContext.getTenantId();
-    const where: any = { name: ILike(name) };
+  async findByName(name: string, tenantId?: number): Promise<Classe | null> {
+    let where: any = { name: ILike(name) };
     if (tenantId) {
-      where.etablissements = { id: tenantId };
+      where.etablissement = { id: tenantId };
     }
     return await this.classeRepository.findOne({
       where,
+      relations: { etablissement: true },
     });
   }
 
-  async remove(id: number): Promise<void> {
-    const classe = await this.findOne(id);
+  async remove(id: number, tenantId?: number): Promise<void> {
+    const classe = await this.findOne(id, tenantId);
     await this.classeRepository.remove(classe);
   }
 }

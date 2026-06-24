@@ -18,7 +18,6 @@ import {
 } from './utils/pdf-templates';
 import { PaginationQueryDto } from '../common/dto/pagination-query.dto';
 import { TenantHelper } from '../common/tenant/tenant.helper';
-import { TenantContext } from '../common/tenant/tenant.context';
 
 @Injectable()
 export class CertificateService {
@@ -128,8 +127,11 @@ export class CertificateService {
     return { pdfUrl: `/${pdfUrl}` };
   }
 
-  async getHistory(paginationQuery: PaginationQueryDto, etudiantId?: number) {
-    const tenantId = TenantContext.getTenantId();
+  async getHistory(
+    paginationQuery: PaginationQueryDto,
+    etudiantId?: number,
+    tenantId?: number,
+  ) {
     const { page = 1, limit = 15 } = paginationQuery;
     const skip = (page - 1) * limit;
 

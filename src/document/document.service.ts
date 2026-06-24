@@ -6,7 +6,6 @@ import { UpdateDocumentDto } from './dto/update-document.dto';
 import { Document } from './entities/document.entity';
 import * as fs from 'fs';
 import { PaginationQueryDto } from '../common/dto/pagination-query.dto';
-import { TenantContext } from '../common/tenant/tenant.context';
 import { TenantHelper } from '../common/tenant/tenant.helper';
 
 @Injectable()
@@ -19,8 +18,8 @@ export class DocumentService {
   async create(
     createDocumentDto: CreateDocumentDto,
     file: Express.Multer.File,
+    tenantId?: number,
   ) {
-    const tenantId = TenantContext.getTenantId();
     const document = this.documentRepository.create({
       ...createDocumentDto,
       filePath: file.path,
@@ -32,10 +31,9 @@ export class DocumentService {
     return await this.documentRepository.save(document);
   }
 
-  async findAll(paginationQuery: PaginationQueryDto) {
+  async findAll(paginationQuery: PaginationQueryDto, tenantId?: number) {
     const { page = 1, limit = 15, search } = paginationQuery;
     const skip = (page - 1) * limit;
-    const tenantId = TenantContext.getTenantId();
 
     let where: FindOptionsWhere<Document> | FindOptionsWhere<Document>[] = [];
     if (search) {
@@ -64,8 +62,7 @@ export class DocumentService {
     };
   }
 
-  async findOne(id: number) {
-    const tenantId = TenantContext.getTenantId();
+  async findOne(id: number, tenantId?: number) {
     const where = TenantHelper.addTenantFilter({ id }, tenantId);
 
     const document = await this.documentRepository.findOne({ where });
@@ -75,14 +72,18 @@ export class DocumentService {
     return document;
   }
 
-  async update(id: number, updateDocumentDto: UpdateDocumentDto) {
-    const document = await this.findOne(id);
+  async update(
+    id: number,
+    updateDocumentDto: UpdateDocumentDto,
+    tenantId?: number,
+  ) {
+    const document = await this.findOne(id, tenantId);
     Object.assign(document, updateDocumentDto);
     return await this.documentRepository.save(document);
   }
 
-  async remove(id: number) {
-    const document = await this.findOne(id);
+  async remove(id: number, tenantId?: number) {
+    const document = await this.findOne(id, tenantId);
     // Supprimer le fichier physique
     if (fs.existsSync(document.filePath)) {
       fs.unlinkSync(document.filePath);

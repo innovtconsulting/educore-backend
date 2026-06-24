@@ -17,6 +17,7 @@ import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { Permissions } from '../auth/decorators/permissions.decorator';
 import { Role } from '../user/entities/user.entity';
+import { CurrentEtablissement } from '../auth/decorators/current-etablissement.decorator';
 
 @ApiTags('etablissement')
 @ApiBearerAuth()
@@ -46,8 +47,8 @@ export class EtablissementController {
     summary: 'Lister tous les établissements',
     description: 'Récupère la liste complète des établissements enregistrés.',
   })
-  async findAll() {
-    const data = await this.etablissementService.findAll();
+  async findAll(@CurrentEtablissement() tenantId?: number) {
+    const data = await this.etablissementService.findAll(tenantId);
     return data;
   }
 
@@ -58,8 +59,8 @@ export class EtablissementController {
     description:
       "Affiche les informations détaillées d'un établissement spécifique.",
   })
-  async findOne(@Param('id') id: string) {
-    const data = await this.etablissementService.findOne(+id);
+  async findOne(@Param('id') id: string, @CurrentEtablissement() tenantId?: number) {
+    const data = await this.etablissementService.findOne(+id, tenantId);
     return {
       message: `Etablissement #${id} récupéré avec succès`,
       data,
@@ -75,10 +76,12 @@ export class EtablissementController {
   async update(
     @Param('id') id: string,
     @Body() updateEtablissementDto: UpdateEtablissementDto,
+    @CurrentEtablissement() tenantId?: number,
   ) {
     const data = await this.etablissementService.update(
       +id,
       updateEtablissementDto,
+      tenantId,
     );
     return {
       message: `Etablissement #${id} mis à jour avec succès`,
@@ -92,8 +95,8 @@ export class EtablissementController {
     summary: 'Supprimer un établissement',
     description: 'Supprime un établissement du système.',
   })
-  async remove(@Param('id') id: string) {
-    await this.etablissementService.remove(+id);
+  async remove(@Param('id') id: string, @CurrentEtablissement() tenantId?: number) {
+    await this.etablissementService.remove(+id, tenantId);
     return {
       message: `Etablissement #${id} supprimée avec succès`,
     };

@@ -20,6 +20,7 @@
     "test:e2e": "jest --config ./test/jest-e2e.json --runInBand",
     "db:seed": "ts-node src/database/seed.ts",
     "db:seed:admins": "ts-node src/database/seed-admins.ts",
+    "db:seed:users": "ts-node src/database/seed-users.ts",
     "db:reset": "ts-node src/database/reset.ts",
     "typeorm": "ts-node ./node_modules/typeorm/cli",
     "migration:run": "npm run typeorm migration:run -- -d src/data-source.ts",

@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   ForbiddenException,
   Injectable,
   NotFoundException,
@@ -12,9 +13,9 @@ import { PaginationQueryDto } from '../common/dto/pagination-query.dto';
 import { Evaluation } from '../evaluation/entities/evaluation.entity';
 import { EnseignantService } from '../enseignant/enseignant.service';
 import { Role } from '../user/entities/user.entity';
-import { TenantContext } from '../common/tenant/tenant.context';
 import { TenantHelper } from '../common/tenant/tenant.helper';
 import { BulkCreateNoteDto } from './dto/bulk-create-note.dto';
+import { ParentService } from '../parent/parent.service';
 
 @Injectable()
 export class NoteService {
@@ -24,9 +25,10 @@ export class NoteService {
     @InjectRepository(Evaluation)
     private readonly evaluationRepository: Repository<Evaluation>,
     private readonly enseignantService: EnseignantService,
+    private readonly parentService: ParentService,
   ) {}
 
-  async create(createNoteDto: CreateNoteDto, user: any) {
+  async create(createNoteDto: CreateNoteDto, user: any, tenantId?: number) {
     const { etudiantId, evaluationId, ...data } = createNoteDto;
 
     const evaluation = await this.evaluationRepository.findOne({
@@ -34,15 +36,13 @@ export class NoteService {
       relations: {
         matiere: true,
         niveau: true,
-        classe: { etablissements: true },
+        classe: { etablissement: true },
       },
     });
     if (!evaluation) throw new NotFoundException('Évaluation introuvable');
 
     if (user.role === Role.ENSEIGNANT) {
-      const etablissementIds = evaluation.classe.etablissements.map(
-        (e) => e.id,
-      );
+      const etablissementIds = [evaluation.classe.etablissement.id];
       const isResponsible = await this.enseignantService.isResponsibleFor(
         user.enseignantId,
         evaluation.matiere.id,
@@ -77,7 +77,7 @@ export class NoteService {
     return await this.noteRepository.save(note);
   }
 
-  async bulkCreate(dto: BulkCreateNoteDto, user: any) {
+  async bulkCreate(dto: BulkCreateNoteDto, user: any, tenantId?: number) {
     const { evaluationId, items } = dto;
 
     const evaluation = await this.evaluationRepository.findOne({
@@ -85,15 +85,13 @@ export class NoteService {
       relations: {
         matiere: true,
         niveau: true,
-        classe: { etablissements: true },
+        classe: { etablissement: true },
       },
     });
     if (!evaluation) throw new NotFoundException('Évaluation introuvable');
 
     if (user.role === Role.ENSEIGNANT) {
-      const etablissementIds = evaluation.classe.etablissements.map(
-        (e) => e.id,
-      );
+      const etablissementIds = [evaluation.classe.etablissement.id];
       const isResponsible = await this.enseignantService.isResponsibleFor(
         user.enseignantId,
         evaluation.matiere.id,
@@ -133,13 +131,28 @@ export class NoteService {
     return savedNotes;
   }
 
-  async findAll(paginationQuery: PaginationQueryDto, user?: any) {
+  async findAll(
+    paginationQuery: PaginationQueryDto,
+    user?: any,
+    etudiantId?: number,
+    tenantId?: number,
+  ) {
     const { page = 1, limit = 15 } = paginationQuery;
     const skip = (page - 1) * limit;
-    const tenantId = TenantContext.getTenantId();
 
     let where: any = {};
-    if (user && user.role === Role.ETUDIANT) {
+    if (user && user.role === Role.PARENT) {
+      if (!etudiantId) {
+        throw new BadRequestException(
+          'Le paramètre etudiantId est requis pour consulter les notes',
+        );
+      }
+      await this.parentService.assertParentOfEtudiant(
+        user.parentId,
+        etudiantId,
+      );
+      where.etudiant = { id: etudiantId };
+    } else if (user && user.role === Role.ETUDIANT) {
       where.etudiant = { id: user.etudiantId };
     } else if (user && user.etudiantId) {
       where.etudiant = { id: user.etudiantId };
@@ -147,7 +160,7 @@ export class NoteService {
 
     where = TenantHelper.addTenantFilter(
       where,
-      tenantId,
+      TenantHelper.resolveTenantId(user, tenantId),
       'etudiant.etablissement',
     );
 
@@ -170,8 +183,7 @@ export class NoteService {
     };
   }
 
-  async findOne(id: number, user?: any) {
-    const tenantId = TenantContext.getTenantId();
+  async findOne(id: number, user?: any, tenantId?: number) {
     let where: any = { id };
     where = TenantHelper.addTenantFilter(
       where,
@@ -201,8 +213,13 @@ export class NoteService {
     return note;
   }
 
-  async update(id: number, updateNoteDto: UpdateNoteDto, user: any) {
-    const note = await this.findOne(id, user);
+  async update(
+    id: number,
+    updateNoteDto: UpdateNoteDto,
+    user: any,
+    tenantId?: number,
+  ) {
+    const note = await this.findOne(id, user, tenantId);
 
     if (user.role === Role.ENSEIGNANT) {
       // Re-charger les relations nécessaires pour la vérification de responsabilité
@@ -212,13 +229,11 @@ export class NoteService {
           evaluation: {
             matiere: true,
             niveau: true,
-            classe: { etablissements: true },
+            classe: { etablissement: true },
           },
         },
       });
-      const etablissementIds = noteFull!.evaluation.classe.etablissements.map(
-        (e) => e.id,
-      );
+      const etablissementIds = [noteFull!.evaluation.classe.etablissement.id];
       const isResponsible = await this.enseignantService.isResponsibleFor(
         user.enseignantId,
         noteFull!.evaluation.matiere.id,
@@ -236,8 +251,8 @@ export class NoteService {
     return await this.noteRepository.save(note);
   }
 
-  async remove(id: number, user: any) {
-    const note = await this.findOne(id, user);
+  async remove(id: number, user: any, tenantId?: number) {
+    const note = await this.findOne(id, user, tenantId);
 
     if (user.role === Role.ENSEIGNANT) {
       const noteFull = await this.noteRepository.findOne({
@@ -246,13 +261,11 @@ export class NoteService {
           evaluation: {
             matiere: true,
             niveau: true,
-            classe: { etablissements: true },
+            classe: { etablissement: true },
           },
         },
       });
-      const etablissementIds = noteFull!.evaluation.classe.etablissements.map(
-        (e) => e.id,
-      );
+      const etablissementIds = [noteFull!.evaluation.classe.etablissement.id];
       const isResponsible = await this.enseignantService.isResponsibleFor(
         user.enseignantId,
         noteFull!.evaluation.matiere.id,

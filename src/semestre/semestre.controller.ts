@@ -37,6 +37,7 @@ export class SemestreController {
   }
 
   @Get()
+  @Roles(Role.PARENT, Role.ETUDIANT, Role.ENSEIGNANT, Role.ADMIN, Role.SURVEILLANT)
   @Permissions('ACADEMIC_VIEW')
   @ApiOperation({
     summary: 'Lister tous les semestres',

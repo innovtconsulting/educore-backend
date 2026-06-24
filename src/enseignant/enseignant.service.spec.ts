@@ -6,6 +6,7 @@ import { Affectation } from './entities/affectation.entity';
 import { Matiere } from '../matiere/entities/matiere.entity';
 import { Etablissement } from '../etablissement/entities/etablissement.entity';
 import { Niveau } from '../niveau/entities/niveau.entity';
+import { UserService } from '../user/user.service';
 
 describe('EnseignantService', () => {
   let service: EnseignantService;
@@ -42,6 +43,16 @@ describe('EnseignantService', () => {
         {
           provide: getRepositoryToken(Niveau),
           useValue: mockRepository,
+        },
+        {
+          provide: UserService,
+          useValue: {
+            create: jest.fn(),
+            update: jest.fn(),
+            findByEmail: jest.fn(),
+            findOne: jest.fn(),
+            remove: jest.fn(),
+          },
         },
       ],
     }).compile();

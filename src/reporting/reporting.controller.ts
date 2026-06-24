@@ -24,6 +24,7 @@ import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { Permissions } from '../auth/decorators/permissions.decorator';
 import { Role } from '../user/entities/user.entity';
+import { CurrentEtablissement } from '../auth/decorators/current-etablissement.decorator';
 
 @ApiTags('reporting')
 @ApiBearerAuth()
@@ -35,8 +36,8 @@ export class ReportingController {
   @Get('global-stats')
   @Permissions('ACADEMIC_VIEW')
   @ApiOperation({ summary: 'Consulter les statistiques globales du système' })
-  async getGlobalStats() {
-    const data = await this.reportingService.getGlobalStats();
+  async getGlobalStats(@CurrentEtablissement() tenantId?: number) {
+    const data = await this.reportingService.getGlobalStats(tenantId);
     return {
       message: 'Statistiques globales récupérées avec succès',
       data,
@@ -54,10 +55,10 @@ export class ReportingController {
     required: false,
     description: "Format YYYY-MM-DD. Par défaut: aujourd'hui.",
   })
-  async getDailyReportPreview(@Query('date') date?: string) {
+  async getDailyReportPreview(@Query('date') date?: string, @CurrentEtablissement() tenantId?: number) {
     const targetDate = date || new Date().toISOString().split('T')[0];
     const data =
-      await this.reportingService.getDailySupervisorReport(targetDate);
+      await this.reportingService.getDailySupervisorReport(targetDate, tenantId);
     return {
       message: `Aperçu du rapport pour le ${targetDate} récupéré avec succès`,
       data,
@@ -68,8 +69,8 @@ export class ReportingController {
   @Permissions('REPORT_DAILY_MANAGE')
   @ApiOperation({ summary: 'Soumettre le rapport quotidien du surveillant' })
   @ApiResponse({ status: 201, description: 'Rapport soumis avec succès' })
-  async submitDailyReport(@Body() dto: SubmitDailyReportDto) {
-    const report = await this.reportingService.submitDailyReport(dto);
+  async submitDailyReport(@Body() dto: SubmitDailyReportDto, @CurrentEtablissement() tenantId?: number) {
+    const report = await this.reportingService.submitDailyReport(dto, tenantId);
     return {
       message: 'Rapport quotidien soumis avec succès',
       data: report,
@@ -81,9 +82,9 @@ export class ReportingController {
   @ApiOperation({
     summary: "Récupérer tous les rapports quotidiens soumis (pour l'admin)",
   })
-  async getAllDailyReports(@Query() paginationQuery: PaginationQueryDto) {
+  async getAllDailyReports(@Query() paginationQuery: PaginationQueryDto, @CurrentEtablissement() tenantId?: number) {
     const reports =
-      await this.reportingService.getAllDailyReports(paginationQuery);
+      await this.reportingService.getAllDailyReports(paginationQuery, tenantId);
     return {
       message: 'Liste des rapports quotidiens récupérée avec succès',
       data: reports,
@@ -95,8 +96,8 @@ export class ReportingController {
   @ApiOperation({
     summary: 'Récupérer un rapport quotidien spécifique par son ID',
   })
-  async getDailyReportById(@Param('id', ParseIntPipe) id: number) {
-    const report = await this.reportingService.getDailyReportById(id);
+  async getDailyReportById(@Param('id', ParseIntPipe) id: number, @CurrentEtablissement() tenantId?: number) {
+    const report = await this.reportingService.getDailyReportById(id, tenantId);
     return {
       message: 'Rapport quotidien récupéré avec succès',
       data: report,
@@ -106,8 +107,8 @@ export class ReportingController {
   @Get('daily-report/:id/pdf')
   @Permissions('REPORT_DAILY_MANAGE')
   @ApiOperation({ summary: "Récupérer le PDF d'un rapport quotidien" })
-  async getDailyReportPdf(@Param('id', ParseIntPipe) id: number) {
-    const report = await this.reportingService.getDailyReportById(id);
+  async getDailyReportPdf(@Param('id', ParseIntPipe) id: number, @CurrentEtablissement() tenantId?: number) {
+    const report = await this.reportingService.getDailyReportById(id, tenantId);
     if (!report.pdfUrl) {
       throw new NotFoundException(
         "Le PDF de ce rapport n'a pas encore été généré",

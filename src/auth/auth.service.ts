@@ -41,15 +41,19 @@ export class AuthService {
   async login(user: any) {
     const permissions = user.aclRole?.permissions?.map((p: any) => p.name) || [];
 
+    const etablissementId =
+      user.role === UserRole.PARENT
+        ? undefined
+        : user.etablissementId ||
+          user.etudiant?.etablissement?.id ||
+          user.enseignant?.affectations?.[0]?.etablissement?.id;
+
     const payload = {
       email: user.email,
       sub: user.id,
       role: user.role,
       permissions: permissions,
-      etablissementId:
-        user.etablissementId ||
-        user.etudiant?.etablissement?.id ||
-        user.enseignant?.affectations?.[0]?.etablissement?.id,
+      etablissementId,
       enseignantId: user.enseignant?.id,
       etudiantId: user.etudiant?.id,
       parentId: user.parent?.id,

@@ -4,14 +4,12 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { In, Repository, ILike, FindOptionsWhere } from 'typeorm';
+import { Repository, ILike } from 'typeorm';
 import { CreateMatiereDto } from './dto/create-matiere.dto';
 import { UpdateMatiereDto } from './dto/update-matiere.dto';
+import { MatiereFilterDto } from './dto/matiere-filter.dto';
 import { Matiere } from './entities/matiere.entity';
-import { Classe } from '../classe/entities/classe.entity';
 import { Niveau } from '../niveau/entities/niveau.entity';
-import { PaginationQueryDto } from '../common/dto/pagination-query.dto';
-import { TenantContext } from '../common/tenant/tenant.context';
 import { TenantHelper } from '../common/tenant/tenant.helper';
 
 @Injectable()
@@ -19,96 +17,106 @@ export class MatiereService {
   constructor(
     @InjectRepository(Matiere)
     private readonly matiereRepository: Repository<Matiere>,
-    @InjectRepository(Classe)
-    private readonly classeRepository: Repository<Classe>,
     @InjectRepository(Niveau)
     private readonly niveauRepository: Repository<Niveau>,
   ) {}
 
-  async create(createMatiereDto: CreateMatiereDto): Promise<Matiere> {
-    const { code, name, coefficient, classeIds, niveauIds } = createMatiereDto;
+  async create(
+    createMatiereDto: CreateMatiereDto,
+    tenantId?: number,
+  ): Promise<Matiere> {
+    const { code, name, coefficient, niveauId } = createMatiereDto;
 
     // Vérifier l'unicité du code
-    const existingMatiere = await this.matiereRepository.findOneBy({ code });
-    if (existingMatiere) {
+    const existingCode = await this.matiereRepository.findOneBy({ code });
+    if (existingCode) {
       throw new BadRequestException(
-        `La matière avec le code "${code}" existe déjà`,
+        `Le code "${code}" existe déjà pour une matière`,
       );
     }
 
-    // Vérifier l'existence des classes
-    const classes = await this.classeRepository.findBy({
-      id: In(classeIds),
+    // Vérifier l'existence du niveau
+    const niveau = await this.niveauRepository.findOne({
+      where: TenantHelper.addTenantFilter(
+        { id: niveauId },
+        tenantId,
+        'classe.etablissement',
+      ),
     });
-    if (classes.length !== classeIds.length) {
-      throw new NotFoundException('Une ou plusieurs classes sont introuvables');
-    }
 
-    // Vérifier l'existence des niveaux
-    const niveaux = await this.niveauRepository.findBy({
-      id: In(niveauIds),
-    });
-    if (niveaux.length !== niveauIds.length) {
-      throw new NotFoundException('Un ou plusieurs niveaux sont introuvables');
+    if (!niveau) {
+      throw new NotFoundException('Niveau introuvable');
     }
 
     const matiere = this.matiereRepository.create({
       code,
       name,
       coefficient,
-      classes,
-      niveaux,
+      niveau,
     });
 
     return await this.matiereRepository.save(matiere);
   }
 
-  async findAll(paginationQuery: PaginationQueryDto) {
-    const { page = 1, limit = 15, search } = paginationQuery;
+  async findAll(
+    filter: MatiereFilterDto,
+    tenantId?: number,
+  ): Promise<{ items: Matiere[]; total: number; page: number; limit: number }> {
+    const { page = 1, limit = 20, search, niveauId, parcoursId } = filter;
     const skip = (page - 1) * limit;
-    const tenantId = TenantContext.getTenantId();
 
-    let where: FindOptionsWhere<Matiere> | FindOptionsWhere<Matiere>[] = [];
-    if (search) {
-      where = [{ name: ILike(`%${search}%`) }, { code: ILike(`%${search}%`) }];
-    } else {
-      where = {};
+    const queryBuilder = this.matiereRepository
+      .createQueryBuilder('matiere')
+      .leftJoinAndSelect('matiere.niveau', 'niveau')
+      .leftJoinAndSelect('niveau.classe', 'classe');
+
+    // Apply tenant filter
+    if (tenantId) {
+      queryBuilder.andWhere('classe.etablissementId = :tenantId', { tenantId });
     }
 
-    where = TenantHelper.addTenantFilter(
-      where,
-      tenantId,
-      'classes.etablissements',
-    );
+    // Apply search
+    if (search) {
+      queryBuilder.andWhere(
+        '(matiere.name ILIKE :search OR matiere.code ILIKE :search)',
+        {
+          search: `%${search}%`,
+        },
+      );
+    }
 
-    const [items, total] = await this.matiereRepository.findAndCount({
-      where,
-      relations: { classes: true, niveaux: true },
-      skip,
-      take: limit,
-      order: { id: 'DESC' },
-    });
+    // Apply niveau filter
+    if (niveauId) {
+      queryBuilder.andWhere('niveau.id = :niveauId', { niveauId });
+    }
 
-    return {
-      items,
-      total,
-      page,
-      limit,
-    };
+    // Apply parcours (classe) filter
+    if (parcoursId) {
+      queryBuilder.andWhere('classe.id = :parcoursId', { parcoursId });
+    }
+
+    const [items, total] = await queryBuilder
+      .orderBy('matiere.id', 'DESC')
+      .skip(skip)
+      .take(limit)
+      .getManyAndCount();
+
+    return { items, total, page, limit };
   }
 
-  async findOne(id: number): Promise<Matiere> {
-    const tenantId = TenantContext.getTenantId();
-    const where = TenantHelper.addTenantFilter(
-      { id },
-      tenantId,
-      'classes.etablissements',
-    );
+  async findOne(id: number, tenantId?: number): Promise<Matiere> {
+    const queryBuilder = this.matiereRepository
+      .createQueryBuilder('matiere')
+      .leftJoinAndSelect('matiere.niveau', 'niveau')
+      .leftJoinAndSelect('niveau.classe', 'classe')
+      .where('matiere.id = :id', { id });
 
-    const matiere = await this.matiereRepository.findOne({
-      where: where,
-      relations: { classes: true, niveaux: true },
-    });
+    if (tenantId) {
+      queryBuilder.andWhere('classe.etablissementId = :tenantId', { tenantId });
+    }
+
+    const matiere = await queryBuilder.getOne();
+
     if (!matiere) {
       throw new NotFoundException(
         `La matière avec l'ID ${id} n'a pas été trouvée`,
@@ -117,18 +125,33 @@ export class MatiereService {
     return matiere;
   }
 
+  async findByCode(code: string, tenantId?: number): Promise<Matiere | null> {
+    const queryBuilder = this.matiereRepository
+      .createQueryBuilder('matiere')
+      .leftJoinAndSelect('matiere.niveau', 'niveau')
+      .leftJoinAndSelect('niveau.classe', 'classe')
+      .where('matiere.code = :code', { code });
+
+    if (tenantId) {
+      queryBuilder.andWhere('classe.etablissementId = :tenantId', { tenantId });
+    }
+
+    return await queryBuilder.getOne();
+  }
+
   async update(
     id: number,
     updateMatiereDto: UpdateMatiereDto,
+    tenantId?: number,
   ): Promise<Matiere> {
-    const { code, name, coefficient, classeIds, niveauIds } = updateMatiereDto;
-    const matiere = await this.findOne(id);
+    const { code, name, coefficient, niveauId } = updateMatiereDto;
+    const matiere = await this.findOne(id, tenantId);
 
-    if (code) {
-      const existingMatiere = await this.matiereRepository.findOneBy({ code });
-      if (existingMatiere && existingMatiere.id !== id) {
+    if (code && code !== matiere.code) {
+      const existingCode = await this.matiereRepository.findOneBy({ code });
+      if (existingCode) {
         throw new BadRequestException(
-          `La matière avec le code "${code}" existe déjà`,
+          `Le code "${code}" existe déjà pour une matière`,
         );
       }
       matiere.code = code;
@@ -142,35 +165,25 @@ export class MatiereService {
       matiere.coefficient = coefficient;
     }
 
-    if (classeIds) {
-      const classes = await this.classeRepository.findBy({
-        id: In(classeIds),
+    if (niveauId) {
+      const niveau = await this.niveauRepository.findOne({
+        where: TenantHelper.addTenantFilter(
+          { id: niveauId },
+          tenantId,
+          'classe.etablissement',
+        ),
       });
-      if (classes.length !== classeIds.length) {
-        throw new NotFoundException(
-          'Une ou plusieurs classes sont introuvables',
-        );
+      if (!niveau) {
+        throw new NotFoundException('Niveau introuvable');
       }
-      matiere.classes = classes;
-    }
-
-    if (niveauIds) {
-      const niveaux = await this.niveauRepository.findBy({
-        id: In(niveauIds),
-      });
-      if (niveaux.length !== niveauIds.length) {
-        throw new NotFoundException(
-          'Un ou plusieurs niveaux sont introuvables',
-        );
-      }
-      matiere.niveaux = niveaux;
+      matiere.niveau = niveau;
     }
 
     return await this.matiereRepository.save(matiere);
   }
 
-  async remove(id: number): Promise<void> {
-    const matiere = await this.findOne(id);
+  async remove(id: number, tenantId?: number): Promise<void> {
+    const matiere = await this.findOne(id, tenantId);
     await this.matiereRepository.remove(matiere);
   }
 }

@@ -6,6 +6,7 @@ import { NoteService } from '../note/note.service';
 import { PresenceService } from '../presence/presence.service';
 import { FinanceService } from '../finance/finance.service';
 import { SanctionService } from '../sanction/sanction.service';
+import { Role } from '../user/entities/user.entity';
 
 @Injectable()
 export class ParentDashboardService {
@@ -22,7 +23,7 @@ export class ParentDashboardService {
     const parentId = user.parentId;
     if (!parentId) {
       throw new NotFoundException(
-        'Identifiant parent non trouvé dans le jeton',
+        'Identifiant parent non trouvé dans le jeton. Déconnectez-vous et reconnectez-vous.',
       );
     }
 
@@ -32,6 +33,7 @@ export class ParentDashboardService {
         etudiants: {
           classe: true,
           niveau: true,
+          etablissement: true,
         },
       },
     });
@@ -40,20 +42,31 @@ export class ParentDashboardService {
       throw new NotFoundException('Profil parent non trouvé');
     }
 
+    const parentUser = {
+      role: Role.PARENT,
+      parentId,
+    };
+
     const childrenData = await Promise.all(
       parent.etudiants.map(async (etudiant) => {
+        const tenantId = etudiant.etablissement?.id;
+
         const [notes, presenceStats, absencesToday, invoices, sanctions] =
           await Promise.all([
             this.noteService.findAll(
               { page: 1, limit: 5 },
-              { etudiantId: etudiant.id },
+              parentUser,
+              etudiant.id,
+              tenantId,
             ),
-            this.presenceService.getStudentStats(etudiant.id, {
-              etudiantId: etudiant.id,
-            }),
-            this.presenceService.getStudentAbsencesToday(etudiant.id),
+            this.presenceService.getStudentStats(
+              etudiant.id,
+              parentUser,
+              tenantId,
+            ),
+            this.presenceService.getStudentAbsencesToday(etudiant.id, tenantId),
             this.financeService.findByEtudiant(etudiant.id),
-            this.sanctionService.findByEtudiant(etudiant.id),
+            this.sanctionService.findByEtudiant(etudiant.id, tenantId),
           ]);
 
         const totalRemaining = invoices.reduce((acc, inv) => {
@@ -71,6 +84,7 @@ export class ParentDashboardService {
           matricule: etudiant.matricule,
           classe: etudiant.classe.name,
           niveau: etudiant.niveau.name,
+          etablissement: etudiant.etablissement?.name ?? '',
           recentNotes: notes.items,
           presence: {
             absentsTotal: presenceStats.absents,

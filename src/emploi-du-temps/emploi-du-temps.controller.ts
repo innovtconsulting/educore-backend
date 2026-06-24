@@ -24,6 +24,7 @@ import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { Permissions } from '../auth/decorators/permissions.decorator';
 import { Role } from '../user/entities/user.entity';
+import { CurrentEtablissement } from '../auth/decorators/current-etablissement.decorator';
 
 @ApiTags('emploi-du-temps')
 @ApiBearerAuth()
@@ -40,13 +41,13 @@ export class EmploiDuTempsController {
   }
 
   @Get()
-  @Roles(Role.ETUDIANT)
-  @Permissions('SCHEDULE_VIEW')
+  @Roles(Role.ETUDIANT, Role.ENSEIGNANT, Role.ADMIN, Role.SURVEILLANT)
   @ApiOperation({
     summary: "Récupérer l'emploi du temps (avec filtres optionnels)",
   })
   @ApiQuery({ name: 'classeId', required: false, type: Number })
   @ApiQuery({ name: 'niveauId', required: false, type: Number })
+  @ApiQuery({ name: 'enseignantId', required: false, type: Number })
   @ApiQuery({
     name: 'start',
     required: false,
@@ -63,8 +64,10 @@ export class EmploiDuTempsController {
     @Query() paginationQuery: PaginationQueryDto,
     @Query('classeId') classeId?: string,
     @Query('niveauId') niveauId?: string,
+    @Query('enseignantId') enseignantId?: string,
     @Query('start') start?: string,
     @Query('end') end?: string,
+    @CurrentEtablissement() tenantId?: number,
   ) {
     return this.emploiDuTempsService.findAll(
       paginationQuery,
@@ -72,15 +75,16 @@ export class EmploiDuTempsController {
       niveauId ? +niveauId : undefined,
       start,
       end,
+      enseignantId ? +enseignantId : undefined,
+      tenantId,
     );
   }
 
   @Get(':id')
-  @Roles(Role.ETUDIANT)
-  @Permissions('SCHEDULE_VIEW')
+  @Roles(Role.ETUDIANT, Role.ENSEIGNANT, Role.ADMIN, Role.SURVEILLANT)
   @ApiOperation({ summary: 'Récupérer un créneau par son ID' })
-  findOne(@Param('id') id: string) {
-    return this.emploiDuTempsService.findOne(+id);
+  findOne(@Param('id') id: string, @CurrentEtablissement() tenantId?: number) {
+    return this.emploiDuTempsService.findOne(+id, tenantId);
   }
 
   @Patch(':id')
@@ -89,14 +93,15 @@ export class EmploiDuTempsController {
   update(
     @Param('id') id: string,
     @Body() updateEmploiDuTempDto: UpdateEmploiDuTempDto,
+    @CurrentEtablissement() tenantId?: number,
   ) {
-    return this.emploiDuTempsService.update(+id, updateEmploiDuTempDto);
+    return this.emploiDuTempsService.update(+id, updateEmploiDuTempDto, tenantId);
   }
 
   @Delete(':id')
   @Permissions('SCHEDULE_MANAGE')
   @ApiOperation({ summary: 'Supprimer un créneau' })
-  remove(@Param('id') id: string) {
-    return this.emploiDuTempsService.remove(+id);
+  remove(@Param('id') id: string, @CurrentEtablissement() tenantId?: number) {
+    return this.emploiDuTempsService.remove(+id, tenantId);
   }
 }

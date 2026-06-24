@@ -7,6 +7,7 @@ import {
   Param,
   Delete,
   UseGuards,
+  Query,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { ClasseService } from './classe.service';
@@ -14,9 +15,8 @@ import { CreateClasseDto } from './dto/create-classe.dto';
 import { UpdateClasseDto } from './dto/update-classe.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
-import { Roles } from '../auth/decorators/roles.decorator';
 import { Permissions } from '../auth/decorators/permissions.decorator';
-import { Role } from '../user/entities/user.entity';
+import { CurrentEtablissement } from '../auth/decorators/current-etablissement.decorator';
 
 @ApiTags('classe')
 @ApiBearerAuth()
@@ -28,14 +28,17 @@ export class ClasseController {
   @Post()
   @Permissions('ACADEMIC_CONFIG')
   @ApiOperation({
-    summary: 'Créer une classe',
+    summary: 'Créer un parcours (classe)',
     description:
-      "Permet de créer une nouvelle classe (ex: Informatique) et de l'associer à des niveaux et établissements.",
+      "Permet de créer un nouveau parcours (classe) et de l'associer à un établissement.",
   })
-  async create(@Body() createClasseDto: CreateClasseDto) {
-    const data = await this.classeService.create(createClasseDto);
+  async create(
+    @Body() createClasseDto: CreateClasseDto,
+    @CurrentEtablissement() tenantId?: number,
+  ) {
+    const data = await this.classeService.create(createClasseDto, tenantId);
     return {
-      message: 'Classe créée avec succès',
+      message: 'Parcours (classe) créé avec succès',
       data,
     };
   }
@@ -43,14 +46,17 @@ export class ClasseController {
   @Get()
   @Permissions('ACADEMIC_VIEW')
   @ApiOperation({
-    summary: 'Lister toutes les classes',
+    summary: 'Lister tous les parcours (classes)',
     description:
-      'Récupère la liste complète des classes avec leurs relations détaillées.',
+      'Récupère la liste complète des parcours (classes) avec leurs relations détaillées.',
   })
-  async findAll() {
-    const data = await this.classeService.findAll();
+  async findAll(
+    @CurrentEtablissement() tenantId?: number,
+    @Query('etablissementId') etablissementId?: string,
+  ) {
+    const data = await this.classeService.findAll(tenantId, etablissementId ? +etablissementId : undefined);
     return {
-      message: 'Liste des classes récupérée avec succès',
+      message: 'Liste des parcours (classes) récupérée avec succès',
       data,
     };
   }
@@ -61,8 +67,8 @@ export class ClasseController {
     summary: 'Récupérer une classe par ID',
     description: "Affiche les informations détaillées d'une classe spécifique.",
   })
-  async findOne(@Param('id') id: string) {
-    const data = await this.classeService.findOne(+id);
+  async findOne(@Param('id') id: string, @CurrentEtablissement() tenantId?: number) {
+    const data = await this.classeService.findOne(+id, tenantId);
     return {
       message: `Classe #${id} récupérée avec succès`,
       data,
@@ -78,8 +84,9 @@ export class ClasseController {
   async update(
     @Param('id') id: string,
     @Body() updateClasseDto: UpdateClasseDto,
+    @CurrentEtablissement() tenantId?: number,
   ) {
-    const data = await this.classeService.update(+id, updateClasseDto);
+    const data = await this.classeService.update(+id, updateClasseDto, tenantId);
     return {
       message: `Classe #${id} mise à jour avec succès`,
       data,
@@ -92,8 +99,8 @@ export class ClasseController {
     summary: 'Supprimer une classe',
     description: 'Supprime une classe du système.',
   })
-  async remove(@Param('id') id: string) {
-    await this.classeService.remove(+id);
+  async remove(@Param('id') id: string, @CurrentEtablissement() tenantId?: number) {
+    await this.classeService.remove(+id, tenantId);
     return {
       message: `Classe #${id} supprimée avec succès`,
     };

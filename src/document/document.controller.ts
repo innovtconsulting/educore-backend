@@ -31,6 +31,8 @@ import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { Permissions } from '../auth/decorators/permissions.decorator';
 import { Role } from '../user/entities/user.entity';
+import { DocumentCategory } from './entities/document.entity';
+import { CurrentEtablissement } from '../auth/decorators/current-etablissement.decorator';
 
 @ApiTags('documents')
 @ApiBearerAuth()
@@ -40,7 +42,8 @@ export class DocumentController {
   constructor(private readonly documentService: DocumentService) {}
 
   @Post('upload')
-  @Permissions('DOCUMENT_MANAGE')
+  @Roles(Role.ADMIN, Role.ENSEIGNANT, Role.SUPER_ADMIN)
+  @Permissions('DOCUMENT_MANAGE', 'ACADEMIC_MANAGE')
   @ApiOperation({
     summary: 'Uploader un nouveau document',
     description:
@@ -86,27 +89,80 @@ export class DocumentController {
   async create(
     @UploadedFile() file: Express.Multer.File,
     @Body() createDocumentDto: CreateDocumentDto,
+    @CurrentEtablissement() tenantId?: number,
   ) {
     if (!file) {
       throw new BadRequestException('Le fichier est obligatoire');
     }
-    const data = await this.documentService.create(createDocumentDto, file);
+    const data = await this.documentService.create(createDocumentDto, file, tenantId);
     return {
       message: 'Document uploadé avec succès',
       data,
     };
   }
 
+  @Post('upload/rendu')
+  @Roles(Role.ETUDIANT)
+  @ApiOperation({ summary: 'Uploader un rendu de devoir (étudiant)' })
+  @ApiConsumes('multipart/form-data')
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        file: { type: 'string', format: 'binary' },
+        title: { type: 'string' },
+        description: { type: 'string' },
+      },
+    },
+  })
+  @UseInterceptors(
+    FileInterceptor('file', {
+      storage: diskStorage({
+        destination: './uploads/documents',
+        filename: (req, file, cb) => {
+          const randomName = Array(32)
+            .fill(null)
+            .map(() => Math.round(Math.random() * 16).toString(16))
+            .join('');
+          cb(null, `${randomName}${extname(file.originalname)}`);
+        },
+      }),
+      limits: { fileSize: 10 * 1024 * 1024 },
+    }),
+  )
+  async uploadStudentRendu(
+    @UploadedFile() file: Express.Multer.File,
+    @Body('title') title?: string,
+    @Body('description') description?: string,
+    @CurrentEtablissement() tenantId?: number,
+  ) {
+    if (!file) {
+      throw new BadRequestException('Le fichier est obligatoire');
+    }
+    const data = await this.documentService.create(
+      {
+        title: title || file.originalname,
+        description: description || 'Rendu de devoir',
+        category: DocumentCategory.PEDAGOGIQUE,
+      },
+      file,
+      tenantId,
+    );
+    return {
+      message: 'Rendu uploadé avec succès',
+      data,
+    };
+  }
+
   @Get()
-  @Roles(Role.ETUDIANT, Role.PARENT, Role.ENSEIGNANT)
-  @Permissions('DOCUMENT_MANAGE')
+  @Roles(Role.ETUDIANT, Role.PARENT, Role.ENSEIGNANT, Role.ADMIN, Role.SURVEILLANT, Role.COMPTABLE)
   @ApiOperation({
     summary: 'Récupérer tous les documents',
     description:
       'Liste tous les documents enregistrés dans la GED (Gestion Électronique de Documents).',
   })
-  async findAll(@Query() paginationQuery: PaginationQueryDto) {
-    const data = await this.documentService.findAll(paginationQuery);
+  async findAll(@Query() paginationQuery: PaginationQueryDto, @CurrentEtablissement() tenantId?: number) {
+    const data = await this.documentService.findAll(paginationQuery, tenantId);
     return {
       message: 'Liste des documents récupérée avec succès',
       data,
@@ -114,15 +170,14 @@ export class DocumentController {
   }
 
   @Get(':id')
-  @Roles(Role.ETUDIANT, Role.PARENT, Role.ENSEIGNANT)
-  @Permissions('DOCUMENT_MANAGE')
+  @Roles(Role.ETUDIANT, Role.PARENT, Role.ENSEIGNANT, Role.ADMIN, Role.SURVEILLANT, Role.COMPTABLE)
   @ApiOperation({
     summary: 'Récupérer un document par son ID',
     description:
       "Affiche les informations détaillées d'un document et son lien de téléchargement.",
   })
-  async findOne(@Param('id') id: string) {
-    const data = await this.documentService.findOne(+id);
+  async findOne(@Param('id') id: string, @CurrentEtablissement() tenantId?: number) {
+    const data = await this.documentService.findOne(+id, tenantId);
     return {
       message: `Document #${id} récupéré avec succès`,
       data,
@@ -139,8 +194,9 @@ export class DocumentController {
   async update(
     @Param('id') id: string,
     @Body() updateDocumentDto: UpdateDocumentDto,
+    @CurrentEtablissement() tenantId?: number,
   ) {
-    const data = await this.documentService.update(+id, updateDocumentDto);
+    const data = await this.documentService.update(+id, updateDocumentDto, tenantId);
     return {
       message: `Document #${id} mis à jour avec succès`,
       data,
@@ -154,8 +210,8 @@ export class DocumentController {
     description:
       "Supprime l'entrée en base de données ET le fichier physique sur le serveur.",
   })
-  async remove(@Param('id') id: string) {
-    await this.documentService.remove(+id);
+  async remove(@Param('id') id: string, @CurrentEtablissement() tenantId?: number) {
+    await this.documentService.remove(+id, tenantId);
     return {
       message: `Document #${id} supprimé avec succès`,
     };

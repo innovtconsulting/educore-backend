@@ -16,7 +16,6 @@ import { Niveau } from '../niveau/entities/niveau.entity';
 import { Salle } from '../salle/entities/salle.entity';
 import { Affectation } from '../enseignant/entities/affectation.entity';
 import { PaginationQueryDto } from '../common/dto/pagination-query.dto';
-import { TenantContext } from '../common/tenant/tenant.context';
 
 @Injectable()
 export class EmploiDuTempsService {
@@ -64,14 +63,14 @@ export class EmploiDuTempsService {
     // 1. Vérifier l'existence des entités
     const matiere = await this.matiereRepository.findOne({
       where: { id: matiereId },
-      relations: { classes: true, niveaux: true },
+      relations: { niveau: { classe: true } },
     });
     if (!matiere)
       throw new NotFoundException(`Matière ${matiereId} introuvable`);
 
     // Vérification de la cohérence académique : La matière doit être liée à la classe et au niveau
-    const hasClasse = matiere.classes.some((c) => c.id === classeId);
-    const hasNiveau = matiere.niveaux.some((n) => n.id === niveauId);
+    const hasClasse = matiere.niveau?.classe.id === classeId;
+    const hasNiveau = matiere.niveau?.id === niveauId;
 
     if (!hasClasse || !hasNiveau) {
       throw new BadRequestException(
@@ -204,11 +203,12 @@ export class EmploiDuTempsService {
     niveauId?: number,
     start?: string,
     end?: string,
+    enseignantId?: number,
+    tenantId?: number,
   ) {
     const { page = 1, limit = 15 } = paginationQuery;
     const skip = (page - 1) * limit;
 
-    const tenantId = TenantContext.getTenantId();
     const query = this.emploiDuTempRepository
       .createQueryBuilder('e')
       .leftJoinAndSelect('e.matiere', 'matiere')
@@ -221,6 +221,8 @@ export class EmploiDuTempsService {
     if (tenantId) query.andWhere('e.etablissementId = :tenantId', { tenantId });
     if (classeId) query.andWhere('e.classeId = :classeId', { classeId });
     if (niveauId) query.andWhere('e.niveauId = :niveauId', { niveauId });
+    if (enseignantId)
+      query.andWhere('e.enseignantId = :enseignantId', { enseignantId });
     if (start && end) {
       query.andWhere('e.startTime BETWEEN :start AND :end', {
         start: new Date(start),
@@ -242,8 +244,7 @@ export class EmploiDuTempsService {
     };
   }
 
-  async findOne(id: number): Promise<EmploiDuTemp> {
-    const tenantId = TenantContext.getTenantId();
+  async findOne(id: number, tenantId?: number): Promise<EmploiDuTemp> {
     const where: any = { id };
     if (tenantId) where.etablissement = { id: tenantId };
 
@@ -266,8 +267,9 @@ export class EmploiDuTempsService {
   async update(
     id: number,
     updateEmploiDuTempDto: UpdateEmploiDuTempDto,
+    tenantId?: number,
   ): Promise<EmploiDuTemp> {
-    const emploi = await this.findOne(id);
+    const emploi = await this.findOne(id, tenantId);
     const {
       startTime,
       endTime,
@@ -305,12 +307,12 @@ export class EmploiDuTempsService {
 
       const matiere = await this.matiereRepository.findOne({
         where: { id: mId },
-        relations: { classes: true, niveaux: true },
+        relations: { niveau: { classe: true } },
       });
 
       if (matiere) {
-        const hasClasse = matiere.classes.some((c) => c.id === clId);
-        const hasNiveau = matiere.niveaux.some((n) => n.id === nId);
+        const hasClasse = matiere.niveau?.classe.id === clId;
+        const hasNiveau = matiere.niveau?.id === nId;
         if (!hasClasse || !hasNiveau) {
           throw new BadRequestException(
             "Cette matière n'est pas prévue pour cette classe ou ce niveau",
@@ -331,8 +333,8 @@ export class EmploiDuTempsService {
     return await this.emploiDuTempRepository.save(emploi);
   }
 
-  async remove(id: number): Promise<void> {
-    const emploi = await this.findOne(id);
+  async remove(id: number, tenantId?: number): Promise<void> {
+    const emploi = await this.findOne(id, tenantId);
     await this.emploiDuTempRepository.remove(emploi);
   }
 }

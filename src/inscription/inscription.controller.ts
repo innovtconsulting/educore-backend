@@ -16,6 +16,7 @@ import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { Permissions } from '../auth/decorators/permissions.decorator';
 import { Role } from '../user/entities/user.entity';
+import { CurrentEtablissement } from '../auth/decorators/current-etablissement.decorator';
 
 @ApiTags('inscriptions')
 @ApiBearerAuth()
@@ -41,8 +42,8 @@ export class InscriptionController {
   @Get('rapport-diplomes')
   @Permissions('STUDENT_VIEW')
   @ApiOperation({ summary: 'Obtenir le rapport des diplômés par année' })
-  getGraduatesReport() {
-    return this.inscriptionService.getGraduatesReport();
+  getGraduatesReport(@CurrentEtablissement() tenantId?: number) {
+    return this.inscriptionService.getGraduatesReport(tenantId);
   }
 
   @Get('eligibilite/:etudiantId')

@@ -11,9 +11,10 @@ import { BulkRecordPresenceDto } from './dto/record-presence.dto';
 import { EmploiDuTemp } from '../emploi-du-temps/entities/emploi-du-temp.entity';
 import { Etudiant } from '../etudiant/entities/etudiant.entity';
 import { PaginationQueryDto } from '../common/dto/pagination-query.dto';
+import { PresenceFilterDto } from './dto/presence-filter.dto';
 import { Role } from '../user/entities/user.entity';
-import { TenantContext } from '../common/tenant/tenant.context';
 import { TenantHelper } from '../common/tenant/tenant.helper';
+import { ParentService } from '../parent/parent.service';
 
 @Injectable()
 export class PresenceService {
@@ -24,11 +25,14 @@ export class PresenceService {
     private readonly emploiRepo: Repository<EmploiDuTemp>,
     @InjectRepository(Etudiant)
     private readonly etudiantRepo: Repository<Etudiant>,
+    private readonly parentService: ParentService,
   ) {}
 
-  async bulkRecord(dto: BulkRecordPresenceDto): Promise<Presence[]> {
+  async bulkRecord(
+    dto: BulkRecordPresenceDto,
+    tenantId?: number,
+  ): Promise<Presence[]> {
     const { emploiDuTempId, items } = dto;
-    const tenantId = TenantContext.getTenantId();
 
     const emploi = await this.emploiRepo.findOne({
       where: TenantHelper.addTenantFilter({ id: emploiDuTempId }, tenantId),
@@ -89,15 +93,27 @@ export class PresenceService {
     return results;
   }
 
-  async findAll(paginationQuery: PaginationQueryDto) {
-    const { page = 1, limit = 15 } = paginationQuery;
+  async findAll(filterDto: PresenceFilterDto, tenantId?: number) {
+    const { page = 1, limit = 15, classeId, niveauId } = filterDto;
     const skip = (page - 1) * limit;
-    const tenantId = TenantContext.getTenantId();
     const where = TenantHelper.addTenantFilter(
       {},
       tenantId,
       'etudiant.etablissement',
-    );
+    ) as any;
+
+    if (classeId) {
+      where.emploiDuTemp = {
+        ...(where.emploiDuTemp || {}),
+        classe: { id: classeId },
+      };
+    }
+    if (niveauId) {
+      where.emploiDuTemp = {
+        ...(where.emploiDuTemp || {}),
+        niveau: { id: niveauId },
+      };
+    }
 
     const [items, total] = await this.presenceRepository.findAndCount({
       where: where,
@@ -118,8 +134,10 @@ export class PresenceService {
     };
   }
 
-  async findBySession(emploiDuTempId: number): Promise<Presence[]> {
-    const tenantId = TenantContext.getTenantId();
+  async findBySession(
+    emploiDuTempId: number,
+    tenantId?: number,
+  ): Promise<Presence[]> {
     const where: any = { emploiDuTemp: { id: emploiDuTempId } };
     if (tenantId) where.etudiant = { etablissement: { id: tenantId } };
 
@@ -129,16 +147,25 @@ export class PresenceService {
     });
   }
 
-  async getStudentStats(etudiantId: number, user?: any) {
+  async getStudentStats(etudiantId: number, user?: any, tenantId?: number) {
     if (user && user.role === Role.ETUDIANT && user.etudiantId !== etudiantId) {
       throw new ForbiddenException(
         'Vous ne pouvez consulter que vos propres statistiques de présence',
       );
     }
 
-    const tenantId = TenantContext.getTenantId();
+    if (user && user.role === Role.PARENT) {
+      await this.parentService.assertParentOfEtudiant(
+        user.parentId,
+        etudiantId,
+      );
+    }
+
+    const resolvedTenantId = TenantHelper.resolveTenantId(user, tenantId);
     const where: any = { etudiant: { id: etudiantId } };
-    if (tenantId) where.etudiant.etablissement = { id: tenantId };
+    if (resolvedTenantId) {
+      where.etudiant.etablissement = { id: resolvedTenantId };
+    }
 
     const presences = await this.presenceRepository.find({
       where,
@@ -165,13 +192,15 @@ export class PresenceService {
     };
   }
 
-  async getStudentAbsencesToday(etudiantId: number): Promise<Presence[]> {
+  async getStudentAbsencesToday(
+    etudiantId: number,
+    tenantId?: number,
+  ): Promise<Presence[]> {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     const tomorrow = new Date(today);
     tomorrow.setDate(tomorrow.getDate() + 1);
 
-    const tenantId = TenantContext.getTenantId();
     const where: any = {
       etudiant: { id: etudiantId },
       status: PresenceStatus.ABSENT,
@@ -179,7 +208,9 @@ export class PresenceService {
         startTime: Between(today, tomorrow),
       },
     };
-    if (tenantId) where.etudiant = { etablissement: { id: tenantId } };
+    if (tenantId) {
+      where.etudiant.etablissement = { id: tenantId };
+    }
 
     return await this.presenceRepository.find({
       where,

@@ -33,6 +33,7 @@ import { Roles } from '../auth/decorators/roles.decorator';
 import { Permissions } from '../auth/decorators/permissions.decorator';
 import { Role } from '../user/entities/user.entity';
 import { Public } from '../auth/decorators/public.decorator';
+import { CurrentEtablissement } from '../auth/decorators/current-etablissement.decorator';
 
 import {
   CheckImportResultDto,
@@ -61,8 +62,11 @@ export class EtudiantController {
   @Get()
   @Permissions('STUDENT_VIEW')
   @ApiOperation({ summary: 'Récupérer tous les étudiants' })
-  async findAll(@Query() filterDto: EtudiantFilterDto) {
-    const data = await this.etudiantService.findAll(filterDto);
+  async findAll(
+    @Query() filterDto: EtudiantFilterDto,
+    @CurrentEtablissement() tenantId?: number,
+  ) {
+    const data = await this.etudiantService.findAll(filterDto, tenantId);
     return {
       message: 'Liste des étudiants récupérée avec succès',
       data,
@@ -72,8 +76,11 @@ export class EtudiantController {
   @Get(':id')
   @Permissions('STUDENT_VIEW')
   @ApiOperation({ summary: 'Récupérer un étudiant par son ID' })
-  async findOne(@Param('id') id: string) {
-    const data = await this.etudiantService.findOne(+id);
+  async findOne(
+    @Param('id') id: string,
+    @CurrentEtablissement() tenantId?: number,
+  ) {
+    const data = await this.etudiantService.findOne(+id, tenantId);
     return {
       message: `Étudiant #${id} récupéré avec succès`,
       data,
@@ -88,8 +95,13 @@ export class EtudiantController {
   async update(
     @Param('id') id: string,
     @Body() updateEtudiantDto: UpdateEtudiantDto,
+    @CurrentEtablissement() tenantId?: number,
   ) {
-    const data = await this.etudiantService.update(+id, updateEtudiantDto);
+    const data = await this.etudiantService.update(
+      +id,
+      updateEtudiantDto,
+      tenantId,
+    );
     return {
       message: `Étudiant #${id} mis à jour avec succès`,
       data,
@@ -102,10 +114,12 @@ export class EtudiantController {
   async validate(
     @Param('id') id: string,
     @Body() validateDto: ValidateEtudiantDto,
+    @CurrentEtablissement() tenantId?: number,
   ) {
     const data = await this.etudiantService.validateEnrollment(
       +id,
       validateDto,
+      tenantId,
     );
     return {
       message: `L'inscription de l'étudiant #${id} a été validée avec succès`,
@@ -116,8 +130,11 @@ export class EtudiantController {
   @Delete(':id')
   @Permissions('STUDENT_DELETE')
   @ApiOperation({ summary: 'Supprimer un étudiant' })
-  async remove(@Param('id') id: string) {
-    await this.etudiantService.remove(+id);
+  async remove(
+    @Param('id') id: string,
+    @CurrentEtablissement() tenantId?: number,
+  ) {
+    await this.etudiantService.remove(+id, tenantId);
     return {
       message: `Étudiant #${id} supprimé avec succès`,
     };
@@ -169,10 +186,12 @@ export class EtudiantController {
   async uploadFile(
     @Param('id') id: string,
     @UploadedFile() file: Express.Multer.File,
+    @CurrentEtablissement() tenantId?: number,
   ) {
     const data = await this.etudiantService.updateProfilePicture(
       +id,
       file.path,
+      tenantId,
     );
     return {
       message: 'Photo de profil mise à jour avec succès',
@@ -199,11 +218,13 @@ export class EtudiantController {
   async validateImport(
     @UploadedFile() file: Express.Multer.File,
     @Query('sheetName') sheetName?: string,
+    @CurrentEtablissement() tenantId?: number,
   ) {
     if (!file) throw new BadRequestException('Fichier Excel manquant');
     const data = await this.etudiantService.validateImport(
       file.buffer,
       sheetName,
+      tenantId,
     );
     return {
       message: 'Validation terminée',
@@ -216,8 +237,14 @@ export class EtudiantController {
   @ApiOperation({
     summary: "Confirmer l'importation des étudiants (ancienne version)",
   })
-  async confirmImport(@Body() confirmDto: any) {
-    const data = await this.etudiantService.confirmImport(confirmDto.students);
+  async confirmImport(
+    @Body() confirmDto: any,
+    @CurrentEtablissement() tenantId?: number,
+  ) {
+    const data = await this.etudiantService.confirmImport(
+      confirmDto.students,
+      tenantId,
+    );
     return {
       message: 'Importation terminée',
       data,

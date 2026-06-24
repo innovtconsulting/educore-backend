@@ -4,7 +4,6 @@ import { Repository } from 'typeorm';
 import { CreateEtablissementDto } from './dto/create-etablissement.dto';
 import { UpdateEtablissementDto } from './dto/update-etablissement.dto';
 import { Etablissement } from './entities/etablissement.entity';
-import { TenantContext } from '../common/tenant/tenant.context';
 
 @Injectable()
 export class EtablissementService {
@@ -22,14 +21,12 @@ export class EtablissementService {
     return await this.etablissementRepository.save(etablissement);
   }
 
-  async findAll(): Promise<Etablissement[]> {
-    const tenantId = TenantContext.getTenantId();
+  async findAll(tenantId?: number): Promise<Etablissement[]> {
     const where = tenantId ? { id: tenantId } : {};
     return await this.etablissementRepository.find({ where });
   }
 
-  async findOne(id: number): Promise<Etablissement> {
-    const tenantId = TenantContext.getTenantId();
+  async findOne(id: number, tenantId?: number): Promise<Etablissement> {
     if (tenantId && tenantId !== id) {
       throw new NotFoundException(
         `L'établissement avec l'ID ${id} n'est pas accessible`,
@@ -48,14 +45,15 @@ export class EtablissementService {
   async update(
     id: number,
     updateEtablissementDto: UpdateEtablissementDto,
+    tenantId?: number,
   ): Promise<Etablissement> {
-    const etablissement = await this.findOne(id);
+    const etablissement = await this.findOne(id, tenantId);
     Object.assign(etablissement, updateEtablissementDto);
     return await this.etablissementRepository.save(etablissement);
   }
 
-  async remove(id: number): Promise<void> {
-    const etablissement = await this.findOne(id);
+  async remove(id: number, tenantId?: number): Promise<void> {
+    const etablissement = await this.findOne(id, tenantId);
     await this.etablissementRepository.remove(etablissement);
   }
 }

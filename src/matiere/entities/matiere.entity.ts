@@ -2,12 +2,10 @@ import {
   Column,
   CreateDateColumn,
   Entity,
-  JoinTable,
-  ManyToMany,
+  ManyToOne,
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
-import { Classe } from '../../classe/entities/classe.entity';
 import { Niveau } from '../../niveau/entities/niveau.entity';
 
 @Entity()
@@ -24,13 +22,8 @@ export class Matiere {
   @Column({ type: 'decimal', precision: 5, scale: 2, default: 1.0 })
   coefficient!: number;
 
-  @ManyToMany(() => Classe, (classe) => classe.matieres)
-  @JoinTable()
-  classes!: Classe[];
-
-  @ManyToMany(() => Niveau, (niveau) => niveau.matieres)
-  @JoinTable()
-  niveaux!: Niveau[];
+  @ManyToOne(() => Niveau, (niveau) => niveau.matieres, { nullable: false })
+  niveau!: Niveau;
 
   @CreateDateColumn()
   createdAt!: Date;
