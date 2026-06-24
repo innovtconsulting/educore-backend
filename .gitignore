@@ -60,3 +60,5 @@ GEMINI.md
 uploads/*
 
 base.xlsx
+
+*.tsbuildinfo
