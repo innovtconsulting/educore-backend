@@ -44,11 +44,11 @@ export class Discipline {
   @ApiProperty({ default: true })
   isActive!: boolean;
 
-  @ManyToOne(() => Etablissement, { nullable: true })
+  @ManyToOne(() => Etablissement, { nullable: false })
   @JoinColumn({ name: 'etablissementId' })
   etablissement!: Etablissement;
 
-  @Column({ nullable: true })
+  @Column({ nullable: false })
   etablissementId!: number;
 
   @CreateDateColumn()

@@ -6,11 +6,13 @@ import {
   CreateDateColumn,
   UpdateDateColumn,
   Unique,
+  JoinColumn,
 } from 'typeorm';
 import { ApiProperty } from '@nestjs/swagger';
 import { Devoir } from './devoir.entity';
 import { Etudiant } from '../../etudiant/entities/etudiant.entity';
 import { Document } from '../../document/entities/document.entity';
+import { Etablissement } from '../../etablissement/entities/etablissement.entity';
 
 @Entity()
 @Unique(['devoir', 'etudiant'])
@@ -34,6 +36,13 @@ export class Submission {
   @ManyToOne(() => Document, { nullable: false })
   @ApiProperty({ type: () => Document })
   document!: Document;
+
+  @ManyToOne(() => Etablissement, { nullable: false })
+  @JoinColumn({ name: 'etablissementId' })
+  etablissement!: Etablissement;
+
+  @Column({ nullable: false })
+  etablissementId!: number;
 
   @CreateDateColumn()
   @ApiProperty()

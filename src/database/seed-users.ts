@@ -106,7 +106,7 @@ async function seedUsers() {
     // Hasher le mot de passe
     const passwordHash = await bcrypt.hash('password123', 10);
 
-    // 1. Super Admin
+    // 1. Super Admin (pas besoin d'établissement)
     let superAdmin = await userRepo.findOneBy({ email: 'superadmin@espm.sn' });
     if (!superAdmin) {
       superAdmin = userRepo.create({
@@ -120,13 +120,14 @@ async function seedUsers() {
       console.log('Super Admin déjà existant : superadmin@espm.sn');
     }
 
-    // 2. Admin
+    // 2. Admin (lié à l'établissement)
     let admin = await userRepo.findOneBy({ email: 'admin@espm.sn' });
     if (!admin) {
       admin = userRepo.create({
         email: 'admin@espm.sn',
         password: passwordHash,
         role: Role.ADMIN,
+        etablissement: etablissement,
       });
       await userRepo.save(admin);
       console.log('Admin créé : admin@espm.sn / password123');
@@ -134,7 +135,7 @@ async function seedUsers() {
       console.log('Admin déjà existant : admin@espm.sn');
     }
 
-    // 3. Enseignant (avec profil enseignant lié)
+    // 3. Enseignant (avec profil enseignant lié à l'établissement)
     let enseignant = await enseignantRepo.findOneBy({
       matricule: 'ESP-ENS-001',
     });
@@ -146,6 +147,7 @@ async function seedUsers() {
         matricule: 'ESP-ENS-001',
         dateEmbauche: new Date('2023-01-01'),
         phone: '+221 77 123 45 67',
+        etablissement: etablissement,
       });
       await enseignantRepo.save(enseignant);
       console.log('Profil enseignant créé :', enseignant.matricule);
@@ -153,7 +155,7 @@ async function seedUsers() {
       console.log('Profil enseignant déjà existant :', enseignant.matricule);
     }
 
-    // Créer l'utilisateur pour l'enseignant
+    // Créer l'utilisateur pour l'enseignant (lié à l'établissement)
     let enseignantUser = await userRepo.findOneBy({
       email: 'enseignant@espm.sn',
     });
@@ -163,15 +165,14 @@ async function seedUsers() {
         password: passwordHash,
         role: Role.ENSEIGNANT,
         enseignant: enseignant,
+        etablissement: etablissement,
       });
       await userRepo.save(enseignantUser);
       console.log(
         'Utilisateur enseignant créé : enseignant@espm.sn / password123',
       );
     } else {
-      console.log(
-        'Utilisateur enseignant déjà existant : enseignant@espm.sn',
-      );
+      console.log('Utilisateur enseignant déjà existant : enseignant@espm.sn');
     }
 
     console.log('\nSeeding des utilisateurs terminé avec succès !');

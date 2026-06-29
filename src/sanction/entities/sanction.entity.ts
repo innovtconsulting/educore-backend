@@ -5,9 +5,11 @@ import {
   ManyToOne,
   PrimaryGeneratedColumn,
   UpdateDateColumn,
+  JoinColumn,
 } from 'typeorm';
 import { Etudiant } from '../../etudiant/entities/etudiant.entity';
 import { ApiProperty } from '@nestjs/swagger';
+import { Etablissement } from '../../etablissement/entities/etablissement.entity';
 
 export enum SanctionType {
   AVERTISSEMENT = 'Avertissement',
@@ -53,6 +55,13 @@ export class Sanction {
   @Column({ default: true })
   @ApiProperty()
   isApplied!: boolean;
+
+  @ManyToOne(() => Etablissement, { nullable: false })
+  @JoinColumn({ name: 'etablissementId' })
+  etablissement!: Etablissement;
+
+  @Column({ nullable: false })
+  etablissementId!: number;
 
   @CreateDateColumn()
   @ApiProperty()

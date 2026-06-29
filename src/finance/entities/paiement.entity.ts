@@ -5,10 +5,12 @@ import {
   ManyToOne,
   PrimaryGeneratedColumn,
   UpdateDateColumn,
+  JoinColumn,
 } from 'typeorm';
 import { Etudiant } from '../../etudiant/entities/etudiant.entity';
 import { Facture } from './facture.entity';
 import { ApiProperty } from '@nestjs/swagger';
+import { Etablissement } from '../../etablissement/entities/etablissement.entity';
 
 export enum PaymentMethod {
   ESPECES = 'Espèces',
@@ -39,6 +41,13 @@ export class Paiement {
   })
   @ApiProperty({ type: () => Facture, required: false })
   facture?: Facture;
+
+  @ManyToOne(() => Etablissement, { nullable: false })
+  @JoinColumn({ name: 'etablissementId' })
+  etablissement!: Etablissement;
+
+  @Column({ nullable: false })
+  etablissementId!: number;
 
   @Column({ type: 'decimal', precision: 12, scale: 2 })
   @ApiProperty()

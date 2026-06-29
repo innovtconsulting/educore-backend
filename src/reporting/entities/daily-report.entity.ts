@@ -50,11 +50,11 @@ export class DailyReport {
   @ApiProperty({ required: false })
   pdfUrl?: string;
 
-  @ManyToOne(() => Etablissement, { nullable: true })
+  @ManyToOne(() => Etablissement, { nullable: false })
   @JoinColumn({ name: 'etablissementId' })
   etablissement!: Etablissement;
 
-  @Column({ nullable: true })
+  @Column({ nullable: false })
   etablissementId!: number;
 
   @CreateDateColumn()

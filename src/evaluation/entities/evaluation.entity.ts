@@ -6,6 +6,7 @@ import {
   OneToMany,
   CreateDateColumn,
   UpdateDateColumn,
+  JoinColumn,
 } from 'typeorm';
 import { ApiProperty } from '@nestjs/swagger';
 import { Matiere } from '../../matiere/entities/matiere.entity';
@@ -13,6 +14,7 @@ import { Classe } from '../../classe/entities/classe.entity';
 import { Niveau } from '../../niveau/entities/niveau.entity';
 import { Semestre } from '../../semestre/entities/semestre.entity';
 import { Note } from '../../note/entities/note.entity';
+import { Etablissement } from '../../etablissement/entities/etablissement.entity';
 
 export enum EvaluationType {
   CC = 'Contrôle Continu',
@@ -74,6 +76,13 @@ export class Evaluation {
   })
   @ApiProperty({ type: () => Semestre })
   semestre!: Semestre;
+
+  @ManyToOne(() => Etablissement, { nullable: false })
+  @JoinColumn({ name: 'etablissementId' })
+  etablissement!: Etablissement;
+
+  @Column({ nullable: false })
+  etablissementId!: number;
 
   @OneToMany(() => Note, (note) => note.evaluation)
   notes!: Note[];

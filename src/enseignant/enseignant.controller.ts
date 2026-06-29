@@ -30,8 +30,8 @@ export class EnseignantController {
   @Post()
   @Permissions('TEACHER_MANAGE')
   @ApiOperation({ summary: 'Créer un nouvel enseignant' })
-  create(@Body() createEnseignantDto: CreateEnseignantDto) {
-    return this.enseignantService.create(createEnseignantDto);
+  create(@Body() createEnseignantDto: CreateEnseignantDto, @CurrentEtablissement() tenantId?: number) {
+    return this.enseignantService.create(createEnseignantDto, tenantId);
   }
 
   @Get()

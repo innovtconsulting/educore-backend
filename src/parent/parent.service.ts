@@ -63,7 +63,11 @@ export class ParentService {
     return parent;
   }
 
-  async update(id: number, updateParentDto: UpdateParentDto, tenantId?: number): Promise<Parent> {
+  async update(
+    id: number,
+    updateParentDto: UpdateParentDto,
+    tenantId?: number,
+  ): Promise<Parent> {
     const parent = await this.findOne(id, tenantId);
     Object.assign(parent, updateParentDto);
     return await this.parentRepository.save(parent);

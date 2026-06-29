@@ -3,11 +3,14 @@ import {
   PrimaryGeneratedColumn,
   Column,
   OneToMany,
+  ManyToOne,
   CreateDateColumn,
   UpdateDateColumn,
+  JoinColumn,
 } from 'typeorm';
 import { ApiProperty } from '@nestjs/swagger';
 import { Semestre } from '../../semestre/entities/semestre.entity';
+import { Etablissement } from '../../etablissement/entities/etablissement.entity';
 
 @Entity()
 export class AnneeUniversitaire {
@@ -30,6 +33,13 @@ export class AnneeUniversitaire {
   @Column({ default: false })
   @ApiProperty()
   isActive!: boolean;
+
+  @ManyToOne(() => Etablissement, { nullable: false })
+  @JoinColumn({ name: 'etablissementId' })
+  etablissement!: Etablissement;
+
+  @Column({ nullable: false })
+  etablissementId!: number;
 
   @OneToMany(() => Semestre, (semestre) => semestre.anneeUniversitaire)
   semestres!: Semestre[];

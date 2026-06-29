@@ -6,11 +6,13 @@ import {
   OneToMany,
   PrimaryGeneratedColumn,
   UpdateDateColumn,
+  JoinColumn,
 } from 'typeorm';
 import { Etudiant } from '../../etudiant/entities/etudiant.entity';
 import { Paiement } from './paiement.entity';
 import { AnneeUniversitaire } from '../../annee-universitaire/entities/annee-universitaire.entity';
 import { ApiProperty } from '@nestjs/swagger';
+import { Etablissement } from '../../etablissement/entities/etablissement.entity';
 
 export enum InvoiceStatus {
   BROUILLON = 'Brouillon',
@@ -56,6 +58,13 @@ export class Facture {
   @ManyToOne(() => AnneeUniversitaire, { nullable: true })
   @ApiProperty({ type: () => AnneeUniversitaire, required: false })
   anneeUniversitaire?: AnneeUniversitaire;
+
+  @ManyToOne(() => Etablissement, { nullable: false })
+  @JoinColumn({ name: 'etablissementId' })
+  etablissement!: Etablissement;
+
+  @Column({ nullable: false })
+  etablissementId!: number;
 
   @OneToMany(() => Paiement, (paiement) => paiement.facture)
   @ApiProperty({ type: () => [Paiement] })

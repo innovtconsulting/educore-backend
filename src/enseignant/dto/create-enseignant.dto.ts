@@ -5,6 +5,7 @@ import {
   IsNotEmpty,
   IsOptional,
   IsString,
+  IsNumber,
 } from 'class-validator';
 
 export class CreateEnseignantDto {
@@ -47,4 +48,9 @@ export class CreateEnseignantDto {
   @IsDateString()
   @IsNotEmpty()
   dateEmbauche!: string;
+
+  @ApiProperty({ example: 1, description: 'ID de l\'établissement' })
+  @IsNumber()
+  @IsNotEmpty()
+  etablissementId!: number;
 }

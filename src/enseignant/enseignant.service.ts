@@ -36,8 +36,8 @@ export class EnseignantService {
     private readonly userService: UserService,
   ) {}
 
-  async create(createEnseignantDto: CreateEnseignantDto): Promise<Enseignant> {
-    const { email, matricule } = createEnseignantDto;
+  async create(createEnseignantDto: CreateEnseignantDto, tenantId?: number): Promise<Enseignant> {
+    const { email, matricule, etablissementId } = createEnseignantDto;
 
     const existingEmail = await this.enseignantRepository.findOneBy({ email });
     if (existingEmail) {
@@ -55,7 +55,19 @@ export class EnseignantService {
       );
     }
 
-    const enseignant = this.enseignantRepository.create(createEnseignantDto);
+    // Utiliser le tenantId si fourni, sinon utiliser etablissementId du DTO
+    const finalEtablissementId = tenantId || etablissementId;
+    const etablissement = await this.etablissementRepository.findOneBy({ id: finalEtablissementId });
+    if (!etablissement) {
+      throw new NotFoundException(
+        `Établissement avec l'ID "${finalEtablissementId}" introuvable`,
+      );
+    }
+
+    const enseignant = this.enseignantRepository.create({
+      ...createEnseignantDto,
+      etablissement,
+    });
     const savedEnseignant = await this.enseignantRepository.save(enseignant);
 
     // Création automatique du compte utilisateur avec mot de passe par défaut
@@ -65,6 +77,7 @@ export class EnseignantService {
       password: '12345678',
       role: Role.ENSEIGNANT,
       enseignant: savedEnseignant,
+      etablissement: etablissement,
       isActive: true, // Les enseignants créés par l'admin sont actifs immédiatement
     });
 

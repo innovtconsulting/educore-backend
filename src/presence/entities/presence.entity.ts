@@ -6,9 +6,11 @@ import {
   PrimaryGeneratedColumn,
   UpdateDateColumn,
   Unique,
+  JoinColumn,
 } from 'typeorm';
 import { Etudiant } from '../../etudiant/entities/etudiant.entity';
 import { EmploiDuTemp } from '../../emploi-du-temps/entities/emploi-du-temp.entity';
+import { Etablissement } from '../../etablissement/entities/etablissement.entity';
 
 export enum PresenceStatus {
   PRESENT = 'Présent',
@@ -36,6 +38,13 @@ export class Presence {
 
   @ManyToOne(() => EmploiDuTemp, { onDelete: 'CASCADE', nullable: false })
   emploiDuTemp!: EmploiDuTemp;
+
+  @ManyToOne(() => Etablissement, { nullable: false })
+  @JoinColumn({ name: 'etablissementId' })
+  etablissement!: Etablissement;
+
+  @Column({ nullable: false })
+  etablissementId!: number;
 
   @CreateDateColumn()
   createdAt!: Date;

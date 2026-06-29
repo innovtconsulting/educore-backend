@@ -6,10 +6,12 @@ import {
   CreateDateColumn,
   UpdateDateColumn,
   Unique,
+  JoinColumn,
 } from 'typeorm';
 import { ApiProperty } from '@nestjs/swagger';
 import { Etudiant } from '../../etudiant/entities/etudiant.entity';
 import { Evaluation } from '../../evaluation/entities/evaluation.entity';
+import { Etablissement } from '../../etablissement/entities/etablissement.entity';
 
 @Entity()
 @Unique(['etudiant', 'evaluation'])
@@ -36,6 +38,13 @@ export class Note {
   })
   @ApiProperty({ type: () => Evaluation })
   evaluation!: Evaluation;
+
+  @ManyToOne(() => Etablissement, { nullable: false })
+  @JoinColumn({ name: 'etablissementId' })
+  etablissement!: Etablissement;
+
+  @Column({ nullable: false })
+  etablissementId!: number;
 
   @CreateDateColumn()
   @ApiProperty()

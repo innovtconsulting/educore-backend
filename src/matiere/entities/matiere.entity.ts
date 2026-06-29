@@ -5,8 +5,10 @@ import {
   ManyToOne,
   PrimaryGeneratedColumn,
   UpdateDateColumn,
+  JoinColumn,
 } from 'typeorm';
 import { Niveau } from '../../niveau/entities/niveau.entity';
+import { Etablissement } from '../../etablissement/entities/etablissement.entity';
 
 @Entity()
 export class Matiere {
@@ -24,6 +26,13 @@ export class Matiere {
 
   @ManyToOne(() => Niveau, (niveau) => niveau.matieres, { nullable: false })
   niveau!: Niveau;
+
+  @ManyToOne(() => Etablissement, { nullable: false })
+  @JoinColumn({ name: 'etablissementId' })
+  etablissement!: Etablissement;
+
+  @Column({ nullable: false })
+  etablissementId!: number;
 
   @CreateDateColumn()
   createdAt!: Date;

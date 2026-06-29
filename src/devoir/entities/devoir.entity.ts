@@ -7,6 +7,7 @@ import {
   JoinTable,
   CreateDateColumn,
   UpdateDateColumn,
+  JoinColumn,
 } from 'typeorm';
 import { ApiProperty } from '@nestjs/swagger';
 import { Matiere } from '../../matiere/entities/matiere.entity';
@@ -14,6 +15,7 @@ import { Classe } from '../../classe/entities/classe.entity';
 import { Niveau } from '../../niveau/entities/niveau.entity';
 import { Enseignant } from '../../enseignant/entities/enseignant.entity';
 import { Document } from '../../document/entities/document.entity';
+import { Etablissement } from '../../etablissement/entities/etablissement.entity';
 
 @Entity()
 export class Devoir {
@@ -48,6 +50,13 @@ export class Devoir {
   @ManyToOne(() => Enseignant, { nullable: false })
   @ApiProperty({ type: () => Enseignant })
   enseignant!: Enseignant;
+
+  @ManyToOne(() => Etablissement, { nullable: false })
+  @JoinColumn({ name: 'etablissementId' })
+  etablissement!: Etablissement;
+
+  @Column({ nullable: false })
+  etablissementId!: number;
 
   @ManyToMany(() => Document)
   @JoinTable()
