@@ -37,8 +37,8 @@ export class ParentController {
   @Post()
   @Permissions('STUDENT_CREATE')
   @ApiOperation({ summary: 'Créer un nouveau parent' })
-  create(@Body() createParentDto: CreateParentDto) {
-    return this.parentService.create(createParentDto);
+  create(@Body() createParentDto: CreateParentDto, @CurrentEtablissement() tenantId?: number) {
+    return this.parentService.create(createParentDto, tenantId);
   }
 
   @Get('contacts')

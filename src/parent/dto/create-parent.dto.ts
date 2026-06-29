@@ -5,6 +5,7 @@ import {
   IsNotEmpty,
   IsOptional,
   IsString,
+  IsNumber,
 } from 'class-validator';
 import { ParentGender } from '../entities/parent.entity';
 
@@ -42,4 +43,9 @@ export class CreateParentDto {
   @IsString()
   @IsOptional()
   job?: string;
+
+  @ApiProperty({ example: 1, required: false })
+  @IsNumber()
+  @IsOptional()
+  etablissementId?: number;
 }

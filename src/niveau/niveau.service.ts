@@ -17,7 +17,10 @@ export class NiveauService {
     private readonly classeRepository: Repository<Classe>,
   ) {}
 
-  async create(createNiveauDto: CreateNiveauDto, tenantId?: number): Promise<Niveau> {
+  async create(
+    createNiveauDto: CreateNiveauDto,
+    tenantId?: number,
+  ): Promise<Niveau> {
     const { name, parcoursId } = createNiveauDto;
 
     // Check if classe exists
@@ -27,6 +30,7 @@ export class NiveauService {
         tenantId,
         'etablissement',
       ),
+      relations: { etablissement: true },
     });
 
     if (!classe) {
@@ -36,12 +40,16 @@ export class NiveauService {
     const niveau = this.niveauRepository.create({
       name,
       classe,
+      etablissementId: classe.etablissement.id,
     });
 
     return await this.niveauRepository.save(niveau);
   }
 
-  async findAll(filter: NiveauFilterDto, tenantId?: number): Promise<{ items: Niveau[]; total: number; page: number; limit: number }> {
+  async findAll(
+    filter: NiveauFilterDto,
+    tenantId?: number,
+  ): Promise<{ items: Niveau[]; total: number; page: number; limit: number }> {
     const { page = 1, limit = 20, search, parcoursId } = filter;
     const skip = (page - 1) * limit;
 
@@ -127,11 +135,13 @@ export class NiveauService {
           tenantId,
           'etablissement',
         ),
+        relations: { etablissement: true },
       });
       if (!classe) {
         throw new NotFoundException('Parcours (classe) introuvable');
       }
       niveau.classe = classe;
+      niveau.etablissementId = classe.etablissement.id;
     }
 
     return await this.niveauRepository.save(niveau);

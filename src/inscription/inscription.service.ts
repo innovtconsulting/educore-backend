@@ -44,7 +44,7 @@ export class InscriptionService {
     private readonly dataSource: DataSource,
   ) {}
 
-  async checkEligibility(etudiantId: number) {
+  async checkEligibility(etudiantId: number, tenantId?: number) {
     const etudiant = await this.etudiantRepository.findOne({
       where: { id: etudiantId },
       relations: {
@@ -137,15 +137,17 @@ export class InscriptionService {
     // Récupérer les seuils depuis les paramètres globaux (avec valeurs par défaut si non configurés)
     const passingGradeStr = await this.globalSettingService.getValue(
       'ACADEMIC_PASSING_GRADE',
+      '10',
+      tenantId,
     );
     const eliminationThresholdStr = await this.globalSettingService.getValue(
       'ACADEMIC_ELIMINATION_THRESHOLD',
+      '4',
+      tenantId,
     );
 
-    const passingGrade = passingGradeStr ? parseFloat(passingGradeStr) : 10;
-    const eliminationThreshold = eliminationThresholdStr
-      ? parseFloat(eliminationThresholdStr)
-      : 4;
+    const passingGrade = parseFloat(passingGradeStr ?? '10');
+    const eliminationThreshold = parseFloat(eliminationThresholdStr ?? '4');
 
     if (moyenneAnnuelle < passingGrade) {
       return {
@@ -170,11 +172,11 @@ export class InscriptionService {
     };
   }
 
-  async reinscrire(dto: CreateInscriptionDto) {
+  async reinscrire(dto: CreateInscriptionDto, tenantId?: number) {
     const { etudiantId, anneeUniversitaireId, classeId, niveauId } = dto;
 
     // 1. Vérifier l'éligibilité
-    const eligibility = await this.checkEligibility(etudiantId);
+    const eligibility = await this.checkEligibility(etudiantId, tenantId);
     if (!eligibility.eligible) {
       throw new BadRequestException(
         `Réinscription refusée : ${eligibility.reason}`,
@@ -190,14 +192,14 @@ export class InscriptionService {
         where: { id: etudiantId },
         relations: { inscriptions: true, etablissement: true },
       });
-      const annee = await queryRunner.manager.findOneBy(AnneeUniversitaire, {
-        id: anneeUniversitaireId,
+      const annee = await queryRunner.manager.findOne(AnneeUniversitaire, {
+        where: { id: anneeUniversitaireId },
       });
-      const classe = await queryRunner.manager.findOneBy(Classe, {
-        id: classeId,
+      const classe = await queryRunner.manager.findOne(Classe, {
+        where: { id: classeId },
       });
-      const niveau = await queryRunner.manager.findOneBy(Niveau, {
-        id: niveauId,
+      const niveau = await queryRunner.manager.findOne(Niveau, {
+        where: { id: niveauId },
       });
 
       if (!etudiant || !annee || !classe || !niveau)
@@ -267,7 +269,7 @@ export class InscriptionService {
     }
   }
 
-  async getHistory(etudiantId: number) {
+  async getHistory(etudiantId: number, tenantId?: number) {
     return await this.inscriptionRepository.find({
       where: { etudiant: { id: etudiantId } },
       relations: { anneeUniversitaire: true, classe: true, niveau: true },
@@ -275,9 +277,9 @@ export class InscriptionService {
     });
   }
 
-  async graduate(etudiantId: number) {
+  async graduate(etudiantId: number, tenantId?: number) {
     // 1. Vérifier l'éligibilité
-    const eligibility = await this.checkEligibility(etudiantId);
+    const eligibility = await this.checkEligibility(etudiantId, tenantId);
     if (!eligibility.eligible) {
       throw new BadRequestException(
         `Diplomation refusée : ${eligibility.reason}`,

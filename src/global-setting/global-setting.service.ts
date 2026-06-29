@@ -1,12 +1,13 @@
 import { Injectable, NotFoundException, OnModuleInit } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, FindOptionsWhere } from 'typeorm';
 import { CreateGlobalSettingDto } from './dto/create-global-setting.dto';
 import { UpdateGlobalSettingDto } from './dto/update-global-setting.dto';
 import {
   GlobalSetting,
   SettingCategory,
 } from './entities/global-setting.entity';
+import { TenantHelper } from '../common/tenant/tenant.helper';
 
 @Injectable()
 export class GlobalSettingService implements OnModuleInit {
@@ -86,46 +87,102 @@ export class GlobalSettingService implements OnModuleInit {
         description: "Nom de l'expéditeur des emails",
       },
     ];
-
-    for (const setting of defaultSettings) {
-      const exists = await this.repo.findOne({ where: { key: setting.key } });
-      if (!exists) {
-        await this.repo.save(this.repo.create(setting));
-      }
-    }
   }
 
-  async create(dto: CreateGlobalSettingDto) {
-    const setting = this.repo.create(dto);
+  async create(dto: CreateGlobalSettingDto, tenantId?: number) {
+    // Check if setting already exists for this tenant
+    const where: FindOptionsWhere<GlobalSetting> = { key: dto.key };
+    if (tenantId) {
+      where.etablissement = { id: tenantId };
+    }
+    const exists = await this.repo.findOne({ where });
+    if (exists) {
+      throw new NotFoundException(`Paramètre '${dto.key}' existe déjà`);
+    }
+
+    const setting = this.repo.create({
+      ...dto,
+      etablissement: tenantId ? { id: tenantId } : undefined,
+    });
     return await this.repo.save(setting);
   }
 
-  async findAll() {
-    return await this.repo.find({ order: { category: 'ASC', key: 'ASC' } });
+  async findAll(tenantId?: number) {
+    const where: FindOptionsWhere<GlobalSetting> = {};
+    if (tenantId) {
+      where.etablissement = { id: tenantId };
+    }
+    return await this.repo.find({
+      where,
+      order: { category: 'ASC', key: 'ASC' },
+    });
   }
 
-  async findOne(key: string) {
-    const setting = await this.repo.findOne({ where: { key } });
-    if (!setting) throw new NotFoundException(`Paramètre '${key}' introuvable`);
+  async findOne(key: string, tenantId?: number) {
+    const where: FindOptionsWhere<GlobalSetting> = { key };
+    if (tenantId) {
+      where.etablissement = { id: tenantId };
+    }
+
+    // First try to find tenant-specific setting
+    let setting = await this.repo.findOne({ where });
+    if (!setting) {
+      // If not found, try to find a global setting (without etablissement)
+      setting = await this.repo.findOne({ where: { key } });
+    }
+
+    if (!setting) {
+      throw new NotFoundException(`Paramètre '${key}' introuvable`);
+    }
     return setting;
   }
 
   async getValue(
     key: string,
     defaultValue?: string,
+    tenantId?: number,
   ): Promise<string | undefined> {
-    const setting = await this.repo.findOne({ where: { key } });
-    return setting ? setting.value : defaultValue;
+    try {
+      const setting = await this.findOne(key, tenantId);
+      return setting ? setting.value : defaultValue;
+    } catch {
+      return defaultValue;
+    }
   }
 
-  async update(key: string, dto: UpdateGlobalSettingDto) {
-    const setting = await this.findOne(key);
-    Object.assign(setting, dto);
+  async update(key: string, dto: UpdateGlobalSettingDto, tenantId?: number) {
+    // Try to find existing setting for this tenant
+    const where: FindOptionsWhere<GlobalSetting> = { key };
+    if (tenantId) {
+      where.etablissement = { id: tenantId };
+    }
+
+    let setting = await this.repo.findOne({ where });
+    if (!setting) {
+      // If not found, try to create a new one for this tenant
+      setting = this.repo.create({
+        key,
+        ...dto,
+        etablissement: tenantId ? { id: tenantId } : undefined,
+      });
+    } else {
+      Object.assign(setting, dto);
+    }
+
     return await this.repo.save(setting);
   }
 
-  async remove(key: string) {
-    const setting = await this.findOne(key);
+  async remove(key: string, tenantId?: number) {
+    const where: FindOptionsWhere<GlobalSetting> = { key };
+    if (tenantId) {
+      where.etablissement = { id: tenantId };
+    }
+
+    const setting = await this.repo.findOne({ where });
+    if (!setting) {
+      throw new NotFoundException(`Paramètre '${key}' introuvable`);
+    }
+
     return await this.repo.remove(setting);
   }
 }

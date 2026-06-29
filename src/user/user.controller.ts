@@ -28,10 +28,12 @@ import {
   ApiBody,
 } from '@nestjs/swagger';
 import { UpdateProfileDto } from './dto/update-profile.dto';
+import { CreateUserDto } from './dto/create-user.dto';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
 import { extname } from 'path';
-import { PaginationQueryDto } from '../common/dto/pagination-query.dto';
+import { UserFilterDto } from './dto/user-filter.dto';
+import { CurrentEtablissement } from '../auth/decorators/current-etablissement.decorator';
 
 @ApiTags('users')
 @ApiBearerAuth()
@@ -51,8 +53,8 @@ export class UserController {
     Role.SURVEILLANT,
   )
   @ApiOperation({ summary: "Obtenir mon propre profil d'utilisateur" })
-  getMe(@Request() req: any) {
-    return this.userService.findOne(req.user.id);
+  getMe(@Request() req: any, @CurrentEtablissement() tenantId?: number) {
+    return this.userService.findOne(req.user.id, tenantId);
   }
 
   @Patch('me')
@@ -138,22 +140,31 @@ export class UserController {
   @Post()
   @Permissions('USER_MANAGE')
   @ApiOperation({ summary: 'Créer un nouvel utilisateur' })
-  create(@Body() userData: Partial<User>) {
-    return this.userService.create(userData);
+  create(
+    @Body() createUserDto: CreateUserDto,
+    @CurrentEtablissement() tenantId?: number,
+  ) {
+    return this.userService.create(createUserDto, tenantId);
   }
 
   @Get()
   @Permissions('USER_MANAGE')
   @ApiOperation({ summary: 'Lister tous les utilisateurs' })
-  findAll(@Query() query: PaginationQueryDto) {
-    return this.userService.findAll(query);
+  findAll(
+    @Query() filter: UserFilterDto,
+    @CurrentEtablissement() tenantId?: number,
+  ) {
+    return this.userService.findAll(filter, tenantId);
   }
 
   @Get(':id')
   @Permissions('USER_MANAGE')
   @ApiOperation({ summary: 'Obtenir un utilisateur par son ID' })
-  findOne(@Param('id', ParseIntPipe) id: number) {
-    return this.userService.findOne(id);
+  findOne(
+    @Param('id', ParseIntPipe) id: number,
+    @CurrentEtablissement() tenantId?: number,
+  ) {
+    return this.userService.findOne(id, tenantId);
   }
 
   @Patch(':id')
@@ -162,14 +173,18 @@ export class UserController {
   update(
     @Param('id', ParseIntPipe) id: number,
     @Body() updateData: Partial<User>,
+    @CurrentEtablissement() tenantId?: number,
   ) {
-    return this.userService.update(id, updateData);
+    return this.userService.update(id, updateData, tenantId);
   }
 
   @Delete(':id')
   @Permissions('USER_MANAGE')
   @ApiOperation({ summary: 'Supprimer un utilisateur' })
-  remove(@Param('id', ParseIntPipe) id: number) {
-    return this.userService.remove(id);
+  remove(
+    @Param('id', ParseIntPipe) id: number,
+    @CurrentEtablissement() tenantId?: number,
+  ) {
+    return this.userService.remove(id, tenantId);
   }
 }

@@ -30,6 +30,7 @@ import { existsSync } from 'fs';
 import * as ExcelJS from 'exceljs';
 import { ClasseService } from '../classe/classe.service';
 import { NiveauService } from '../niveau/niveau.service';
+import { TenantHelper } from '../common/tenant/tenant.helper';
 import {
   CheckImportResultDto,
   CheckImportResultSheetDto,
@@ -98,9 +99,24 @@ export class EtudiantService {
     return etudiant;
   }
 
-  async create(createEtudiantDto: CreateEtudiantDto): Promise<Etudiant> {
-    const { etablissementId, classeId, niveauId, parentsData, ...rest } =
-      createEtudiantDto;
+  async create(
+    createEtudiantDto: CreateEtudiantDto,
+    tenantId?: number,
+  ): Promise<Etudiant> {
+    const {
+      etablissementId: dtoEtablissementId,
+      classeId,
+      niveauId,
+      parentsData,
+      ...rest
+    } = createEtudiantDto;
+
+    // Utiliser le tenantId si fourni (pour ADMIN), sinon utiliser le DTO
+    const etablissementId = tenantId || dtoEtablissementId;
+
+    if (!etablissementId) {
+      throw new BadRequestException("ID d'établissement manquant");
+    }
 
     const etablissement = await this.etablissementRepository.findOneBy({
       id: etablissementId,
@@ -110,10 +126,18 @@ export class EtudiantService {
         `Établissement #${etablissementId} introuvable`,
       );
 
-    const classe = await this.classeRepository.findOneBy({ id: classeId });
+    const classe = await this.classeRepository.findOne({
+      where: TenantHelper.addTenantFilter({ id: classeId }, tenantId),
+    });
     if (!classe) throw new NotFoundException(`Classe #${classeId} introuvable`);
 
-    const niveau = await this.niveauRepository.findOneBy({ id: niveauId });
+    const niveau = await this.niveauRepository.findOne({
+      where: TenantHelper.addTenantFilter(
+        { id: niveauId },
+        tenantId,
+        'classe.etablissement',
+      ),
+    });
     if (!niveau) throw new NotFoundException(`Niveau #${niveauId} introuvable`);
 
     const parents: Parent[] = [];

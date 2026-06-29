@@ -3,9 +3,10 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { AnneeUniversitaireService } from './annee-universitaire.service';
 import { AnneeUniversitaireController } from './annee-universitaire.controller';
 import { AnneeUniversitaire } from './entities/annee-universitaire.entity';
+import { Etablissement } from '../etablissement/entities/etablissement.entity';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([AnneeUniversitaire])],
+  imports: [TypeOrmModule.forFeature([AnneeUniversitaire, Etablissement])],
   controllers: [AnneeUniversitaireController],
   providers: [AnneeUniversitaireService],
   exports: [AnneeUniversitaireService],

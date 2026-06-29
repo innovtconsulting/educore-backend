@@ -51,8 +51,11 @@ export class EtudiantController {
   @Post()
   @Permissions('STUDENT_CREATE')
   @ApiOperation({ summary: 'Créer un nouvel étudiant' })
-  async create(@Body() createEtudiantDto: CreateEtudiantDto) {
-    const data = await this.etudiantService.create(createEtudiantDto);
+  async create(
+    @Body() createEtudiantDto: CreateEtudiantDto,
+    @CurrentEtablissement() tenantId?: number,
+  ) {
+    const data = await this.etudiantService.create(createEtudiantDto, tenantId);
     return {
       message: 'Étudiant créé avec succès',
       data,

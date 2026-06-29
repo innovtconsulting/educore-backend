@@ -22,13 +22,24 @@ export class AclService {
   ) {}
 
   // --- Permissions ---
-  async findAllPermissions(): Promise<Permission[]> {
-    return await this.permissionRepository.find({ order: { name: 'ASC' } });
+  async findAllPermissions(tenantId?: number): Promise<Permission[]> {
+    const where: any = {};
+    if (tenantId) {
+      where.etablissement = { id: tenantId };
+    }
+    return await this.permissionRepository.find({ 
+      where,
+      order: { name: 'ASC' } 
+    });
   }
 
-  async findOnePermission(id: number): Promise<Permission> {
+  async findOnePermission(id: number, tenantId?: number): Promise<Permission> {
+    const where: any = { id };
+    if (tenantId) {
+      where.etablissement = { id: tenantId };
+    }
     const permission = await this.permissionRepository.findOne({
-      where: { id },
+      where,
     });
     if (!permission) {
       throw new NotFoundException(`Permission #${id} non trouvée`);
@@ -36,28 +47,36 @@ export class AclService {
     return permission;
   }
 
-  async createPermission(data: CreatePermissionDto): Promise<Permission> {
+  async createPermission(data: CreatePermissionDto, tenantId?: number): Promise<Permission> {
+    const where: any = { name: data.name };
+    if (tenantId) {
+      where.etablissement = { id: tenantId };
+    }
     const existing = await this.permissionRepository.findOne({
-      where: { name: data.name },
+      where,
     });
     if (existing) {
       throw new ConflictException(`La permission ${data.name} existe déjà`);
     }
-    const permission = this.permissionRepository.create(data);
+    const permission = this.permissionRepository.create({
+      ...data,
+      etablissement: tenantId ? { id: tenantId } : undefined,
+    });
     return await this.permissionRepository.save(permission);
   }
 
   async updatePermission(
     id: number,
     data: UpdatePermissionDto,
+    tenantId?: number,
   ): Promise<Permission> {
-    const permission = await this.findOnePermission(id);
+    const permission = await this.findOnePermission(id, tenantId);
     Object.assign(permission, data);
     return await this.permissionRepository.save(permission);
   }
 
-  async removePermission(id: number): Promise<void> {
-    const permission = await this.findOnePermission(id);
+  async removePermission(id: number, tenantId?: number): Promise<void> {
+    const permission = await this.findOnePermission(id, tenantId);
 
     const rolesUsingPermission = await this.roleRepository
       .createQueryBuilder('role')
@@ -76,39 +95,59 @@ export class AclService {
   }
 
   // --- Roles ---
-  async findAllRoles(): Promise<Role[]> {
+  async findAllRoles(tenantId?: number): Promise<Role[]> {
+    const where: any = {};
+    if (tenantId) {
+      where.etablissement = { id: tenantId };
+    }
     return await this.roleRepository.find({
+      where,
       relations: { permissions: true },
       order: { name: 'ASC' },
     });
   }
 
-  async findOneRole(id: number): Promise<Role> {
+  async findOneRole(id: number, tenantId?: number): Promise<Role> {
+    const where: any = { id };
+    if (tenantId) {
+      where.etablissement = { id: tenantId };
+    }
     const role = await this.roleRepository.findOne({
-      where: { id },
+      where,
       relations: { permissions: true },
     });
     if (!role) throw new NotFoundException(`Rôle #${id} non trouvé`);
     return role;
   }
 
-  async findRoleByName(name: string): Promise<Role | null> {
+  async findRoleByName(name: string, tenantId?: number): Promise<Role | null> {
+    const where: any = { name };
+    if (tenantId) {
+      where.etablissement = { id: tenantId };
+    }
     return await this.roleRepository.findOne({
-      where: { name },
+      where,
       relations: { permissions: true },
     });
   }
 
-  async createRole(data: CreateRoleDto): Promise<Role> {
+  async createRole(data: CreateRoleDto, tenantId?: number): Promise<Role> {
     const { permissionIds, ...roleData } = data;
+    const where: any = { name: roleData.name };
+    if (tenantId) {
+      where.etablissement = { id: tenantId };
+    }
     const existing = await this.roleRepository.findOne({
-      where: { name: roleData.name },
+      where,
     });
     if (existing) {
       throw new ConflictException(`Le rôle ${roleData.name} existe déjà`);
     }
 
-    const role = this.roleRepository.create(roleData);
+    const role = this.roleRepository.create({
+      ...roleData,
+      etablissement: tenantId ? { id: tenantId } : undefined,
+    });
     role.permissions = await this.permissionRepository.findBy({
       id: In(permissionIds),
     });
@@ -122,13 +161,17 @@ export class AclService {
     return await this.roleRepository.save(role);
   }
 
-  async updateRole(id: number, data: UpdateRoleDto): Promise<Role> {
+  async updateRole(id: number, data: UpdateRoleDto, tenantId?: number): Promise<Role> {
     const { permissionIds, ...roleData } = data;
-    const role = await this.findOneRole(id);
+    const role = await this.findOneRole(id, tenantId);
 
     if (roleData.name && roleData.name !== role.name) {
+      const where: any = { name: roleData.name };
+      if (tenantId) {
+        where.etablissement = { id: tenantId };
+      }
       const existing = await this.roleRepository.findOne({
-        where: { name: roleData.name },
+        where,
       });
       if (existing) {
         throw new ConflictException(`Le rôle ${roleData.name} existe déjà`);
@@ -151,8 +194,8 @@ export class AclService {
     return await this.roleRepository.save(role);
   }
 
-  async removeRole(id: number): Promise<void> {
-    const role = await this.findOneRole(id);
+  async removeRole(id: number, tenantId?: number): Promise<void> {
+    const role = await this.findOneRole(id, tenantId);
 
     const usersCount = await this.roleRepository.manager
       .createQueryBuilder()

@@ -6,6 +6,7 @@ import {
   IsOptional,
   IsString,
   Matches,
+  IsNumber,
 } from 'class-validator';
 
 export class CreateAnneeUniversitaireDto {
@@ -31,4 +32,9 @@ export class CreateAnneeUniversitaireDto {
   @IsBoolean()
   @IsOptional()
   isActive?: boolean;
+
+  @ApiProperty({ example: 1, required: false })
+  @IsNumber()
+  @IsOptional()
+  etablissementId?: number;
 }

@@ -17,6 +17,7 @@ import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { Permissions } from '../auth/decorators/permissions.decorator';
 import { Role } from '../user/entities/user.entity';
+import { CurrentEtablissement } from '../auth/decorators/current-etablissement.decorator';
 
 @ApiTags('semestre')
 @ApiBearerAuth()
@@ -32,8 +33,8 @@ export class SemestreController {
     description:
       'Définit une période académique (Semestre 1 ou 2) rattachée à une année universitaire.',
   })
-  create(@Body() createSemestreDto: CreateSemestreDto) {
-    return this.semestreService.create(createSemestreDto);
+  create(@Body() createSemestreDto: CreateSemestreDto, @CurrentEtablissement() tenantId?: number) {
+    return this.semestreService.create(createSemestreDto, tenantId);
   }
 
   @Get()
@@ -44,8 +45,8 @@ export class SemestreController {
     description:
       'Récupère tous les semestres enregistrés, incluant leur année universitaire de rattachement.',
   })
-  findAll() {
-    return this.semestreService.findAll();
+  findAll(@CurrentEtablissement() tenantId?: number) {
+    return this.semestreService.findAll(tenantId);
   }
 
   @Get(':id')
@@ -54,8 +55,8 @@ export class SemestreController {
     summary: 'Récupérer un semestre par ID',
     description: "Affiche les détails d'une semestre spécifique.",
   })
-  findOne(@Param('id') id: string) {
-    return this.semestreService.findOne(+id);
+  findOne(@Param('id') id: string, @CurrentEtablissement() tenantId?: number) {
+    return this.semestreService.findOne(+id, tenantId);
   }
 
   @Patch(':id')
@@ -67,8 +68,9 @@ export class SemestreController {
   update(
     @Param('id') id: string,
     @Body() updateSemestreDto: UpdateSemestreDto,
+    @CurrentEtablissement() tenantId?: number,
   ) {
-    return this.semestreService.update(+id, updateSemestreDto);
+    return this.semestreService.update(+id, updateSemestreDto, tenantId);
   }
 
   @Delete(':id')
@@ -77,7 +79,7 @@ export class SemestreController {
     summary: 'Supprimer un semestre',
     description: 'Supprime un semestre du système.',
   })
-  remove(@Param('id') id: string) {
-    return this.semestreService.remove(+id);
+  remove(@Param('id') id: string, @CurrentEtablissement() tenantId?: number) {
+    return this.semestreService.remove(+id, tenantId);
   }
 }

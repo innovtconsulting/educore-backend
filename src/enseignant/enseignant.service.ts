@@ -18,6 +18,7 @@ import { Niveau } from '../niveau/entities/niveau.entity';
 import { EnseignantFilterDto } from './dto/enseignant-filter.dto';
 import { UserService } from '../user/user.service';
 import { Role } from '../user/entities/user.entity';
+import { TenantHelper } from '../common/tenant/tenant.helper';
 
 @Injectable()
 export class EnseignantService {
@@ -36,8 +37,15 @@ export class EnseignantService {
     private readonly userService: UserService,
   ) {}
 
-  async create(createEnseignantDto: CreateEnseignantDto, tenantId?: number): Promise<Enseignant> {
-    const { email, matricule, etablissementId } = createEnseignantDto;
+  async create(
+    createEnseignantDto: CreateEnseignantDto,
+    tenantId?: number,
+  ): Promise<Enseignant> {
+    const {
+      email,
+      matricule,
+      etablissementId: dtoEtablissementId,
+    } = createEnseignantDto;
 
     const existingEmail = await this.enseignantRepository.findOneBy({ email });
     if (existingEmail) {
@@ -55,9 +63,18 @@ export class EnseignantService {
       );
     }
 
-    // Utiliser le tenantId si fourni, sinon utiliser etablissementId du DTO
-    const finalEtablissementId = tenantId || etablissementId;
-    const etablissement = await this.etablissementRepository.findOneBy({ id: finalEtablissementId });
+    // Utiliser le tenantId si fourni (pour ADMIN), sinon utiliser etablissementId du DTO
+    const finalEtablissementId = tenantId || dtoEtablissementId;
+    if (!finalEtablissementId) {
+      throw new BadRequestException("ID d'établissement manquant");
+    }
+
+    const etablissement = await this.etablissementRepository.findOne({
+      where: TenantHelper.addTenantFilter(
+        { id: finalEtablissementId },
+        tenantId,
+      ),
+    });
     if (!etablissement) {
       throw new NotFoundException(
         `Établissement avec l'ID "${finalEtablissementId}" introuvable`,
@@ -85,7 +102,14 @@ export class EnseignantService {
   }
 
   async findAll(filter: EnseignantFilterDto, tenantId?: number) {
-    const { page = 1, limit = 20, search, etablissementId, matiereId, niveauId } = filter;
+    const {
+      page = 1,
+      limit = 20,
+      search,
+      etablissementId,
+      matiereId,
+      niveauId,
+    } = filter;
     const skip = (page - 1) * limit;
 
     const queryBuilder = this.enseignantRepository
@@ -103,7 +127,9 @@ export class EnseignantService {
 
     // Apply etablissementId filter
     if (etablissementId) {
-      queryBuilder.andWhere('etablissement.id = :etablissementId', { etablissementId });
+      queryBuilder.andWhere('etablissement.id = :etablissementId', {
+        etablissementId,
+      });
     }
 
     // Apply matiereId filter

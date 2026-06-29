@@ -62,3 +62,5 @@ uploads/*
 base.xlsx
 
 *.tsbuildinfo
+
+*.md

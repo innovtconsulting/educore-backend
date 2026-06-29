@@ -2,6 +2,7 @@ import {
   Injectable,
   NotFoundException,
   ConflictException,
+  BadRequestException,
   Inject,
   forwardRef,
 } from '@nestjs/common';
@@ -13,7 +14,7 @@ import { UpdateProfileDto } from './dto/update-profile.dto';
 import { EtudiantService } from '../etudiant/etudiant.service';
 import { EnseignantService } from '../enseignant/enseignant.service';
 import { ParentService } from '../parent/parent.service';
-import { PaginationQueryDto } from '../common/dto/pagination-query.dto';
+import { UserFilterDto } from './dto/user-filter.dto';
 import { unlink } from 'fs/promises';
 import { existsSync } from 'fs';
 import { join } from 'path';
@@ -33,7 +34,7 @@ export class UserService {
     private readonly aclService: AclService,
   ) {}
 
-  async create(userData: Partial<User>): Promise<User> {
+  async create(userData: Partial<User>, tenantId?: number): Promise<User> {
     if (userData.email) {
       const existingUser = await this.userRepository.findOne({
         where: { email: userData.email },
@@ -48,10 +49,29 @@ export class UserService {
 
     // Assigner automatiquement le rôle ACL basé sur le UserRole
     if (userData.role && !userData.aclRole) {
-      const aclRole = await this.aclService.findRoleByName(userData.role);
+      const aclRole = await this.aclService.findRoleByName(
+        userData.role,
+        tenantId,
+      );
       if (aclRole) {
         userData.aclRole = aclRole;
       }
+    }
+
+    // Si tenantId existe et pas d'etablissementId, on l'utilise le tenantId
+    if (tenantId && !userData.etablissementId) {
+      userData.etablissementId = tenantId;
+    }
+
+    // Validation: pour les rôles autres que SUPER_ADMIN, etablissementId est obligatoire
+    if (
+      userData.role &&
+      userData.role !== Role.SUPER_ADMIN &&
+      !userData.etablissementId
+    ) {
+      throw new BadRequestException(
+        'Un etablissementId est requis pour ce rôle',
+      );
     }
 
     const user = this.userRepository.create(userData);
@@ -61,15 +81,23 @@ export class UserService {
   async createWithRunner(
     queryRunner: any,
     userData: Partial<User>,
+    tenantId?: number,
   ): Promise<User> {
     const password = userData.password || '12345678';
     userData.password = await bcrypt.hash(password, 10);
 
     if (userData.role && !userData.aclRole) {
-      const aclRole = await this.aclService.findRoleByName(userData.role);
+      const aclRole = await this.aclService.findRoleByName(
+        userData.role,
+        tenantId,
+      );
       if (aclRole) {
         userData.aclRole = aclRole;
       }
+    }
+
+    if (tenantId && !userData.etablissementId) {
+      userData.etablissementId = tenantId;
     }
 
     const user = queryRunner.manager.create(User, userData);
@@ -101,8 +129,15 @@ export class UserService {
     });
   }
 
-  async findAll(query: PaginationQueryDto) {
-    const { page = 1, limit = 20, search } = query;
+  async findAll(filter: UserFilterDto, tenantId?: number) {
+    const {
+      page = 1,
+      limit = 20,
+      search,
+      role,
+      isActive,
+      etablissementId,
+    } = filter;
     const skip = (page - 1) * limit;
 
     const qb = this.userRepository
@@ -110,13 +145,26 @@ export class UserService {
       .leftJoinAndSelect('u.enseignant', 'enseignant')
       .leftJoinAndSelect('u.etudiant', 'etudiant')
       .leftJoinAndSelect('u.parent', 'parent')
-      .orderBy('u.createdAt', 'DESC')
-      .skip(skip)
-      .take(limit);
+      .leftJoinAndSelect('u.etablissement', 'etablissement')
+      .leftJoinAndSelect('u.aclRole', 'aclRole');
+
+    if (tenantId) {
+      qb.andWhere('etablissement.id = :tenantId', { tenantId });
+    } else if (etablissementId) {
+      qb.andWhere('etablissement.id = :etablissementId', { etablissementId });
+    }
+
+    if (role) {
+      qb.andWhere('u.role = :role', { role });
+    }
+
+    if (isActive !== undefined) {
+      qb.andWhere('u.isActive = :isActive', { isActive });
+    }
 
     if (search) {
-      qb.where(
-        `u.email ILIKE :search
+      qb.andWhere(
+        `(u.email ILIKE :search
         OR u.username ILIKE :search
         OR enseignant.firstName ILIKE :search
         OR enseignant.lastName ILIKE :search
@@ -130,12 +178,16 @@ export class UserService {
         OR parent.firstName ILIKE :search
         OR parent.lastName ILIKE :search
         OR parent.email ILIKE :search
-        OR parent.phoneNumber ILIKE :search`,
+        OR parent.phoneNumber ILIKE :search)`,
         { search: `%${search}%` },
       );
     }
 
-    const [items, total] = await qb.getManyAndCount();
+    const [items, total] = await qb
+      .orderBy('u.createdAt', 'DESC')
+      .skip(skip)
+      .take(limit)
+      .getManyAndCount();
 
     return {
       items,
@@ -145,24 +197,42 @@ export class UserService {
     };
   }
 
-  async findOne(id: number): Promise<User> {
-    const user = await this.userRepository.findOne({
-      where: { id },
-      relations: {
-        enseignant: { affectations: { matiere: true, niveau: true, etablissement: true } },
-        etudiant: true,
-        parent: true,
-        aclRole: { permissions: true },
-      },
-    });
+  async findOne(id: number, tenantId?: number): Promise<User> {
+    const qb = this.userRepository
+      .createQueryBuilder('u')
+      .leftJoinAndSelect('u.enseignant', 'enseignant')
+      .leftJoinAndSelect('u.etudiant', 'etudiant')
+      .leftJoinAndSelect('u.parent', 'parent')
+      .leftJoinAndSelect('u.etablissement', 'etablissement')
+      .leftJoinAndSelect('u.aclRole', 'aclRole')
+      .leftJoinAndSelect('aclRole.permissions', 'permissions')
+      .leftJoinAndSelect('enseignant.affectations', 'affectations')
+      .leftJoinAndSelect('affectations.matiere', 'matiere')
+      .leftJoinAndSelect('affectations.niveau', 'niveau')
+      .leftJoinAndSelect(
+        'affectations.etablissement',
+        'affectationEtablissement',
+      )
+      .where('u.id = :id', { id });
+
+    if (tenantId) {
+      qb.andWhere('etablissement.id = :tenantId', { tenantId });
+    }
+
+    const user = await qb.getOne();
+
     if (!user) {
       throw new NotFoundException(`Utilisateur #${id} non trouvé`);
     }
     return user;
   }
 
-  async update(id: number, updateData: Partial<User>): Promise<User> {
-    const user = await this.findOne(id);
+  async update(
+    id: number,
+    updateData: Partial<User>,
+    tenantId?: number,
+  ): Promise<User> {
+    const user = await this.findOne(id, tenantId);
 
     if (updateData.password) {
       updateData.password = await bcrypt.hash(updateData.password, 10);
@@ -172,8 +242,8 @@ export class UserService {
     return await this.userRepository.save(user);
   }
 
-  async remove(id: number): Promise<void> {
-    const user = await this.findOne(id);
+  async remove(id: number, tenantId?: number): Promise<void> {
+    const user = await this.findOne(id, tenantId);
 
     // Supprimer la photo si elle existe
     if (user.photoPath) {
@@ -309,4 +379,3 @@ export class UserService {
     });
   }
 }
-

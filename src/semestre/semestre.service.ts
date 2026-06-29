@@ -12,7 +12,7 @@ export class SemestreService {
     private readonly semestreRepository: Repository<Semestre>,
   ) {}
 
-  async create(createSemestreDto: CreateSemestreDto) {
+  async create(createSemestreDto: CreateSemestreDto, tenantId?: number) {
     const { anneeUniversitaireId, ...data } = createSemestreDto;
     const semestre = this.semestreRepository.create({
       ...data,
@@ -21,29 +21,39 @@ export class SemestreService {
     return await this.semestreRepository.save(semestre);
   }
 
-  async findAll() {
-    return await this.semestreRepository.find({
-      relations: { anneeUniversitaire: true },
-    });
+  async findAll(tenantId?: number) {
+    const query = this.semestreRepository.createQueryBuilder('semestre');
+    query.leftJoinAndSelect('semestre.anneeUniversitaire', 'annee');
+
+    if (tenantId) {
+      query.where('annee.etablissementId = :tenantId', { tenantId });
+    }
+
+    return await query.getMany();
   }
 
-  async findOne(id: number) {
-    const semestre = await this.semestreRepository.findOne({
-      where: { id },
-      relations: { anneeUniversitaire: true },
-    });
+  async findOne(id: number, tenantId?: number) {
+    const query = this.semestreRepository.createQueryBuilder('semestre');
+    query.leftJoinAndSelect('semestre.anneeUniversitaire', 'annee');
+    query.where('semestre.id = :id', { id });
+
+    if (tenantId) {
+      query.andWhere('annee.etablissementId = :tenantId', { tenantId });
+    }
+
+    const semestre = await query.getOne();
     if (!semestre) throw new NotFoundException(`Semestre #${id} non trouvé`);
     return semestre;
   }
 
-  async update(id: number, updateSemestreDto: UpdateSemestreDto) {
-    const semestre = await this.findOne(id);
+  async update(id: number, updateSemestreDto: UpdateSemestreDto, tenantId?: number) {
+    const semestre = await this.findOne(id, tenantId);
     Object.assign(semestre, updateSemestreDto);
     return await this.semestreRepository.save(semestre);
   }
 
-  async remove(id: number) {
-    const semestre = await this.findOne(id);
+  async remove(id: number, tenantId?: number) {
+    const semestre = await this.findOne(id, tenantId);
     return await this.semestreRepository.remove(semestre);
   }
 }

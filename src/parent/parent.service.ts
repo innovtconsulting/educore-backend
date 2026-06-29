@@ -18,19 +18,25 @@ export class ParentService {
     private readonly parentRepository: Repository<Parent>,
   ) {}
 
-  async create(createParentDto: CreateParentDto): Promise<Parent> {
-    const parent = this.parentRepository.create(createParentDto);
+  async create(createParentDto: CreateParentDto, tenantId?: number): Promise<Parent> {
+    const finalEtablissementId = tenantId || createParentDto.etablissementId;
+    if (!finalEtablissementId) {
+      throw new Error("ID d'établissement manquant");
+    }
+    const parent = this.parentRepository.create({
+      ...createParentDto,
+      etablissement: { id: finalEtablissementId },
+    });
     return await this.parentRepository.save(parent);
   }
 
   async findAll(paginationQuery: PaginationQueryDto, tenantId?: number) {
     const { page = 1, limit = 15 } = paginationQuery;
     const skip = (page - 1) * limit;
-    const where = TenantHelper.addTenantFilter(
-      {},
-      tenantId,
-      'etudiants.etablissement',
-    );
+    const where: any = {};
+    if (tenantId) {
+      where.etablissement = { id: tenantId };
+    }
 
     const [items, total] = await this.parentRepository.findAndCount({
       where: where,
@@ -49,11 +55,10 @@ export class ParentService {
   }
 
   async findOne(id: number, tenantId?: number): Promise<Parent> {
-    const where = TenantHelper.addTenantFilter(
-      { id },
-      tenantId,
-      'etudiants.etablissement',
-    );
+    const where: any = { id };
+    if (tenantId) {
+      where.etablissement = { id: tenantId };
+    }
 
     const parent = await this.parentRepository.findOne({
       where: where,

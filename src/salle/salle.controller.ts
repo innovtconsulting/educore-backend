@@ -31,8 +31,8 @@ export class SalleController {
   @Post()
   @Permissions('ACADEMIC_CONFIG')
   @ApiOperation({ summary: 'Créer une nouvelle salle' })
-  create(@Body() createSalleDto: CreateSalleDto) {
-    return this.salleService.create(createSalleDto);
+  create(@Body() createSalleDto: CreateSalleDto, @CurrentEtablissement() tenantId?: number) {
+    return this.salleService.create(createSalleDto, tenantId);
   }
 
   @Get()

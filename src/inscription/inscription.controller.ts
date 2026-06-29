@@ -28,15 +28,21 @@ export class InscriptionController {
   @Post('reinscrire')
   @Permissions('STUDENT_VALIDATE')
   @ApiOperation({ summary: 'Réinscrire un étudiant pour une nouvelle année' })
-  reinscrire(@Body() createInscriptionDto: CreateInscriptionDto) {
-    return this.inscriptionService.reinscrire(createInscriptionDto);
+  reinscrire(
+    @Body() createInscriptionDto: CreateInscriptionDto,
+    @CurrentEtablissement() tenantId?: number,
+  ) {
+    return this.inscriptionService.reinscrire(createInscriptionDto, tenantId);
   }
 
   @Post('diplomer/:etudiantId')
   @Permissions('STUDENT_VALIDATE')
   @ApiOperation({ summary: 'Marquer un étudiant comme diplômé' })
-  graduate(@Param('etudiantId') etudiantId: string) {
-    return this.inscriptionService.graduate(+etudiantId);
+  graduate(
+    @Param('etudiantId') etudiantId: string,
+    @CurrentEtablissement() tenantId?: number,
+  ) {
+    return this.inscriptionService.graduate(+etudiantId, tenantId);
   }
 
   @Get('rapport-diplomes')
@@ -51,8 +57,11 @@ export class InscriptionController {
   @ApiOperation({
     summary: "Vérifier l'éligibilité d'un étudiant à la réinscription",
   })
-  checkEligibility(@Param('etudiantId') etudiantId: string) {
-    return this.inscriptionService.checkEligibility(+etudiantId);
+  checkEligibility(
+    @Param('etudiantId') etudiantId: string,
+    @CurrentEtablissement() tenantId?: number,
+  ) {
+    return this.inscriptionService.checkEligibility(+etudiantId, tenantId);
   }
 
   @Get('etudiant/:etudiantId')
@@ -61,7 +70,7 @@ export class InscriptionController {
   @ApiOperation({
     summary: "Consulter l'historique des inscriptions d'un étudiant",
   })
-  getHistory(@Param('etudiantId') etudiantId: string, @Request() req: any) {
+  getHistory(@Param('etudiantId') etudiantId: string, @Request() req: any, @CurrentEtablissement() tenantId?: number) {
     // Si c'est un étudiant, il ne peut voir que son propre historique
     if (
       req.user.role === Role.ETUDIANT &&
@@ -71,6 +80,6 @@ export class InscriptionController {
         'Vous ne pouvez consulter que votre propre historique',
       );
     }
-    return this.inscriptionService.getHistory(+etudiantId);
+    return this.inscriptionService.getHistory(+etudiantId, tenantId);
   }
 }

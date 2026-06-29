@@ -48,7 +48,8 @@ export class NiveauController {
   @Permissions('ACADEMIC_VIEW')
   @ApiOperation({
     summary: 'Lister tous les niveaux',
-    description: "Récupère la liste complète des niveaux d'étude disponibles, avec filtres.",
+    description:
+      "Récupère la liste complète des niveaux d'étude disponibles, avec filtres.",
   })
   async findAll(
     @Query() filter: NiveauFilterDto,

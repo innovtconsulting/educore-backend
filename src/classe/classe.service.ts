@@ -24,11 +24,17 @@ export class ClasseService {
     createClasseDto: CreateClasseDto,
     tenantId?: number,
   ): Promise<Classe> {
-    const { name, etablissementId } = createClasseDto;
+    const { name, etablissementId: dtoEtablissementId } = createClasseDto;
+
+    // Utiliser le tenantId si fourni (pour ADMIN), sinon utiliser etablissementId du DTO
+    const etablissementId = tenantId || dtoEtablissementId;
+    if (!etablissementId) {
+      throw new BadRequestException("ID d'établissement manquant");
+    }
 
     // Vérifier l'existence de l'établissement
     const etablissement = await this.etablissementRepository.findOne({
-      where: TenantHelper.addTenantFilter({ id: etablissementId }, tenantId),
+      where: { id: etablissementId },
     });
 
     if (!etablissement) {
@@ -108,7 +114,7 @@ export class ClasseService {
 
     if (etablissementId) {
       const etablissement = await this.etablissementRepository.findOne({
-        where: TenantHelper.addTenantFilter({ id: etablissementId }, tenantId),
+        where: { id: etablissementId },
       });
       if (!etablissement) {
         throw new NotFoundException('Établissement introuvable');

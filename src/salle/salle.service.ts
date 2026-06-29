@@ -13,10 +13,14 @@ export class SalleService {
     private readonly salleRepository: Repository<Salle>,
   ) {}
 
-  async create(createSalleDto: CreateSalleDto) {
+  async create(createSalleDto: CreateSalleDto, tenantId?: number) {
+    const finalEtablissementId = tenantId || createSalleDto.etablissementId;
+    if (!finalEtablissementId) {
+      throw new Error("ID d'établissement manquant");
+    }
     const salle = this.salleRepository.create({
       ...createSalleDto,
-      etablissement: { id: createSalleDto.etablissementId },
+      etablissement: { id: finalEtablissementId },
     });
     return await this.salleRepository.save(salle);
   }
