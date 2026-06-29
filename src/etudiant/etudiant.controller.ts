@@ -269,9 +269,10 @@ export class EtudiantController {
   @UseInterceptors(FileInterceptor('file'))
   async checkImportV2(
     @UploadedFile() file: Express.Multer.File,
+    @CurrentEtablissement() tenantId?: number,
   ): Promise<{ message: string; data: CheckImportResultDto }> {
     if (!file) throw new BadRequestException('Fichier Excel manquant');
-    const data = await this.etudiantService.checkImport(file.buffer);
+    const data = await this.etudiantService.checkImport(file.buffer, tenantId);
     return {
       message: 'Vérification terminée',
       data,
@@ -295,6 +296,7 @@ export class EtudiantController {
   async runImportV2(
     @UploadedFile() file: Express.Multer.File,
     @Body('data') dataStr?: string,
+    @CurrentEtablissement() tenantId?: number,
   ): Promise<{ message: string; data: ImportReportDto }> {
     if (!file) throw new BadRequestException('Fichier Excel manquant');
 
@@ -307,7 +309,11 @@ export class EtudiantController {
       }
     }
 
-    const data = await this.etudiantService.runImport(file.buffer, runDto);
+    const data = await this.etudiantService.runImport(
+      file.buffer,
+      runDto,
+      tenantId,
+    );
     return {
       message: 'Importation terminée',
       data,

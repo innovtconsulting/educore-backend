@@ -3,9 +3,9 @@ import {
   IsDateString,
   IsEmail,
   IsNotEmpty,
+  IsNumber,
   IsOptional,
   IsString,
-  IsNumber,
 } from 'class-validator';
 
 export class CreateEnseignantDto {
@@ -49,8 +49,8 @@ export class CreateEnseignantDto {
   @IsNotEmpty()
   dateEmbauche!: string;
 
-  @ApiProperty({ example: 1, description: 'ID de l\'établissement' })
+  @ApiProperty({ example: 1, description: "ID de l'établissement (optionnel si extrait du token)", required: false })
   @IsNumber()
-  @IsNotEmpty()
-  etablissementId!: number;
+  @IsOptional()
+  etablissementId?: number;
 }

@@ -79,8 +79,9 @@ export class EnseignantController {
   addAffectation(
     @Param('id') id: string,
     @Body() createAffectationDto: CreateAffectationDto,
+    @CurrentEtablissement() tenantId?: number,
   ) {
-    return this.enseignantService.addAffectation(+id, createAffectationDto);
+    return this.enseignantService.addAffectation(+id, createAffectationDto, tenantId);
   }
 
   @Delete('affectations/:affectationId')

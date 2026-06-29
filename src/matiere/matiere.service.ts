@@ -53,6 +53,7 @@ export class MatiereService {
       name,
       coefficient,
       niveau,
+      etablissementId: tenantId,
     });
 
     return await this.matiereRepository.save(matiere);

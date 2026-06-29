@@ -64,6 +64,14 @@ export class EstablishmentToCreateDto {
   name: string;
 }
 
+export class MissingClasseDto {
+  @ApiProperty()
+  niveauNom: string;
+
+  @ApiProperty()
+  classeNom: string;
+}
+
 export class CheckImportResultSheetDto {
   @ApiProperty()
   acronyme: string;
@@ -76,6 +84,12 @@ export class CheckImportResultSheetDto {
 
   @ApiProperty()
   headers: string[];
+
+  @ApiProperty({ type: [String] })
+  niveauxManquants: string[];
+
+  @ApiProperty({ type: [MissingClasseDto] })
+  classesManquantes: MissingClasseDto[];
 }
 
 export class CheckImportResultDto {

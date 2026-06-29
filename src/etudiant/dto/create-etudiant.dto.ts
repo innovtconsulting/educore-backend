@@ -140,10 +140,10 @@ export class CreateEtudiantDto {
   @IsOptional()
   status?: EnrollmentStatus;
 
-  @ApiProperty({ example: 1, description: "ID de l'établissement" })
+  @ApiProperty({ example: 1, description: "ID de l'établissement (optionnel pour admin, déduit du token)", required: false })
   @IsNumber()
-  @IsNotEmpty()
-  etablissementId!: number;
+  @IsOptional()
+  etablissementId?: number;
 
   @ApiProperty({ example: 1, description: 'ID de la classe' })
   @IsNumber()

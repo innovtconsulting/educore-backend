@@ -47,16 +47,10 @@ export class ReportingService {
         ) as any,
       }),
       this.enseignantRepository.count({
-        where: tenantId
-          ? { affectations: { etablissement: { id: tenantId } } }
-          : {},
+        where: TenantHelper.addTenantFilter({}, tenantId) as any,
       }),
       this.classeRepository.count({
-        where: TenantHelper.addTenantFilter(
-          {},
-          tenantId,
-          'etablissements',
-        ) as any,
+        where: TenantHelper.addTenantFilter({}, tenantId) as any,
       }),
     ]);
 

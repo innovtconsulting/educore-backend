@@ -69,11 +69,8 @@ export class EnseignantService {
       throw new BadRequestException("ID d'établissement manquant");
     }
 
-    const etablissement = await this.etablissementRepository.findOne({
-      where: TenantHelper.addTenantFilter(
-        { id: finalEtablissementId },
-        tenantId,
-      ),
+    const etablissement = await this.etablissementRepository.findOneBy({
+      id: finalEtablissementId,
     });
     if (!etablissement) {
       throw new NotFoundException(
@@ -95,7 +92,8 @@ export class EnseignantService {
       role: Role.ENSEIGNANT,
       enseignant: savedEnseignant,
       etablissement: etablissement,
-      isActive: true, // Les enseignants créés par l'admin sont actifs immédiatement
+      etablissementId: finalEtablissementId,
+      isActive: true,
     });
 
     return savedEnseignant;
@@ -120,14 +118,14 @@ export class EnseignantService {
       .leftJoinAndSelect('affectations.niveau', 'niveau')
       .leftJoinAndSelect('enseignant.user', 'user');
 
-    // Apply tenant filter
+    // Apply tenant filter on the enseignant's own etablissementId (not the affectation's)
     if (tenantId) {
-      queryBuilder.andWhere('etablissement.id = :tenantId', { tenantId });
+      queryBuilder.andWhere('enseignant.etablissementId = :tenantId', { tenantId });
     }
 
     // Apply etablissementId filter
     if (etablissementId) {
-      queryBuilder.andWhere('etablissement.id = :etablissementId', {
+      queryBuilder.andWhere('enseignant.etablissementId = :etablissementId', {
         etablissementId,
       });
     }
@@ -167,7 +165,7 @@ export class EnseignantService {
   async findOne(id: number, tenantId?: number): Promise<Enseignant> {
     const where: any = { id };
     if (tenantId) {
-      where.affectations = { etablissement: { id: tenantId } };
+      where.etablissementId = tenantId;
     }
 
     const enseignant = await this.enseignantRepository.findOne({
@@ -196,7 +194,7 @@ export class EnseignantService {
   ): Promise<Enseignant | null> {
     const where: any = { matricule };
     if (tenantId) {
-      where.affectations = { etablissement: { id: tenantId } };
+      where.etablissementId = tenantId;
     }
 
     return await this.enseignantRepository.findOne({
@@ -273,8 +271,14 @@ export class EnseignantService {
   async addAffectation(
     enseignantId: number,
     createAffectationDto: CreateAffectationDto,
+    tenantId?: number,
   ): Promise<Affectation> {
-    const { matiereId, etablissementId, niveauId } = createAffectationDto;
+    const { matiereId, etablissementId: dtoEtablissementId, niveauId } = createAffectationDto;
+
+    const finalEtablissementId = tenantId || dtoEtablissementId;
+    if (!finalEtablissementId) {
+      throw new BadRequestException("ID d'établissement manquant");
+    }
 
     const enseignant = await this.findOne(enseignantId);
 
@@ -283,11 +287,11 @@ export class EnseignantService {
       throw new NotFoundException(`Matière avec l'ID ${matiereId} introuvable`);
 
     const etablissement = await this.etablissementRepository.findOneBy({
-      id: etablissementId,
+      id: finalEtablissementId,
     });
     if (!etablissement)
       throw new NotFoundException(
-        `Établissement avec l'ID ${etablissementId} introuvable`,
+        `Établissement avec l'ID ${finalEtablissementId} introuvable`,
       );
 
     const niveau = await this.niveauRepository.findOneBy({ id: niveauId });
@@ -299,7 +303,7 @@ export class EnseignantService {
       where: {
         enseignant: { id: enseignantId },
         matiere: { id: matiereId },
-        etablissement: { id: etablissementId },
+        etablissement: { id: finalEtablissementId },
         niveau: { id: niveauId },
       },
     });

@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsNotEmpty, IsNumber } from 'class-validator';
+import { IsNotEmpty, IsNumber, IsOptional } from 'class-validator';
 
 export class CreateAffectationDto {
   @ApiProperty({ example: 1, description: 'ID de la matière' })
@@ -7,10 +7,10 @@ export class CreateAffectationDto {
   @IsNotEmpty()
   matiereId!: number;
 
-  @ApiProperty({ example: 1, description: "ID de l'établissement" })
+  @ApiProperty({ example: 1, description: "ID de l'établissement (optionnel si extrait du token)", required: false })
   @IsNumber()
-  @IsNotEmpty()
-  etablissementId!: number;
+  @IsOptional()
+  etablissementId?: number;
 
   @ApiProperty({ example: 1, description: 'ID du niveau' })
   @IsNumber()
