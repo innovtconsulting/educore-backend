@@ -7,7 +7,7 @@ import {
   forwardRef,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, MoreThan, Like } from 'typeorm';
+import { Repository, MoreThan, Like, ILike } from 'typeorm';
 import { User, Role } from './entities/user.entity';
 import * as bcrypt from 'bcrypt';
 import { UpdateProfileDto } from './dto/update-profile.dto';
@@ -36,8 +36,9 @@ export class UserService {
 
   async create(userData: Partial<User>, tenantId?: number): Promise<User> {
     if (userData.email) {
+      userData.email = userData.email.toLowerCase().trim();
       const existingUser = await this.userRepository.findOne({
-        where: { email: userData.email },
+        where: { email: ILike(userData.email) },
       });
       if (existingUser) {
         throw new ConflictException('Email déjà utilisé');
@@ -105,10 +106,13 @@ export class UserService {
   }
 
   async findByEmail(email: string): Promise<User | null> {
+    const normalizedEmail = email.toLowerCase().trim();
     return await this.userRepository.findOne({
-      where: { email },
+      where: { email: normalizedEmail },
       relations: {
-        enseignant: { affectations: { etablissement: true } },
+        enseignant: {
+          affectations: { etablissement: true, matiere: true, niveau: true },
+        },
         etudiant: { etablissement: true },
         parent: { etudiants: { etablissement: true } },
         etablissement: true,
@@ -261,13 +265,14 @@ export class UserService {
     const { email, password, phoneNumber, address, username } = updateDto;
 
     // Mettre à jour l'utilisateur (User)
-    if (email && email !== user.email) {
-      const existing = await this.findByEmail(email);
+    if (email && email.toLowerCase().trim() !== user.email) {
+      const normalizedEmail = email.toLowerCase().trim();
+      const existing = await this.findByEmail(normalizedEmail);
       if (existing)
         throw new ConflictException(
           'Email ou numéro de téléphone déjà utilisé',
         );
-      user.email = email;
+      user.email = normalizedEmail;
     }
 
     if (username && username !== user.username) {

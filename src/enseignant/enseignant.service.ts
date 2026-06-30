@@ -6,7 +6,7 @@ import {
   forwardRef,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, ILike } from 'typeorm';
+import { Repository, ILike, DataSource } from 'typeorm';
 import { CreateEnseignantDto } from './dto/create-enseignant.dto';
 import { UpdateEnseignantDto } from './dto/update-enseignant.dto';
 import { Enseignant } from './entities/enseignant.entity';
@@ -35,6 +35,7 @@ export class EnseignantService {
     private readonly niveauRepository: Repository<Niveau>,
     @Inject(forwardRef(() => UserService))
     private readonly userService: UserService,
+    private readonly dataSource: DataSource,
   ) {}
 
   async create(
@@ -42,12 +43,14 @@ export class EnseignantService {
     tenantId?: number,
   ): Promise<Enseignant> {
     const {
-      email,
+      email: rawEmail,
       matricule,
       etablissementId: dtoEtablissementId,
     } = createEnseignantDto;
 
-    const existingEmail = await this.enseignantRepository.findOneBy({ email });
+    const email = rawEmail.toLowerCase().trim();
+
+    const existingEmail = await this.enseignantRepository.findOne({ where: { email: ILike(email) } });
     if (existingEmail) {
       throw new BadRequestException(
         `Un enseignant avec l'email "${email}" existe déjà`,
@@ -63,7 +66,6 @@ export class EnseignantService {
       );
     }
 
-    // Utiliser le tenantId si fourni (pour ADMIN), sinon utiliser etablissementId du DTO
     const finalEtablissementId = tenantId || dtoEtablissementId;
     if (!finalEtablissementId) {
       throw new BadRequestException("ID d'établissement manquant");
@@ -78,25 +80,38 @@ export class EnseignantService {
       );
     }
 
-    const enseignant = this.enseignantRepository.create({
-      ...createEnseignantDto,
-      etablissement,
-    });
-    const savedEnseignant = await this.enseignantRepository.save(enseignant);
+    const queryRunner = this.dataSource.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
 
-    // Création automatique du compte utilisateur avec mot de passe par défaut
-    await this.userService.create({
-      email: email,
-      username: createEnseignantDto.firstName,
-      password: '12345678',
-      role: Role.ENSEIGNANT,
-      enseignant: savedEnseignant,
-      etablissement: etablissement,
-      etablissementId: finalEtablissementId,
-      isActive: true,
-    });
+    try {
+      const enseignant = queryRunner.manager.create(Enseignant, {
+        ...createEnseignantDto,
+        email,
+        etablissement,
+        etablissementId: finalEtablissementId,
+      });
+      const savedEnseignant = await queryRunner.manager.save(Enseignant, enseignant);
 
-    return savedEnseignant;
+      await this.userService.createWithRunner(queryRunner, {
+        email,
+        username: createEnseignantDto.firstName,
+        password: '12345678',
+        role: Role.ENSEIGNANT,
+        enseignant: savedEnseignant,
+        etablissement,
+        etablissementId: finalEtablissementId,
+        isActive: true,
+      });
+
+      await queryRunner.commitTransaction();
+      return savedEnseignant;
+    } catch (err) {
+      await queryRunner.rollbackTransaction();
+      throw err;
+    } finally {
+      await queryRunner.release();
+    }
   }
 
   async findAll(filter: EnseignantFilterDto, tenantId?: number) {
@@ -256,6 +271,32 @@ export class EnseignantService {
   async remove(id: number, tenantId?: number): Promise<void> {
     const enseignant = await this.findOne(id, tenantId);
     await this.enseignantRepository.remove(enseignant);
+  }
+
+  async resetCredentials(id: number, tenantId?: number): Promise<{ email: string; password: string }> {
+    const enseignant = await this.findOne(id, tenantId);
+    const normalizedEmail = enseignant.email.toLowerCase().trim();
+
+    // Normalize email on Enseignant if needed
+    if (enseignant.email !== normalizedEmail) {
+      enseignant.email = normalizedEmail;
+      await this.enseignantRepository.save(enseignant);
+    }
+
+    const user = await this.userService.findByEnseignantId(id);
+    if (!user) {
+      throw new NotFoundException(
+        `Aucun compte utilisateur trouvé pour cet enseignant. Contactez un super-administrateur.`,
+      );
+    }
+
+    await this.userService.update(user.id, {
+      email: normalizedEmail,
+      password: '12345678',
+      isActive: true,
+    });
+
+    return { email: normalizedEmail, password: '12345678' };
   }
 
   async updateProfilePicture(

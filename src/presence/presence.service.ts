@@ -5,7 +5,7 @@ import {
   ForbiddenException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Between, Repository } from 'typeorm';
+import { Between, Repository, SelectQueryBuilder } from 'typeorm';
 import { Presence, PresenceStatus } from './entities/presence.entity';
 import { BulkRecordPresenceDto } from './dto/record-presence.dto';
 import { EmploiDuTemp } from '../emploi-du-temps/entities/emploi-du-temp.entity';
@@ -36,11 +36,12 @@ export class PresenceService {
 
     const emploi = await this.emploiRepo.findOne({
       where: TenantHelper.addTenantFilter({ id: emploiDuTempId }, tenantId),
-      relations: { classe: true, niveau: true, matiere: true },
+      relations: { classe: true, niveau: true, matiere: true, etablissement: true },
     });
     if (!emploi)
       throw new NotFoundException(`Créneau #${emploiDuTempId} introuvable`);
 
+    const finalEtablissementId = tenantId || emploi.etablissement.id;
     const results: Presence[] = [];
 
     for (const item of items) {
@@ -82,6 +83,7 @@ export class PresenceService {
         presence = this.presenceRepository.create({
           etudiant,
           emploiDuTemp: emploi,
+          etablissementId: finalEtablissementId,
           status: item.status,
           remark: item.remark,
         });
@@ -94,7 +96,7 @@ export class PresenceService {
   }
 
   async findAll(filterDto: PresenceFilterDto, tenantId?: number) {
-    const { page = 1, limit = 15, classeId, niveauId } = filterDto;
+    const { page = 1, limit = 15, classeId, niveauId, status } = filterDto;
     const skip = (page - 1) * limit;
     const where = TenantHelper.addTenantFilter(
       {},
@@ -113,6 +115,9 @@ export class PresenceService {
         ...(where.emploiDuTemp || {}),
         niveau: { id: niveauId },
       };
+    }
+    if (status) {
+      where.status = status;
     }
 
     const [items, total] = await this.presenceRepository.findAndCount({
@@ -189,6 +194,87 @@ export class PresenceService {
       absents,
       retards,
       history: presences,
+    };
+  }
+
+  async getSessionsSummary(filterDto: PresenceFilterDto, tenantId?: number) {
+    const { page = 1, limit = 15, classeId, niveauId, matiereId, startDate, endDate } = filterDto;
+    const skip = (page - 1) * limit;
+
+    const base = (): SelectQueryBuilder<Presence> => {
+      const qb = this.presenceRepository
+        .createQueryBuilder('p')
+        .leftJoin('p.emploiDuTemp', 'e')
+        .leftJoin('e.matiere', 'm')
+        .leftJoin('e.classe', 'c')
+        .leftJoin('e.niveau', 'nv');
+      if (tenantId) qb.andWhere('p.etablissementId = :tenantId', { tenantId });
+      if (classeId) qb.andWhere('c.id = :classeId', { classeId });
+      if (niveauId) qb.andWhere('nv.id = :niveauId', { niveauId });
+      if (matiereId) qb.andWhere('m.id = :matiereId', { matiereId });
+      if (startDate) qb.andWhere('e.startTime >= :startDate', { startDate: new Date(startDate) });
+      if (endDate) qb.andWhere('e.startTime <= :endDate', { endDate: new Date(endDate) });
+      return qb;
+    };
+
+    const [rawItems, countResult] = await Promise.all([
+      base()
+        .select('e.id', 'sessionId')
+        .addSelect('e.startTime', 'startTime')
+        .addSelect('e.endTime', 'endTime')
+        .addSelect('m.name', 'matiereName')
+        .addSelect('c.id', 'classeId')
+        .addSelect('c.name', 'classeName')
+        .addSelect('nv.id', 'niveauId')
+        .addSelect('nv.name', 'niveauName')
+        .addSelect('COUNT(p.id)', 'total')
+        .addSelect(
+          `SUM(CASE WHEN p.status = '${PresenceStatus.PRESENT}' THEN 1 ELSE 0 END)`,
+          'presents',
+        )
+        .addSelect(
+          `SUM(CASE WHEN p.status = '${PresenceStatus.ABSENT}' THEN 1 ELSE 0 END)`,
+          'absents',
+        )
+        .addSelect(
+          `SUM(CASE WHEN p.status = '${PresenceStatus.RETARD}' THEN 1 ELSE 0 END)`,
+          'retards',
+        )
+        .groupBy('e.id')
+        .addGroupBy('e.startTime')
+        .addGroupBy('e.endTime')
+        .addGroupBy('m.name')
+        .addGroupBy('c.id')
+        .addGroupBy('c.name')
+        .addGroupBy('nv.id')
+        .addGroupBy('nv.name')
+        .orderBy('e.startTime', 'DESC')
+        .offset(skip)
+        .limit(limit)
+        .getRawMany(),
+      base().select('COUNT(DISTINCT e.id)', 'count').getRawOne(),
+    ]);
+
+    const total = parseInt(countResult?.count ?? '0', 10);
+
+    return {
+      items: rawItems.map((r) => ({
+        sessionId: Number(r.sessionId),
+        startTime: r.startTime,
+        endTime: r.endTime,
+        matiereName: r.matiereName || '',
+        classeId: Number(r.classeId),
+        classeName: r.classeName || '',
+        niveauId: Number(r.niveauId),
+        niveauName: r.niveauName || '',
+        total: Number(r.total),
+        presents: Number(r.presents),
+        absents: Number(r.absents),
+        retards: Number(r.retards),
+      })),
+      total,
+      page,
+      limit,
     };
   }
 

@@ -7,18 +7,20 @@ import {
   CreateDateColumn,
   UpdateDateColumn,
   JoinColumn,
+  Unique,
 } from 'typeorm';
 import { ApiProperty } from '@nestjs/swagger';
 import { Semestre } from '../../semestre/entities/semestre.entity';
 import { Etablissement } from '../../etablissement/entities/etablissement.entity';
 
 @Entity()
+@Unique(['label', 'etablissementId'])
 export class AnneeUniversitaire {
   @PrimaryGeneratedColumn()
   @ApiProperty()
   id!: number;
 
-  @Column({ unique: true })
+  @Column()
   @ApiProperty({ example: '2025-2026' })
   label!: string;
 

@@ -31,7 +31,7 @@ export class AnneeUniversitaireService {
     if (rest.isActive) {
       await this.repo.update({ etablissementId }, { isActive: false });
     }
-    const annee = this.repo.create({ ...rest, etablissement });
+    const annee = this.repo.create({ ...rest, etablissement, etablissementId });
     return await this.repo.save(annee);
   }
 

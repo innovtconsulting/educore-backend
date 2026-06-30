@@ -64,7 +64,11 @@ export class AuthService {
         id: user.id,
         email: user.email,
         role: user.role,
-        profile: user.enseignant || user.etudiant || user.parent || null,
+        isActive: user.isActive,
+        etablissementId,
+        enseignant: user.enseignant || null,
+        etudiant: user.etudiant || null,
+        parent: user.parent || null,
       },
     };
   }

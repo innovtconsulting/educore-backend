@@ -38,14 +38,19 @@ export class PresenceController {
   }
 
   @Get()
+  @Roles(Role.ENSEIGNANT, Role.ADMIN, Role.SURVEILLANT)
   @Permissions('ATTENDANCE_MANAGE')
   @ApiOperation({ summary: 'Liste de toutes les présences' })
-  async findAll(@Query() filterDto: PresenceFilterDto, @CurrentEtablissement() tenantId?: number) {
-    const data = await this.presenceService.findAll(filterDto, tenantId);
-    return {
-      message: 'Liste des présences récupérée avec succès',
-      data,
-    };
+  findAll(@Query() filterDto: PresenceFilterDto, @CurrentEtablissement() tenantId?: number) {
+    return this.presenceService.findAll(filterDto, tenantId);
+  }
+
+  @Get('sessions-summary')
+  @Roles(Role.ENSEIGNANT, Role.ADMIN, Role.SURVEILLANT)
+  @Permissions('ATTENDANCE_MANAGE')
+  @ApiOperation({ summary: 'Résumé des présences par créneau (session)' })
+  getSessionsSummary(@Query() filterDto: PresenceFilterDto, @CurrentEtablissement() tenantId?: number) {
+    return this.presenceService.getSessionsSummary(filterDto, tenantId);
   }
 
   @Get('session/:id')

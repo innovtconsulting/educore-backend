@@ -8,6 +8,8 @@ import {
   Delete,
   Query,
   UseGuards,
+  Request,
+  NotFoundException,
 } from '@nestjs/common';
 import { EnseignantService } from './enseignant.service';
 import { CreateEnseignantDto } from './dto/create-enseignant.dto';
@@ -18,6 +20,8 @@ import { EnseignantFilterDto } from './dto/enseignant-filter.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Permissions } from '../auth/decorators/permissions.decorator';
+import { Roles } from '../auth/decorators/roles.decorator';
+import { Role } from '../user/entities/user.entity';
 import { CurrentEtablissement } from '../auth/decorators/current-etablissement.decorator';
 
 @ApiTags('enseignants')
@@ -32,6 +36,15 @@ export class EnseignantController {
   @ApiOperation({ summary: 'Créer un nouvel enseignant' })
   create(@Body() createEnseignantDto: CreateEnseignantDto, @CurrentEtablissement() tenantId?: number) {
     return this.enseignantService.create(createEnseignantDto, tenantId);
+  }
+
+  @Get('me')
+  @Roles(Role.ENSEIGNANT)
+  @ApiOperation({ summary: 'Récupérer le profil de l\'enseignant connecté avec ses affectations' })
+  async getMe(@Request() req: any) {
+    const enseignantId = req.user?.enseignantId;
+    if (!enseignantId) throw new NotFoundException('Profil enseignant introuvable');
+    return this.enseignantService.findOne(enseignantId);
   }
 
   @Get()
@@ -69,6 +82,13 @@ export class EnseignantController {
   @ApiOperation({ summary: 'Supprimer un enseignant' })
   remove(@Param('id') id: string, @CurrentEtablissement() tenantId?: number) {
     return this.enseignantService.remove(+id, tenantId);
+  }
+
+  @Post(':id/reset-credentials')
+  @Permissions('TEACHER_MANAGE')
+  @ApiOperation({ summary: 'Réinitialiser les identifiants de connexion d\'un enseignant (mot de passe → 12345678)' })
+  resetCredentials(@Param('id') id: string, @CurrentEtablissement() tenantId?: number) {
+    return this.enseignantService.resetCredentials(+id, tenantId);
   }
 
   @Post(':id/affectations')
