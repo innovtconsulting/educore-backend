@@ -1,4 +1,5 @@
 import { AppDataSource } from '../data-source';
+import { DeepPartial, FindOptionsWhere, ObjectLiteral, Repository } from 'typeorm';
 import { Etablissement } from '../etablissement/entities/etablissement.entity';
 import { Niveau } from '../niveau/entities/niveau.entity';
 import { Classe } from '../classe/entities/classe.entity';
@@ -52,6 +53,17 @@ import * as fs from 'fs';
 import * as path from 'path';
 
 dotenv.config();
+
+async function findOrCreate<T extends ObjectLiteral>(
+  repo: Repository<T>,
+  where: FindOptionsWhere<T>,
+  createData: DeepPartial<T>,
+): Promise<T> {
+  const existing = await repo.findOneBy(where);
+  if (existing) return existing;
+  const entity = repo.create(createData as any);
+  return repo.save(entity as any);
+}
 
 async function seed() {
   try {
@@ -176,55 +188,78 @@ async function seed() {
       { name: 'CONFIG_MANAGE', description: 'Gérer la configuration globale' },
       { name: 'DOCUMENT_MANAGE', description: 'Gérer la GED' },
     ];
-    const savedPerms = await permissionRepo.save(
-      perms.map((p) => permissionRepo.create(p)),
-    );
+    const savedPerms = [] as Permission[];
+    for (const permissionData of perms) {
+      const permission = await findOrCreate(
+        permissionRepo,
+        { name: permissionData.name },
+        permissionData,
+      );
+      savedPerms.push(permission);
+    }
 
     const getPerms = (names: string[]) =>
       savedPerms.filter((p) => names.includes(p.name));
 
-    const roleAdminAcl = roleAclRepo.create({
-      name: 'Admin',
-      description: "Administrateur d'établissement",
-      permissions: savedPerms, // L'admin de l'école a tout sauf peut-être CONFIG_MANAGE (réservé SuperAdmin)
-    });
-    const roleComptableAcl = roleAclRepo.create({
-      name: 'Comptable',
-      description: 'Gestionnaire financier',
-      permissions: getPerms([
-        'FINANCE_VIEW',
-        'FINANCE_MANAGE',
-        'FINANCE_REPORT',
-        'STUDENT_VIEW',
-        'ACADEMIC_VIEW',
-      ]),
-    });
-    const roleSurveillantAcl = roleAclRepo.create({
-      name: 'Surveillant',
-      description: 'Gestionnaire de la vie scolaire',
-      permissions: getPerms([
-        'STUDENT_VIEW',
-        'STUDENT_CREATE',
-        'STUDENT_EDIT',
-        'STUDENT_VALIDATE',
-        'ATTENDANCE_MANAGE',
-        'DISCIPLINE_MANAGE',
-        'REPORT_DAILY_MANAGE',
-        'SCHEDULE_VIEW',
-        'ACADEMIC_VIEW',
-      ]),
-    });
-    const roleEnseignantAcl = roleAclRepo.create({
-      name: 'Enseignant',
-      description: 'Personnel académique',
-      permissions: getPerms([
-        'STUDENT_VIEW',
-        'ACADEMIC_VIEW',
-        'ACADEMIC_MANAGE',
-        'SCHEDULE_VIEW',
-        'ATTENDANCE_MANAGE',
-      ]),
-    });
+    const roleAdminAcl = await findOrCreate(
+      roleAclRepo,
+      { name: 'Admin' },
+      {
+        name: 'Admin',
+        description: "Administrateur d'établissement",
+        permissions: savedPerms,
+      },
+    );
+    const roleComptableAcl = await findOrCreate(
+      roleAclRepo,
+      { name: 'Comptable' },
+      {
+        name: 'Comptable',
+        description: 'Gestionnaire financier',
+        permissions: getPerms([
+          'FINANCE_VIEW',
+          'FINANCE_MANAGE',
+          'FINANCE_REPORT',
+          'STUDENT_VIEW',
+          'ACADEMIC_VIEW',
+        ]),
+      },
+    );
+    const roleSurveillantAcl = await findOrCreate(
+      roleAclRepo,
+      { name: 'Surveillant' },
+      {
+        name: 'Surveillant',
+        description: 'Gestionnaire de la vie scolaire',
+        permissions: getPerms([
+          'STUDENT_VIEW',
+          'STUDENT_CREATE',
+          'STUDENT_EDIT',
+          'STUDENT_VALIDATE',
+          'ATTENDANCE_MANAGE',
+          'DISCIPLINE_MANAGE',
+          'REPORT_DAILY_MANAGE',
+          'SCHEDULE_VIEW',
+          'ACADEMIC_VIEW',
+        ]),
+      },
+    );
+    const roleEnseignantAcl = await findOrCreate(
+      roleAclRepo,
+      { name: 'Enseignant' },
+      {
+        name: 'Enseignant',
+        description: 'Personnel académique',
+        permissions: getPerms([
+          'STUDENT_VIEW',
+          'ACADEMIC_VIEW',
+          'ACADEMIC_MANAGE',
+          'SCHEDULE_VIEW',
+          'ATTENDANCE_MANAGE',
+        ]),
+      },
+    );
+
     await roleAclRepo.save([
       roleAdminAcl,
       roleComptableAcl,
@@ -232,105 +267,222 @@ async function seed() {
       roleEnseignantAcl,
     ]);
 
-    // 0.1 Année Universitaire
-    const annee2026 = anneeRepo.create({
-      label: '2026-2027',
-      startDate: new Date('2026-10-01'),
-      endDate: new Date('2027-07-31'),
-      isActive: true,
-    });
-    await anneeRepo.save(annee2026);
-
     // 1. Établissements
-    const fst = etablissementRepo.create({
-      name: 'Faculté des Sciences et Techniques (FST)',
-      address: 'UCAD, Dakar',
-      email: 'contact.fst@ucad.edu.sn',
-      phone: '+221 33 825 00 00',
-    });
-    const esp = etablissementRepo.create({
-      name: 'École Supérieure Polytechnique (ESP)',
-      address: 'Avenue Cheikh Anta Diop, Dakar',
-      email: 'contact.esp@ucad.edu.sn',
-      phone: '+221 33 864 51 96',
-    });
-    const iut = etablissementRepo.create({
-      name: 'Institut Universitaire de Technologie (IUT)',
-      address: 'UCAD, Dakar',
-      email: 'contact.iut@ucad.edu.sn',
-      phone: '+221 33 824 00 00',
-    });
-    await etablissementRepo.save([fst, esp, iut]);
+    const fst = await findOrCreate(
+      etablissementRepo,
+      { email: 'contact.fst@ucad.edu.sn' },
+      {
+        name: 'Faculté des Sciences et Techniques (FST)',
+        address: 'UCAD, Dakar',
+        email: 'contact.fst@ucad.edu.sn',
+        phone: '+221 33 825 00 00',
+      },
+    );
+    const esp = await findOrCreate(
+      etablissementRepo,
+      { email: 'contact.esp@ucad.edu.sn' },
+      {
+        name: 'École Supérieure Polytechnique (ESP)',
+        address: 'Avenue Cheikh Anta Diop, Dakar',
+        email: 'contact.esp@ucad.edu.sn',
+        phone: '+221 33 864 51 96',
+      },
+    );
+    const iut = await findOrCreate(
+      etablissementRepo,
+      { email: 'contact.iut@ucad.edu.sn' },
+      {
+        name: 'Institut Universitaire de Technologie (IUT)',
+        address: 'UCAD, Dakar',
+        email: 'contact.iut@ucad.edu.sn',
+        phone: '+221 33 824 00 00',
+      },
+    );
+
+    // 1.1 Année Universitaire
+    const annee2026 = await findOrCreate(
+      anneeRepo,
+      { label: '2026-2027', etablissementId: fst.id },
+      {
+        label: '2026-2027',
+        startDate: new Date('2026-10-01'),
+        endDate: new Date('2027-07-31'),
+        isActive: true,
+        etablissement: fst,
+      },
+    );
 
     // 3. Classes (Parcours)
-    const informatiqueFst = classeRepo.create({
-      name: 'Informatique',
-      etablissement: fst,
-    });
-    const informatiqueEsp = classeRepo.create({
-      name: 'Informatique',
-      etablissement: esp,
-    });
-    const mathematiquesFst = classeRepo.create({
-      name: 'Mathématiques',
-      etablissement: fst,
-    });
-    const genieElectriqueIut = classeRepo.create({
-      name: 'Génie Électrique',
-      etablissement: iut,
-    });
-    await classeRepo.save([
-      informatiqueFst,
-      informatiqueEsp,
-      mathematiquesFst,
-      genieElectriqueIut,
-    ]);
+    const informatiqueFst = await findOrCreate(
+      classeRepo,
+      { name: 'Informatique', etablissement: { id: fst.id } as any },
+      {
+        name: 'Informatique',
+        etablissement: fst,
+      },
+    );
+    const informatiqueEsp = await findOrCreate(
+      classeRepo,
+      { name: 'Informatique', etablissement: { id: esp.id } as any },
+      {
+        name: 'Informatique',
+        etablissement: esp,
+      },
+    );
+    const mathematiquesFst = await findOrCreate(
+      classeRepo,
+      { name: 'Mathématiques', etablissement: { id: fst.id } as any },
+      {
+        name: 'Mathématiques',
+        etablissement: fst,
+      },
+    );
+    const genieElectriqueIut = await findOrCreate(
+      classeRepo,
+      { name: 'Génie Électrique', etablissement: { id: iut.id } as any },
+      {
+        name: 'Génie Électrique',
+        etablissement: iut,
+      },
+    );
 
     // 2. Niveaux (now after Classes)
-    const l1Fst = niveauRepo.create({
-      name: 'Licence 1',
-      classe: informatiqueFst,
-    });
-    const l2Fst = niveauRepo.create({
-      name: 'Licence 2',
-      classe: informatiqueFst,
-    });
-    const l3Fst = niveauRepo.create({
-      name: 'Licence 3',
-      classe: informatiqueFst,
-    });
-    const m1Fst = niveauRepo.create({
-      name: 'Master 1',
-      classe: informatiqueFst,
-    });
-    const m2Fst = niveauRepo.create({
-      name: 'Master 2',
-      classe: informatiqueFst,
-    });
-    const l2Esp = niveauRepo.create({
-      name: 'Licence 2',
-      classe: informatiqueEsp,
-    });
-    const l1Math = niveauRepo.create({
-      name: 'Licence 1',
-      classe: mathematiquesFst,
-    });
-    const l2Math = niveauRepo.create({
-      name: 'Licence 2',
-      classe: mathematiquesFst,
-    });
-    const l3Math = niveauRepo.create({
-      name: 'Licence 3',
-      classe: mathematiquesFst,
-    });
-    const dut1Iut = niveauRepo.create({
-      name: 'DUT 1',
-      classe: genieElectriqueIut,
-    });
-    const dut2Iut = niveauRepo.create({
-      name: 'DUT 2',
-      classe: genieElectriqueIut,
-    });
+    const l1Fst =
+      (await niveauRepo.findOne({
+        where: { name: 'Licence 1', classe: { id: informatiqueFst.id } as any },
+      })) ||
+      (await niveauRepo.save(
+        niveauRepo.create({
+          name: 'Licence 1',
+          classe: informatiqueFst,
+          etablissement: fst,
+        }),
+      ));
+    const l2Fst =
+      (await niveauRepo.findOne({
+        where: { name: 'Licence 2', classe: { id: informatiqueFst.id } as any },
+      })) ||
+      (await niveauRepo.save(
+        niveauRepo.create({
+          name: 'Licence 2',
+          classe: informatiqueFst,
+          etablissement: fst,
+        }),
+      ));
+    const l3Fst =
+      (await niveauRepo.findOne({
+        where: { name: 'Licence 3', classe: { id: informatiqueFst.id } as any },
+      })) ||
+      (await niveauRepo.save(
+        niveauRepo.create({
+          name: 'Licence 3',
+          classe: informatiqueFst,
+          etablissement: fst,
+        }),
+      ));
+    const m1Fst =
+      (await niveauRepo.findOne({
+        where: { name: 'Master 1', classe: { id: informatiqueFst.id } as any },
+      })) ||
+      (await niveauRepo.save(
+        niveauRepo.create({
+          name: 'Master 1',
+          classe: informatiqueFst,
+          etablissement: fst,
+        }),
+      ));
+    const m2Fst =
+      (await niveauRepo.findOne({
+        where: { name: 'Master 2', classe: { id: informatiqueFst.id } as any },
+      })) ||
+      (await niveauRepo.save(
+        niveauRepo.create({
+          name: 'Master 2',
+          classe: informatiqueFst,
+          etablissement: fst,
+        }),
+      ));
+    const l2Esp =
+      (await niveauRepo.findOne({
+        where: { name: 'Licence 2', classe: { id: informatiqueEsp.id } as any },
+      })) ||
+      (await niveauRepo.save(
+        niveauRepo.create({
+          name: 'Licence 2',
+          classe: informatiqueEsp,
+          etablissement: esp,
+        }),
+      ));
+    const l1Math =
+      (await niveauRepo.findOne({
+        where: {
+          name: 'Licence 1',
+          classe: { id: mathematiquesFst.id } as any,
+        },
+      })) ||
+      (await niveauRepo.save(
+        niveauRepo.create({
+          name: 'Licence 1',
+          classe: mathematiquesFst,
+          etablissement: fst,
+        }),
+      ));
+    const l2Math =
+      (await niveauRepo.findOne({
+        where: {
+          name: 'Licence 2',
+          classe: { id: mathematiquesFst.id } as any,
+        },
+      })) ||
+      (await niveauRepo.save(
+        niveauRepo.create({
+          name: 'Licence 2',
+          classe: mathematiquesFst,
+          etablissement: fst,
+        }),
+      ));
+    const l3Math =
+      (await niveauRepo.findOne({
+        where: {
+          name: 'Licence 3',
+          classe: { id: mathematiquesFst.id } as any,
+        },
+      })) ||
+      (await niveauRepo.save(
+        niveauRepo.create({
+          name: 'Licence 3',
+          classe: mathematiquesFst,
+          etablissement: fst,
+        }),
+      ));
+    const dut1Iut =
+      (await niveauRepo.findOne({
+        where: {
+          name: 'DUT 1',
+          classe: { id: genieElectriqueIut.id } as any,
+        },
+      })) ||
+      (await niveauRepo.save(
+        niveauRepo.create({
+          name: 'DUT 1',
+          classe: genieElectriqueIut,
+          etablissement: iut,
+        }),
+      ));
+    const dut2Iut =
+      (await niveauRepo.findOne({
+        where: {
+          name: 'DUT 2',
+          classe: { id: genieElectriqueIut.id } as any,
+        },
+      })) ||
+      (await niveauRepo.save(
+        niveauRepo.create({
+          name: 'DUT 2',
+          classe: genieElectriqueIut,
+          etablissement: iut,
+        }),
+      ));
     await niveauRepo.save([
       l1Fst,
       l2Fst,
@@ -346,36 +498,54 @@ async function seed() {
     ]);
 
     // 4. Matières
-    const algoFst = matiereRepo.create({
-      code: 'INF101',
-      name: 'Algorithmique 1',
-      coefficient: 4,
-      niveau: l1Fst,
-    });
-    const baseDonneesFst = matiereRepo.create({
-      code: 'INF201',
-      name: 'Bases de Données',
-      coefficient: 3,
-      niveau: l2Fst,
-    });
-    const reseauxFst = matiereRepo.create({
-      code: 'INF301',
-      name: 'Réseaux Informatiques',
-      coefficient: 3,
-      niveau: l3Fst,
-    });
-    const electroniqueIut = matiereRepo.create({
-      code: 'GE101',
-      name: 'Électronique Fondamentale',
-      coefficient: 3,
-      niveau: dut1Iut,
-    });
-    await matiereRepo.save([
-      algoFst,
-      baseDonneesFst,
-      reseauxFst,
-      electroniqueIut,
-    ]);
+    const algoFst = await findOrCreate(
+      matiereRepo,
+      { code: 'INF101' },
+      {
+        code: 'INF101',
+        name: 'Algorithmique 1',
+        coefficient: 4,
+        hours: 30,
+        niveau: l1Fst,
+        etablissement: fst,
+      },
+    );
+    const baseDonneesFst = await findOrCreate(
+      matiereRepo,
+      { code: 'INF201' },
+      {
+        code: 'INF201',
+        name: 'Bases de Données',
+        coefficient: 3,
+        hours: 24,
+        niveau: l2Fst,
+        etablissement: fst,
+      },
+    );
+    const reseauxFst = await findOrCreate(
+      matiereRepo,
+      { code: 'INF301' },
+      {
+        code: 'INF301',
+        name: 'Réseaux Informatiques',
+        coefficient: 3,
+        hours: 24,
+        niveau: l3Fst,
+        etablissement: fst,
+      },
+    );
+    const electroniqueIut = await findOrCreate(
+      matiereRepo,
+      { code: 'GE101' },
+      {
+        code: 'GE101',
+        name: 'Électronique Fondamentale',
+        coefficient: 3,
+        hours: 30,
+        niveau: dut1Iut,
+        etablissement: iut,
+      },
+    );
 
     // 5. Enseignants
     const profDiallo = enseignantRepo.create({
@@ -385,6 +555,7 @@ async function seed() {
       matricule: 'FST-INF-001',
       dateEmbauche: new Date('2020-01-01'),
       phone: '+221 77 123 45 67',
+      etablissement: fst,
     });
     const profSow = enseignantRepo.create({
       firstName: 'Mariam',
@@ -393,6 +564,7 @@ async function seed() {
       matricule: 'FST-MAT-001',
       dateEmbauche: new Date('2021-01-01'),
       phone: '+221 77 987 65 43',
+      etablissement: fst,
     });
     const profNdiaye = enseignantRepo.create({
       firstName: 'Abdou',
@@ -401,6 +573,7 @@ async function seed() {
       matricule: 'IUT-GE-001',
       dateEmbauche: new Date('2022-01-01'),
       phone: '+221 77 555 44 33',
+      etablissement: iut,
     });
     await enseignantRepo.save([profDiallo, profSow, profNdiaye]);
 

@@ -7,6 +7,7 @@ import {
   UpdateDateColumn,
   JoinColumn,
 } from 'typeorm';
+import { ApiProperty } from '@nestjs/swagger';
 import { Niveau } from '../../niveau/entities/niveau.entity';
 import { Etablissement } from '../../etablissement/entities/etablissement.entity';
 
@@ -23,6 +24,10 @@ export class Matiere {
 
   @Column({ type: 'decimal', precision: 5, scale: 2, default: 1.0 })
   coefficient!: number;
+
+  @Column({ type: 'int', default: 0 })
+  @ApiProperty({ example: 30, description: 'Nombre d heures horaires de la matière' })
+  hours!: number;
 
   @ManyToOne(() => Niveau, (niveau) => niveau.matieres, { nullable: false })
   niveau!: Niveau;

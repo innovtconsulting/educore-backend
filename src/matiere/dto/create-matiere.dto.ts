@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsNotEmpty, IsNumber, IsString } from 'class-validator';
+import { IsNotEmpty, IsNumber, IsString, Min } from 'class-validator';
 
 export class CreateMatiereDto {
   @ApiProperty({ example: 'INF101', description: 'Code de la matière' })
@@ -16,6 +16,12 @@ export class CreateMatiereDto {
   @IsNumber({}, { message: 'Le coefficient doit être un nombre' })
   @IsNotEmpty({ message: 'Le coefficient est obligatoire' })
   coefficient!: number;
+
+  @ApiProperty({ example: 30, description: 'Nombre d heures de la matière' })
+  @IsNumber({}, { message: 'Le nombre d heures doit être un nombre' })
+  @Min(0, { message: 'Le nombre d heures doit être positif ou nul' })
+  @IsNotEmpty({ message: 'Le nombre d heures est obligatoire' })
+  hours!: number;
 
   @ApiProperty({
     example: 1,
