@@ -78,7 +78,7 @@ export class EtudiantService {
 			role: UserRole.ETUDIANT,
 			isActive: false,
 			username: etudiant.firstName,
-			etablissementId: etudiant.etablissementId || etudiant.etablissement?.id,
+			etablissementId: etudiant.etablissement?.id,
 			etudiant: etudiant,
 		});
 
@@ -95,7 +95,7 @@ export class EtudiantService {
 						role: UserRole.PARENT,
 						isActive: false,
 						username: `${parent.firstName} ${parent.lastName}`.trim(),
-						etablissementId: etudiant.etablissementId || etudiant.etablissement?.id,
+						etablissementId: etudiant.etablissement?.id,
 						parent: parent,
 					});
 				}
