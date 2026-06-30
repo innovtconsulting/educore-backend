@@ -140,6 +140,28 @@ export class EvaluationService {
     return await this.evaluationRepository.save(evaluation);
   }
 
+  async findForTeacher(enseignantId: number, classeId: number, niveauId: number, tenantId?: number) {
+    const matiereIds = await this.enseignantService.getMatiereIdsByEnseignant(enseignantId);
+    if (matiereIds.length === 0) return [];
+
+    const query = this.evaluationRepository
+      .createQueryBuilder('e')
+      .leftJoinAndSelect('e.matiere', 'matiere')
+      .leftJoinAndSelect('e.classe', 'classe')
+      .leftJoinAndSelect('classe.etablissement', 'etablissement')
+      .leftJoinAndSelect('e.niveau', 'niveau')
+      .leftJoinAndSelect('e.semestre', 'semestre')
+      .where('classe.id = :classeId', { classeId })
+      .andWhere('niveau.id = :niveauId', { niveauId })
+      .andWhere('matiere.id IN (:...matiereIds)', { matiereIds });
+
+    if (tenantId) {
+      query.andWhere('etablissement.id = :tenantId', { tenantId });
+    }
+
+    return query.orderBy('e.id', 'DESC').getMany();
+  }
+
   async remove(id: number, user: any, tenantId?: number) {
     const evaluation = await this.findOne(id, tenantId);
 

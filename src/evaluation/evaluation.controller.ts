@@ -9,6 +9,7 @@ import {
   Query,
   UseGuards,
   Request,
+  ParseIntPipe,
 } from '@nestjs/common';
 import { EvaluationService } from './evaluation.service';
 import { CreateEvaluationDto } from './dto/create-evaluation.dto';
@@ -59,6 +60,28 @@ export class EvaluationController {
       message: 'Liste des évaluations récupérée avec succès',
       data,
     };
+  }
+
+  @Get('for-teacher')
+  @Roles(Role.ENSEIGNANT)
+  @ApiOperation({
+    summary: "Évaluations de l'enseignant pour une classe et un niveau donnés",
+    description:
+      "Retourne uniquement les évaluations pour les matières dont l'enseignant est responsable, filtrées par classe et niveau.",
+  })
+  async findForTeacher(
+    @Query('classeId', ParseIntPipe) classeId: number,
+    @Query('niveauId', ParseIntPipe) niveauId: number,
+    @Request() req: any,
+    @CurrentEtablissement() tenantId?: number,
+  ) {
+    const data = await this.evaluationService.findForTeacher(
+      req.user.enseignantId,
+      classeId,
+      niveauId,
+      tenantId,
+    );
+    return { message: 'Évaluations récupérées avec succès', data };
   }
 
   @Get(':id')

@@ -409,4 +409,12 @@ export class EnseignantService {
     });
     return !!affectation;
   }
+
+  async getMatiereIdsByEnseignant(enseignantId: number): Promise<number[]> {
+    const affectations = await this.affectationRepository.find({
+      where: { enseignant: { id: enseignantId } },
+      relations: { matiere: true },
+    });
+    return [...new Set(affectations.map((a) => a.matiere?.id).filter(Boolean) as number[])];
+  }
 }

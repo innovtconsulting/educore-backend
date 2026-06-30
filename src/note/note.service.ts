@@ -5,7 +5,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { In, Repository } from 'typeorm';
 import { CreateNoteDto } from './dto/create-note.dto';
 import { UpdateNoteDto } from './dto/update-note.dto';
 import { Note } from './entities/note.entity';
@@ -16,6 +16,7 @@ import { Role } from '../user/entities/user.entity';
 import { TenantHelper } from '../common/tenant/tenant.helper';
 import { BulkCreateNoteDto } from './dto/bulk-create-note.dto';
 import { ParentService } from '../parent/parent.service';
+import { Etudiant, EnrollmentStatus } from '../etudiant/entities/etudiant.entity';
 
 @Injectable()
 export class NoteService {
@@ -24,6 +25,8 @@ export class NoteService {
     private readonly noteRepository: Repository<Note>,
     @InjectRepository(Evaluation)
     private readonly evaluationRepository: Repository<Evaluation>,
+    @InjectRepository(Etudiant)
+    private readonly etudiantRepository: Repository<Etudiant>,
     private readonly enseignantService: EnseignantService,
     private readonly parentService: ParentService,
   ) {}
@@ -154,6 +157,11 @@ export class NoteService {
       where.etudiant = { id: etudiantId };
     } else if (user && user.role === Role.ETUDIANT) {
       where.etudiant = { id: user.etudiantId };
+    } else if (user && user.role === Role.ENSEIGNANT) {
+      const matiereIds = await this.enseignantService.getMatiereIdsByEnseignant(user.enseignantId);
+      if (matiereIds.length > 0) {
+        where.evaluation = { matiere: { id: In(matiereIds) } };
+      }
     } else if (user && user.etudiantId) {
       where.etudiant = { id: user.etudiantId };
     }
@@ -280,5 +288,72 @@ export class NoteService {
     }
 
     return await this.noteRepository.remove(note);
+  }
+
+  async getEntrySheet(evaluationId: number, user: any, tenantId?: number) {
+    const evaluation = await this.evaluationRepository.findOne({
+      where: { id: evaluationId },
+      relations: {
+        matiere: true,
+        niveau: true,
+        classe: { etablissement: true },
+        semestre: true,
+      },
+    });
+    if (!evaluation) throw new NotFoundException('Évaluation introuvable');
+
+    if (user.role === Role.ENSEIGNANT) {
+      const etablissementIds = [evaluation.classe.etablissement.id];
+      const isResponsible = await this.enseignantService.isResponsibleFor(
+        user.enseignantId,
+        evaluation.matiere.id,
+        evaluation.niveau.id,
+        etablissementIds,
+      );
+      if (!isResponsible) {
+        throw new ForbiddenException(
+          "Vous n'êtes pas responsable de la matière de cette évaluation",
+        );
+      }
+    }
+
+    const students = await this.etudiantRepository.find({
+      where: {
+        classe: { id: evaluation.classe.id },
+        niveau: { id: evaluation.niveau.id },
+        status: EnrollmentStatus.ACTIF,
+      },
+      relations: { classe: true, niveau: true },
+      order: { lastName: 'ASC', firstName: 'ASC' },
+    });
+
+    const existingNotes = await this.noteRepository.find({
+      where: { evaluation: { id: evaluationId } },
+      relations: { etudiant: true },
+    });
+
+    const noteByStudentId = new Map(existingNotes.map((n) => [n.etudiant.id, n]));
+
+    return {
+      evaluation: {
+        id: evaluation.id,
+        title: evaluation.title,
+        type: evaluation.type,
+        session: evaluation.session,
+        weight: evaluation.weight,
+        date: evaluation.date,
+        matiere: { id: evaluation.matiere.id, name: evaluation.matiere.name },
+        classe: { id: evaluation.classe.id, name: evaluation.classe.name },
+        niveau: { id: evaluation.niveau.id, name: evaluation.niveau.name },
+        semestre: evaluation.semestre ? { id: evaluation.semestre.id, name: (evaluation.semestre as any).name } : null,
+      },
+      rows: students.map((s) => {
+        const note = noteByStudentId.get(s.id) ?? null;
+        return {
+          student: { id: s.id, firstName: s.firstName, lastName: s.lastName, matricule: s.matricule },
+          existingNote: note ? { id: note.id, value: note.value, remark: note.remark } : null,
+        };
+      }),
+    };
   }
 }

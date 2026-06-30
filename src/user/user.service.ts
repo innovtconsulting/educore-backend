@@ -111,7 +111,7 @@ export class UserService {
       where: { email: normalizedEmail },
       relations: {
         enseignant: {
-          affectations: { etablissement: true, matiere: true, niveau: true },
+          affectations: { etablissement: true, matiere: true, niveau: { classe: true } },
         },
         etudiant: { etablissement: true },
         parent: { etudiants: { etablissement: true } },
