@@ -62,6 +62,7 @@ export class EvaluationService {
       classe: { id: classeId },
       niveau: { id: niveauId },
       semestre: { id: semestreId },
+      etablissement: { id: tenantId },
     });
     return await this.evaluationRepository.save(evaluation);
   }
@@ -140,7 +141,7 @@ export class EvaluationService {
     return await this.evaluationRepository.save(evaluation);
   }
 
-  async findForTeacher(enseignantId: number, classeId: number, niveauId: number, tenantId?: number) {
+  async findForTeacher(enseignantId: number, classeId?: number, niveauId?: number, tenantId?: number) {
     const matiereIds = await this.enseignantService.getMatiereIdsByEnseignant(enseignantId);
     if (matiereIds.length === 0) return [];
 
@@ -151,13 +152,11 @@ export class EvaluationService {
       .leftJoinAndSelect('classe.etablissement', 'etablissement')
       .leftJoinAndSelect('e.niveau', 'niveau')
       .leftJoinAndSelect('e.semestre', 'semestre')
-      .where('classe.id = :classeId', { classeId })
-      .andWhere('niveau.id = :niveauId', { niveauId })
-      .andWhere('matiere.id IN (:...matiereIds)', { matiereIds });
+      .where('matiere.id IN (:...matiereIds)', { matiereIds });
 
-    if (tenantId) {
-      query.andWhere('etablissement.id = :tenantId', { tenantId });
-    }
+    if (classeId) query.andWhere('classe.id = :classeId', { classeId });
+    if (niveauId) query.andWhere('niveau.id = :niveauId', { niveauId });
+    if (tenantId) query.andWhere('etablissement.id = :tenantId', { tenantId });
 
     return query.orderBy('e.id', 'DESC').getMany();
   }

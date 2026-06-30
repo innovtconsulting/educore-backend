@@ -30,6 +30,7 @@ export class SanctionController {
   constructor(private readonly sanctionService: SanctionService) {}
 
   @Post()
+  @Roles(Role.ADMIN, Role.SURVEILLANT)
   @Permissions('DISCIPLINE_MANAGE')
   @ApiOperation({ summary: 'Créer une nouvelle sanction' })
   async create(@Body() createSanctionDto: CreateSanctionDto, @CurrentEtablissement() tenantId?: number) {
@@ -41,6 +42,7 @@ export class SanctionController {
   }
 
   @Get()
+  @Roles(Role.ADMIN, Role.SURVEILLANT, Role.ENSEIGNANT)
   @Permissions('DISCIPLINE_MANAGE')
   @ApiOperation({ summary: 'Récupérer toutes les sanctions' })
   async findAll(@Query() paginationQuery: PaginationQueryDto, @CurrentEtablissement() tenantId?: number) {
@@ -52,7 +54,7 @@ export class SanctionController {
   }
 
   @Get(':id')
-  @Roles(Role.ETUDIANT, Role.PARENT)
+  @Roles(Role.ADMIN, Role.SURVEILLANT, Role.ENSEIGNANT, Role.ETUDIANT, Role.PARENT)
   @Permissions('DISCIPLINE_MANAGE')
   @ApiOperation({ summary: 'Récupérer une sanction par son ID' })
   async findOne(@Param('id', ParseIntPipe) id: number, @CurrentEtablissement() tenantId?: number) {
@@ -64,7 +66,7 @@ export class SanctionController {
   }
 
   @Get('etudiant/:etudiantId')
-  @Roles(Role.ETUDIANT, Role.PARENT)
+  @Roles(Role.ADMIN, Role.SURVEILLANT, Role.ENSEIGNANT, Role.ETUDIANT, Role.PARENT)
   @Permissions('DISCIPLINE_MANAGE')
   @ApiOperation({ summary: "Récupérer toutes les sanctions d'un étudiant" })
   async findByEtudiant(@Param('etudiantId', ParseIntPipe) etudiantId: number, @CurrentEtablissement() tenantId?: number) {
@@ -76,6 +78,7 @@ export class SanctionController {
   }
 
   @Patch(':id')
+  @Roles(Role.ADMIN, Role.SURVEILLANT)
   @Permissions('DISCIPLINE_MANAGE')
   @ApiOperation({ summary: 'Mettre à jour une sanction' })
   async update(
@@ -91,6 +94,7 @@ export class SanctionController {
   }
 
   @Delete(':id')
+  @Roles(Role.ADMIN, Role.SURVEILLANT)
   @Permissions('DISCIPLINE_MANAGE')
   @ApiOperation({ summary: 'Supprimer une sanction' })
   async remove(@Param('id', ParseIntPipe) id: number, @CurrentEtablissement() tenantId?: number) {

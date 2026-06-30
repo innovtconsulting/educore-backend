@@ -23,7 +23,7 @@ export class TenantHelper {
   ): FindOptionsWhere<T> | FindOptionsWhere<T>[] {
     if (!tenantId) return where;
 
-    // Support pour les relations imbriquées (ex: 'classe.etablissements')
+    // Support pour les relations imbriquées (ex: 'etudiant.etablissement')
     const filter: any = {};
     const parts = tenantField.split('.');
     let current = filter;
@@ -37,11 +37,33 @@ export class TenantHelper {
       }
     }
 
+    // Deep merge pour ne pas écraser les filtres imbriqués déjà présents
+    // (ex: where.etudiant = { id: 270 } + filter.etudiant = { etablissement: { id: X } }
+    //  → résultat: { id: 270, etablissement: { id: X } })
+    const deepMerge = (target: any, source: any): any => {
+      const result = { ...target };
+      for (const key of Object.keys(source)) {
+        if (
+          result[key] !== null &&
+          result[key] !== undefined &&
+          typeof result[key] === 'object' &&
+          !Array.isArray(result[key]) &&
+          typeof source[key] === 'object' &&
+          !Array.isArray(source[key])
+        ) {
+          result[key] = deepMerge(result[key], source[key]);
+        } else {
+          result[key] = source[key];
+        }
+      }
+      return result;
+    };
+
     if (Array.isArray(where)) {
       if (where.length === 0) return [filter];
-      return where.map((w) => ({ ...w, ...filter }) as FindOptionsWhere<T>);
+      return where.map((w) => deepMerge(w, filter) as FindOptionsWhere<T>);
     }
 
-    return { ...where, ...filter } as FindOptionsWhere<T>;
+    return deepMerge(where as any, filter) as FindOptionsWhere<T>;
   }
 }

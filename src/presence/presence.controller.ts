@@ -62,7 +62,7 @@ export class PresenceController {
   }
 
   @Get('etudiant/:id')
-  @Roles(Role.PARENT, Role.ETUDIANT)
+  @Roles(Role.ADMIN, Role.SURVEILLANT, Role.ENSEIGNANT, Role.PARENT, Role.ETUDIANT)
   @ApiOperation({
     summary: "Statistiques et historique de présence d'un étudiant",
   })

@@ -389,10 +389,21 @@ export class EtudiantService {
 
 		const savedEtudiant = await this.etudiantRepository.save(etudiant);
 
-		// Activer le compte utilisateur de l'étudiant
+		// Activer ou créer le compte utilisateur de l'étudiant
 		const studentUser = await this.userService.findByEtudiantId(id);
 		if (studentUser) {
 			await this.userService.update(studentUser.id, { isActive: true });
+		} else if (savedEtudiant.email) {
+			// Création manuelle par admin : aucun compte n'existait — on le crée à la validation
+			await this.userService.create({
+				email: savedEtudiant.email,
+				password: '12345678',
+				role: UserRole.ETUDIANT,
+				isActive: true,
+				username: savedEtudiant.firstName,
+				etablissementId: savedEtudiant.etablissement?.id,
+				etudiant: savedEtudiant,
+			});
 		}
 
 		// Activer les comptes utilisateurs des parents
@@ -592,14 +603,17 @@ export class EtudiantService {
 						etudiant,
 					)) as Etudiant;
 
-					await this.userService.createWithRunner(queryRunner, {
-						email: savedEtudiant.email,
-						password: 'password123',
-						role: UserRole.ETUDIANT,
-						isActive: false,
-						username: savedEtudiant.firstName,
-						etudiant: savedEtudiant,
-					});
+					if (savedEtudiant.email) {
+						await this.userService.createWithRunner(queryRunner, {
+							email: savedEtudiant.email,
+							password: '12345678',
+							role: UserRole.ETUDIANT,
+							isActive: false,
+							username: savedEtudiant.firstName,
+							etablissementId: etablissement.id,
+							etudiant: savedEtudiant,
+						});
+					}
 
 					successCount++;
 				} catch (innerError) {
@@ -1194,7 +1208,18 @@ export class EtudiantService {
 								niveau,
 							});
 
-						await queryRunner.manager.save(etudiant);
+						const savedEtudiantRun = (await queryRunner.manager.save(etudiant)) as Etudiant;
+						if (email) {
+							await this.userService.createWithRunner(queryRunner, {
+								email,
+								password: '12345678',
+								role: UserRole.ETUDIANT,
+								isActive: true,
+								username: prenom,
+								etablissementId: etablissement?.id,
+								etudiant: savedEtudiantRun,
+							});
+						}
 						sheetReport.nombreEtudiantsImportes++;
 						totalEtudiantsImportes++;
 					} catch (error) {

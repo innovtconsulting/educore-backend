@@ -34,6 +34,7 @@ export class ReportingController {
   constructor(private readonly reportingService: ReportingService) {}
 
   @Get('global-stats')
+  @Roles(Role.ADMIN)
   @Permissions('ACADEMIC_VIEW')
   @ApiOperation({ summary: 'Consulter les statistiques globales du système' })
   async getGlobalStats(@CurrentEtablissement() tenantId?: number) {
@@ -45,6 +46,7 @@ export class ReportingController {
   }
 
   @Get('supervisor-daily')
+  @Roles(Role.SURVEILLANT, Role.ADMIN)
   @Permissions('REPORT_DAILY_MANAGE')
   @ApiOperation({
     summary:
@@ -66,6 +68,7 @@ export class ReportingController {
   }
 
   @Post('submit-daily')
+  @Roles(Role.SURVEILLANT, Role.ADMIN)
   @Permissions('REPORT_DAILY_MANAGE')
   @ApiOperation({ summary: 'Soumettre le rapport quotidien du surveillant' })
   @ApiResponse({ status: 201, description: 'Rapport soumis avec succès' })
@@ -78,6 +81,7 @@ export class ReportingController {
   }
 
   @Get('daily-reports')
+  @Roles(Role.SURVEILLANT, Role.ADMIN)
   @Permissions('REPORT_DAILY_MANAGE')
   @ApiOperation({
     summary: "Récupérer tous les rapports quotidiens soumis (pour l'admin)",
@@ -92,6 +96,7 @@ export class ReportingController {
   }
 
   @Get('daily-report/:id')
+  @Roles(Role.SURVEILLANT, Role.ADMIN)
   @Permissions('REPORT_DAILY_MANAGE')
   @ApiOperation({
     summary: 'Récupérer un rapport quotidien spécifique par son ID',
@@ -105,6 +110,7 @@ export class ReportingController {
   }
 
   @Get('daily-report/:id/pdf')
+  @Roles(Role.SURVEILLANT, Role.ADMIN)
   @Permissions('REPORT_DAILY_MANAGE')
   @ApiOperation({ summary: "Récupérer le PDF d'un rapport quotidien" })
   async getDailyReportPdf(@Param('id', ParseIntPipe) id: number, @CurrentEtablissement() tenantId?: number) {

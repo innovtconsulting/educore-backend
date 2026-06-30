@@ -74,6 +74,7 @@ export class NoteService {
         ...data,
         etudiant: { id: etudiantId },
         evaluation: { id: evaluationId },
+        etablissement: { id: evaluation.classe.etablissement.id },
       });
     }
 
@@ -126,6 +127,7 @@ export class NoteService {
           remark: item.remark,
           etudiant: { id: item.etudiantId },
           evaluation: { id: evaluationId },
+          etablissement: { id: evaluation.classe.etablissement.id },
         });
       }
       savedNotes.push(await this.noteRepository.save(note));
@@ -156,7 +158,11 @@ export class NoteService {
       );
       where.etudiant = { id: etudiantId };
     } else if (user && user.role === Role.ETUDIANT) {
-      where.etudiant = { id: user.etudiantId };
+      // JWT etudiantId est la source principale ; URL/query etudiantId sert de fallback
+      // (couvre les comptes dont le lien OneToOne n'était pas établi lors de la génération du JWT)
+      const studentId = user.etudiantId ?? etudiantId;
+      if (!studentId) return { items: [], total: 0, page, limit };
+      where.etudiant = { id: studentId };
     } else if (user && user.role === Role.ENSEIGNANT) {
       const matiereIds = await this.enseignantService.getMatiereIdsByEnseignant(user.enseignantId);
       if (matiereIds.length > 0) {

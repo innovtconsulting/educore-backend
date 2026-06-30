@@ -113,7 +113,7 @@ export class UserService {
         enseignant: {
           affectations: { etablissement: true, matiere: true, niveau: { classe: true } },
         },
-        etudiant: { etablissement: true },
+        etudiant: { etablissement: true, classe: true, niveau: true },
         parent: { etudiants: { etablissement: true } },
         etablissement: true,
         aclRole: { permissions: true },

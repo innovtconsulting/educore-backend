@@ -65,16 +65,18 @@ export class EvaluationController {
   @Get('for-teacher')
   @Roles(Role.ENSEIGNANT)
   @ApiOperation({
-    summary: "Évaluations de l'enseignant pour une classe et un niveau donnés",
+    summary: "Évaluations de l'enseignant",
     description:
-      "Retourne uniquement les évaluations pour les matières dont l'enseignant est responsable, filtrées par classe et niveau.",
+      "Retourne les évaluations pour les matières dont l'enseignant est responsable. Filtrage optionnel par classeId et niveauId.",
   })
   async findForTeacher(
-    @Query('classeId', ParseIntPipe) classeId: number,
-    @Query('niveauId', ParseIntPipe) niveauId: number,
-    @Request() req: any,
+    @Query('classeId') classeIdStr?: string,
+    @Query('niveauId') niveauIdStr?: string,
+    @Request() req?: any,
     @CurrentEtablissement() tenantId?: number,
   ) {
+    const classeId = classeIdStr ? parseInt(classeIdStr, 10) : undefined;
+    const niveauId = niveauIdStr ? parseInt(niveauIdStr, 10) : undefined;
     const data = await this.evaluationService.findForTeacher(
       req.user.enseignantId,
       classeId,
