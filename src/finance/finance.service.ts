@@ -73,11 +73,42 @@ export class FinanceService {
     });
   }
 
+  async updateFrais(id: number, dto: CreateFraisDto, tenantId?: number) {
+    const frais = await this.fraisRepository.findOne({ where: { id } });
+    if (!frais) throw new NotFoundException('Frais introuvable');
+
+    const { classeId, niveauId, ...rest } = dto;
+
+    if (classeId) {
+      const classe = await this.classeRepository.findOneBy({ id: classeId });
+      if (!classe) throw new NotFoundException(`Classe #${classeId} introuvable`);
+      frais.classe = classe;
+    }
+
+    if (niveauId) {
+      const niveau = await this.niveauRepository.findOneBy({ id: niveauId });
+      if (!niveau) throw new NotFoundException(`Niveau #${niveauId} introuvable`);
+      frais.niveau = niveau;
+    }
+
+    Object.assign(frais, rest);
+
+    return await this.fraisRepository.save(frais);
+  }
+
+  async deleteFrais(id: number, tenantId?: number) {
+    const frais = await this.fraisRepository.findOne({ where: { id } });
+    if (!frais) throw new NotFoundException('Frais introuvable');
+
+    await this.fraisRepository.remove(frais);
+  }
+
   // --- Gestion des Factures ---
 
   async createFacture(dto: CreateFactureDto, tenantId?: number) {
     const etudiant = await this.etudiantRepository.findOne({
       where: TenantHelper.addTenantFilter({ id: dto.etudiantId }, tenantId),
+      relations: { etablissement: true },
     });
     if (!etudiant)
       throw new NotFoundException(`Étudiant #${dto.etudiantId} introuvable`);
@@ -91,6 +122,7 @@ export class FinanceService {
     const facture = this.factureRepository.create({
       ...dto,
       etudiant,
+      etablissement: etudiant.etablissement,
       dateEmission: new Date(dto.dateEmission),
       dateEcheance: dto.dateEcheance ? new Date(dto.dateEcheance) : undefined,
     });
@@ -161,11 +193,47 @@ export class FinanceService {
     return facture;
   }
 
+  async updateFacture(id: number, dto: CreateFactureDto, tenantId?: number) {
+    const facture = await this.factureRepository.findOne({
+      where: { id },
+      relations: { etudiant: true },
+    });
+    if (!facture) throw new NotFoundException('Facture introuvable');
+
+    if (dto.etudiantId) {
+      const etudiant = await this.etudiantRepository.findOne({
+        where: TenantHelper.addTenantFilter({ id: dto.etudiantId }, tenantId),
+      });
+      if (!etudiant) throw new NotFoundException(`Étudiant #${dto.etudiantId} introuvable`);
+      facture.etudiant = etudiant;
+    }
+
+    if (dto.numero) facture.numero = dto.numero;
+    if (dto.dateEmission) facture.dateEmission = new Date(dto.dateEmission);
+    if (dto.dateEcheance) facture.dateEcheance = new Date(dto.dateEcheance);
+    if (dto.montantTotal) facture.montantTotal = dto.montantTotal;
+    if (dto.notes) facture.notes = dto.notes;
+    if (dto.status) facture.status = dto.status;
+
+    return await this.factureRepository.save(facture);
+  }
+
+  async deleteFacture(id: number, tenantId?: number) {
+    const facture = await this.factureRepository.findOne({
+      where: { id },
+      relations: { etudiant: true },
+    });
+    if (!facture) throw new NotFoundException('Facture introuvable');
+
+    await this.factureRepository.remove(facture);
+  }
+
   // --- Gestion des Paiements ---
 
   async createPaiement(dto: CreatePaiementDto, tenantId?: number) {
     const etudiant = await this.etudiantRepository.findOne({
       where: TenantHelper.addTenantFilter({ id: dto.etudiantId }, tenantId),
+      relations: { etablissement: true },
     });
     if (!etudiant)
       throw new NotFoundException(`Étudiant #${dto.etudiantId} introuvable`);
@@ -186,6 +254,7 @@ export class FinanceService {
     const paiement = this.paiementRepository.create({
       ...dto,
       etudiant,
+      etablissement: etudiant.etablissement,
       facture,
       datePaiement: new Date(dto.datePaiement),
     });
@@ -282,43 +351,115 @@ export class FinanceService {
     };
   }
 
+  async updatePaiement(id: number, dto: CreatePaiementDto, tenantId?: number) {
+    const paiement = await this.paiementRepository.findOne({
+      where: { id },
+      relations: { etudiant: true, facture: true },
+    });
+    if (!paiement) throw new NotFoundException('Paiement introuvable');
+
+    if (dto.etudiantId) {
+      const etudiant = await this.etudiantRepository.findOne({
+        where: TenantHelper.addTenantFilter({ id: dto.etudiantId }, tenantId),
+      });
+      if (!etudiant) throw new NotFoundException(`Étudiant #${dto.etudiantId} introuvable`);
+      paiement.etudiant = etudiant;
+    }
+
+    if (dto.factureId) {
+      const facture = await this.findOneFacture(dto.factureId, tenantId);
+      paiement.facture = facture;
+    }
+
+    if (dto.reference) paiement.reference = dto.reference;
+    if (dto.montant) paiement.montant = dto.montant;
+    if (dto.datePaiement) paiement.datePaiement = new Date(dto.datePaiement);
+    if (dto.modePaiement) paiement.modePaiement = dto.modePaiement;
+
+    return await this.paiementRepository.save(paiement);
+  }
+
+  async deletePaiement(id: number, tenantId?: number) {
+    const paiement = await this.paiementRepository.findOne({
+      where: { id },
+      relations: { etudiant: true },
+    });
+    if (!paiement) throw new NotFoundException('Paiement introuvable');
+
+    await this.paiementRepository.remove(paiement);
+  }
+
   // --- Tableau de Bord & Rapports ---
 
   async getDashboardStats(tenantId?: number) {
-    const where = TenantHelper.addTenantFilter(
-      {},
-      tenantId,
-      'etudiant.etablissement',
-    );
+    // Pour le dashboard, si pas de tenantId, on ne filtre pas pour voir toutes les données
+    const where = tenantId 
+      ? TenantHelper.addTenantFilter({}, tenantId, 'etudiant.etablissement')
+      : {};
 
     const now = new Date();
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    const startOfYear = new Date(now.getFullYear(), 0, 1);
 
     const allPaiements = await this.paiementRepository.find({
       where: where,
-      relations: { etudiant: { niveau: true } },
+      relations: { etudiant: { niveau: true, classe: true } },
     });
+    
     const totalCollected = allPaiements.reduce(
       (sum, p) => sum + Number(p.montant),
       0,
     );
 
-    const monthPaiements = allPaiements.filter(
+    // Pour "encaissé ce mois", utiliser le dernier mois qui a des paiements si le mois courant est vide
+    let monthPaiements = allPaiements.filter(
       (p) => new Date(p.datePaiement) >= startOfMonth,
     );
-    const monthCollected = monthPaiements.reduce(
+    let monthCollected = monthPaiements.reduce(
+      (sum, p) => sum + Number(p.montant),
+      0,
+    );
+    
+    // Si pas de paiements ce mois, prendre le dernier mois avec des paiements
+    if (monthPaiements.length === 0 && allPaiements.length > 0) {
+      const latestPaymentDate = allPaiements.reduce((latest, p) => {
+        const paymentDate = new Date(p.datePaiement);
+        return paymentDate > latest ? paymentDate : latest;
+      }, new Date(0));
+      
+      const startOfLastMonth = new Date(latestPaymentDate.getFullYear(), latestPaymentDate.getMonth(), 1);
+      const endOfLastMonth = new Date(latestPaymentDate.getFullYear(), latestPaymentDate.getMonth() + 1, 0);
+      
+      monthPaiements = allPaiements.filter(
+        (p) => {
+          const paymentDate = new Date(p.datePaiement);
+          return paymentDate >= startOfLastMonth && paymentDate <= endOfLastMonth;
+        }
+      );
+      monthCollected = monthPaiements.reduce(
+        (sum, p) => sum + Number(p.montant),
+        0,
+      );
+    }
+
+    const yearPaiements = allPaiements.filter(
+      (p) => new Date(p.datePaiement) >= startOfYear,
+    );
+    const yearCollected = yearPaiements.reduce(
       (sum, p) => sum + Number(p.montant),
       0,
     );
 
     const allFactures = await this.factureRepository.find({
       where: where,
-      relations: { etudiant: { niveau: true } },
+      relations: { etudiant: { niveau: true, classe: true } },
     });
+    
     const totalInvoiced = allFactures.reduce(
       (sum, f) => sum + Number(f.montantTotal),
       0,
     );
+    
     const totalPending = totalInvoiced - totalCollected;
 
     // Calcul par niveau
@@ -326,9 +467,17 @@ export class FinanceService {
     allFactures.forEach((f) => {
       const niveauName = f.etudiant.niveau.name;
       if (!statsByNiveau[niveauName]) {
-        statsByNiveau[niveauName] = { invoiced: 0, collected: 0, pending: 0 };
+        statsByNiveau[niveauName] = { 
+          invoiced: 0, 
+          collected: 0, 
+          pending: 0,
+          countFactures: 0,
+          countStudents: new Set()
+        };
       }
       statsByNiveau[niveauName].invoiced += Number(f.montantTotal);
+      statsByNiveau[niveauName].countFactures++;
+      statsByNiveau[niveauName].countStudents.add(f.etudiant.id);
     });
 
     allPaiements.forEach((p) => {
@@ -338,19 +487,139 @@ export class FinanceService {
       }
     });
 
-    for (const niveau in statsByNiveau) {
-      statsByNiveau[niveau].pending =
-        statsByNiveau[niveau].invoiced - statsByNiveau[niveau].collected;
+    for (const niveauName in statsByNiveau) {
+      statsByNiveau[niveauName].pending =
+        statsByNiveau[niveauName].invoiced - statsByNiveau[niveauName].collected;
+      statsByNiveau[niveauName].countStudents = statsByNiveau[niveauName].countStudents.size;
+    }
+
+    // Calcul par classe
+    const statsByClasse: any = {};
+    allFactures.forEach((f) => {
+      const classeName = f.etudiant.classe.name;
+      if (!statsByClasse[classeName]) {
+        statsByClasse[classeName] = { 
+          invoiced: 0, 
+          collected: 0, 
+          pending: 0,
+          countFactures: 0,
+          countStudents: new Set()
+        };
+      }
+      statsByClasse[classeName].invoiced += Number(f.montantTotal);
+      statsByClasse[classeName].countFactures++;
+      statsByClasse[classeName].countStudents.add(f.etudiant.id);
+    });
+
+    allPaiements.forEach((p) => {
+      const classeName = p.etudiant.classe.name;
+      if (statsByClasse[classeName]) {
+        statsByClasse[classeName].collected += Number(p.montant);
+      }
+    });
+
+    for (const classe in statsByClasse) {
+      statsByClasse[classe].pending =
+        statsByClasse[classe].invoiced - statsByClasse[classe].collected;
+      statsByClasse[classe].countStudents = statsByClasse[classe].countStudents.size;
+    }
+
+    // Calcul par mode de paiement
+    const statsByPaymentMode: any = {};
+    allPaiements.forEach((p) => {
+      const mode = p.modePaiement;
+      if (!statsByPaymentMode[mode]) {
+        statsByPaymentMode[mode] = { count: 0, total: 0 };
+      }
+      statsByPaymentMode[mode].count++;
+      statsByPaymentMode[mode].total += Number(p.montant);
+    });
+
+    // Statistiques de factures par statut
+    const statsByStatus: any = {
+      Brouillon: 0,
+      Validée: 0,
+      PartiellementPayée: 0,
+      Payée: 0,
+      Annulée: 0,
+    };
+    allFactures.forEach((f) => {
+      if (statsByStatus[f.status] !== undefined) {
+        statsByStatus[f.status]++;
+      }
+    });
+
+    // Étudiants avec dettes
+    const studentsWithDebt = new Map<number, any>();
+    allFactures.forEach((f) => {
+      const studentId = f.etudiant.id;
+      const totalPaye = allPaiements
+        .filter((p) => p.facture?.id === f.id)
+        .reduce((sum, p) => sum + Number(p.montant), 0);
+      const debt = Number(f.montantTotal) - totalPaye;
+      
+      if (debt > 0) {
+        if (!studentsWithDebt.has(studentId)) {
+          studentsWithDebt.set(studentId, {
+            student: f.etudiant,
+            totalDebt: 0,
+            factures: [],
+          });
+        }
+        const studentData = studentsWithDebt.get(studentId);
+        studentData.totalDebt += debt;
+        studentData.factures.push({
+          numero: f.numero,
+          debt: debt,
+          status: f.status,
+        });
+      }
+    });
+
+    // Top 10 des plus gros débiteurs
+    const topDebtors = Array.from(studentsWithDebt.values())
+      .sort((a, b) => b.totalDebt - a.totalDebt)
+      .slice(0, 10);
+
+    // Évolution mensuelle des paiements (6 derniers mois)
+    const monthlyEvolution: any[] = [];
+    for (let i = 5; i >= 0; i--) {
+      const monthDate = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      const monthEnd = new Date(now.getFullYear(), now.getMonth() - i + 1, 0);
+      
+      const monthPayments = allPaiements.filter(
+        (p) => new Date(p.datePaiement) >= monthDate && new Date(p.datePaiement) <= monthEnd
+      );
+      
+      monthlyEvolution.push({
+        month: monthDate.toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' }),
+        amount: monthPayments.reduce((sum, p) => sum + Number(p.montant), 0),
+        count: monthPayments.length,
+      });
     }
 
     return {
+      // Statistiques globales
       totalCollected,
       totalInvoiced,
       totalPending,
       monthCollected,
+      yearCollected,
       countFactures: allFactures.length,
       countPaiements: allPaiements.length,
+      countStudentsWithDebt: studentsWithDebt.size,
+      
+      // Ventilations
       statsByNiveau,
+      statsByClasse,
+      statsByPaymentMode,
+      statsByStatus,
+      
+      // Liste des débiteurs
+      topDebtors,
+      
+      // Évolution mensuelle
+      monthlyEvolution,
     };
   }
 
@@ -367,15 +636,58 @@ export class FinanceService {
 
     const paiements = await this.paiementRepository.find({
       where: where,
-      relations: { etudiant: true, facture: true },
+      relations: { etudiant: { niveau: true }, facture: true },
       order: { datePaiement: 'ASC' },
     });
 
+    // Calculer les totaux pour le rapport
+    const totalCollected = paiements.reduce((sum, p) => sum + Number(p.montant), 0);
+    
+    // Récupérer les factures pour calculer le total facturé
+    const facturesWhere = TenantHelper.addTenantFilter(
+      {},
+      tenantId,
+      'etudiant.etablissement',
+    );
+    const factures = await this.factureRepository.find({
+      where: facturesWhere,
+      relations: { etudiant: { niveau: true } },
+    });
+    const totalInvoiced = factures.reduce((sum, f) => sum + Number(f.montantTotal), 0);
+    const totalPending = totalInvoiced - totalCollected;
+
+    // Répartition par niveau pour le rapport
+    const statsByNiveau: any = {};
+    factures.forEach((f) => {
+      if (!f.etudiant?.niveau?.name) return;
+      const niveauName = f.etudiant.niveau.name;
+      if (!statsByNiveau[niveauName]) {
+        statsByNiveau[niveauName] = { invoiced: 0, collected: 0, pending: 0 };
+      }
+      statsByNiveau[niveauName].invoiced += Number(f.montantTotal);
+    });
+
+    paiements.forEach((p) => {
+      if (!p.etudiant?.niveau?.name) return;
+      const niveauName = p.etudiant.niveau.name;
+      if (statsByNiveau[niveauName]) {
+        statsByNiveau[niveauName].collected += Number(p.montant);
+      }
+    });
+
+    for (const niveauName in statsByNiveau) {
+      statsByNiveau[niveauName].pending =
+        statsByNiveau[niveauName].invoiced - statsByNiveau[niveauName].collected;
+    }
+
     return {
       period: { start, end },
-      totalCollected: paiements.reduce((sum, p) => sum + Number(p.montant), 0),
+      totalInvoiced,
+      totalCollected,
+      totalPending,
       count: paiements.length,
       data: paiements,
+      statsByNiveau,
     };
   }
 
@@ -452,7 +764,17 @@ export class FinanceService {
       query.andWhere('niveau.id = :niveauId', { niveauId });
     }
 
-    return await query.orderBy('facture.dateEcheance', 'ASC').getMany();
+    const factures = await query.orderBy('facture.dateEcheance', 'ASC').getMany();
+    
+    // Calculer le montant restant pour chaque facture
+    return factures.map(facture => {
+      const totalPaye = facture.paiements.reduce((sum, p) => sum + Number(p.montant), 0);
+      const montantRestant = Number(facture.montantTotal) - totalPaye;
+      return {
+        ...facture,
+        montantRestant,
+      };
+    });
   }
 
   async findByEtudiant(etudiantId: number) {

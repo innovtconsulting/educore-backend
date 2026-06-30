@@ -319,6 +319,12 @@ async function seed() {
       etablissement: fst,
       etablissementId: fst.id,
     });
+    const l1Esp = niveauRepo.create({
+      name: 'Licence 1',
+      classe: informatiqueEsp,
+      etablissement: esp,
+      etablissementId: esp.id,
+    });
     const l2Esp = niveauRepo.create({
       name: 'Licence 2',
       classe: informatiqueEsp,
@@ -361,6 +367,7 @@ async function seed() {
       l3Fst,
       m1Fst,
       m2Fst,
+      l1Esp,
       l2Esp,
       l1Math,
       l2Math,
@@ -787,102 +794,316 @@ async function seed() {
     });
     await sanctionRepo.save(sanc1);
 
-    // 12. Finance
-    const fraisL1 = fraisRepo.create({
-      name: 'Scolarité Licence 1 Informatique',
-      amount: 500000,
-      type: FeeType.SCOLARITE,
-      classe: informatiqueFst,
-      niveau: l1Fst,
-      etablissement: fst,
-      etablissementId: fst.id,
-    });
-    const fraisInscr = fraisRepo.create({
-      name: "Frais d'inscription L1",
-      amount: 50000,
-      type: FeeType.INSCRIPTION,
-      classe: informatiqueFst,
-      niveau: l1Fst,
-      etablissement: fst,
-      etablissementId: fst.id,
-    });
-    await fraisRepo.save([fraisL1, fraisInscr]);
+    // 12. Finance - Données enrichies pour le tableau de bord
+    // Frais pour différents niveaux et classes
+    const fraisList = [
+      // FST - L1
+      {
+        name: 'Scolarité L1 Informatique',
+        amount: 500000,
+        type: FeeType.SCOLARITE,
+        classe: informatiqueFst,
+        niveau: l1Fst,
+        etablissement: fst,
+        etablissementId: fst.id,
+      },
+      {
+        name: "Frais d'inscription L1",
+        amount: 50000,
+        type: FeeType.INSCRIPTION,
+        classe: informatiqueFst,
+        niveau: l1Fst,
+        etablissement: fst,
+        etablissementId: fst.id,
+      },
+      // FST - L2
+      {
+        name: 'Scolarité L2 Informatique',
+        amount: 550000,
+        type: FeeType.SCOLARITE,
+        classe: informatiqueFst,
+        niveau: l2Fst,
+        etablissement: fst,
+        etablissementId: fst.id,
+      },
+      {
+        name: "Frais d'inscription L2",
+        amount: 55000,
+        type: FeeType.INSCRIPTION,
+        classe: informatiqueFst,
+        niveau: l2Fst,
+        etablissement: fst,
+        etablissementId: fst.id,
+      },
+      // FST - L3
+      {
+        name: 'Scolarité L3 Informatique',
+        amount: 600000,
+        type: FeeType.SCOLARITE,
+        classe: informatiqueFst,
+        niveau: l3Fst,
+        etablissement: fst,
+        etablissementId: fst.id,
+      },
+      // ESP - L1
+      {
+        name: 'Scolarité L1 Informatique ESP',
+        amount: 450000,
+        type: FeeType.SCOLARITE,
+        classe: informatiqueEsp,
+        niveau: l1Esp,
+        etablissement: esp,
+        etablissementId: esp.id,
+      },
+      {
+        name: "Frais d'inscription L1 ESP",
+        amount: 45000,
+        type: FeeType.INSCRIPTION,
+        classe: informatiqueEsp,
+        niveau: l1Esp,
+        etablissement: esp,
+        etablissementId: esp.id,
+      },
+      // ESP - L2
+      {
+        name: 'Scolarité L2 Informatique ESP',
+        amount: 480000,
+        type: FeeType.SCOLARITE,
+        classe: informatiqueEsp,
+        niveau: l2Esp,
+        etablissement: esp,
+        etablissementId: esp.id,
+      },
+    ];
+    const savedFrais = await fraisRepo.save(fraisList);
 
-    const fac1 = factureRepo.create({
-      numero: 'FAC-2026-0001',
-      etudiant: etudiant1,
-      dateEmission: new Date('2026-06-01'),
-      dateEcheance: new Date('2026-07-01'),
-      montantTotal: 550000,
-      status: InvoiceStatus.PARTIEL,
-      etablissement: fst,
-      etablissementId: fst.id,
-    });
-    const fac2 = factureRepo.create({
-      numero: 'FAC-2026-0002',
-      etudiant: etudiant2,
-      dateEmission: new Date('2026-06-10'),
-      dateEcheance: new Date('2026-07-10'),
-      montantTotal: 600000,
-      status: InvoiceStatus.VALIDE,
-      etablissement: esp,
-      etablissementId: esp.id,
-    });
+    // Factures pour différents étudiants avec différents statuts
+    const facturesList = [
+      // Étudiant 1 - FST - Plusieurs factures
+      {
+        numero: 'FAC-2026-0001',
+        etudiant: etudiant1,
+        dateEmission: new Date('2026-01-15'),
+        dateEcheance: new Date('2026-02-15'),
+        montantTotal: 550000,
+        status: InvoiceStatus.PAYE,
+        etablissement: fst,
+        etablissementId: fst.id,
+      },
+      {
+        numero: 'FAC-2026-0002',
+        etudiant: etudiant1,
+        dateEmission: new Date('2026-06-01'),
+        dateEcheance: new Date('2026-07-01'),
+        montantTotal: 600000,
+        status: InvoiceStatus.PARTIEL,
+        etablissement: fst,
+        etablissementId: fst.id,
+      },
+      {
+        numero: 'FAC-2026-0003',
+        etudiant: etudiant1,
+        dateEmission: new Date('2026-06-10'),
+        dateEcheance: new Date('2026-07-10'),
+        montantTotal: 50000,
+        status: InvoiceStatus.VALIDE,
+        etablissement: fst,
+        etablissementId: fst.id,
+      },
+      // Étudiant 2 - ESP - Factures
+      {
+        numero: 'FAC-2026-0004',
+        etudiant: etudiant2,
+        dateEmission: new Date('2026-02-20'),
+        dateEcheance: new Date('2026-03-20'),
+        montantTotal: 495000,
+        status: InvoiceStatus.PAYE,
+        etablissement: esp,
+        etablissementId: esp.id,
+      },
+      {
+        numero: 'FAC-2026-0005',
+        etudiant: etudiant2,
+        dateEmission: new Date('2026-06-05'),
+        dateEcheance: new Date('2026-07-05'),
+        montantTotal: 525000,
+        status: InvoiceStatus.VALIDE,
+        etablissement: esp,
+        etablissementId: esp.id,
+      },
+      // Étudiant 3 - IUT - Une facture impayée
+      {
+        numero: 'FAC-2026-0006',
+        etudiant: etudiant3,
+        dateEmission: new Date('2026-06-12'),
+        dateEcheance: new Date('2026-07-12'),
+        montantTotal: 655000,
+        status: InvoiceStatus.VALIDE,
+        etablissement: iut,
+        etablissementId: iut.id,
+      },
+      // Étudiant 2 - ESP - Facture partiellement payée
+      {
+        numero: 'FAC-2026-0007',
+        etudiant: etudiant2,
+        dateEmission: new Date('2026-05-01'),
+        dateEcheance: new Date('2026-06-01'),
+        montantTotal: 450000,
+        status: InvoiceStatus.PARTIEL,
+        etablissement: esp,
+        etablissementId: esp.id,
+      },
+      // Étudiant 1 - FST - Facture payée
+      {
+        numero: 'FAC-2026-0008',
+        etudiant: etudiant1,
+        dateEmission: new Date('2026-04-10'),
+        dateEcheance: new Date('2026-05-10'),
+        montantTotal: 500000,
+        status: InvoiceStatus.PAYE,
+        etablissement: fst,
+        etablissementId: fst.id,
+      },
+    ];
+    const savedFactures = await factureRepo.save(facturesList);
 
-    // Facture directement payée (Formulaire manuel)
-    const facManual = factureRepo.create({
-      numero: 'FAC-MANUAL-001',
-      etudiant: etudiant1,
-      dateEmission: new Date('2026-06-11'),
-      montantTotal: 100000,
-      status: InvoiceStatus.PAYE,
-      notes: 'Règlement immédiat lors de la saisie manuelle',
-      etablissement: fst,
-      etablissementId: fst.id,
-    });
+    // Paiements avec différents modes et dates pour l'évolution mensuelle
+    const paiementsList = [
+      // Janvier - Paiements
+      {
+        reference: 'PAY-2026-0001',
+        etudiant: etudiant1,
+        facture: savedFactures[0],
+        montant: 550000,
+        datePaiement: new Date('2026-01-20'),
+        modePaiement: PaymentMethod.WAVE,
+        etablissement: fst,
+        etablissementId: fst.id,
+      },
+      {
+        reference: 'PAY-2026-0002',
+        etudiant: etudiant2,
+        facture: savedFactures[3],
+        montant: 495000,
+        datePaiement: new Date('2026-02-25'),
+        modePaiement: PaymentMethod.ESPECES,
+        etablissement: esp,
+        etablissementId: esp.id,
+      },
+      // Février - Paiements
+      {
+        reference: 'PAY-2026-0003',
+        etudiant: etudiant2,
+        facture: savedFactures[6],
+        montant: 200000,
+        datePaiement: new Date('2026-02-15'),
+        modePaiement: PaymentMethod.ORANGE_MONEY,
+        etablissement: esp,
+        etablissementId: esp.id,
+      },
+      // Mars - Paiements
+      {
+        reference: 'PAY-2026-0004',
+        etudiant: etudiant1,
+        facture: savedFactures[7],
+        montant: 500000,
+        datePaiement: new Date('2026-03-15'),
+        modePaiement: PaymentMethod.VIREMENT,
+        etablissement: fst,
+        etablissementId: fst.id,
+      },
+      // Avril - Paiements
+      {
+        reference: 'PAY-2026-0005',
+        etudiant: etudiant1,
+        facture: savedFactures[1],
+        montant: 300000,
+        datePaiement: new Date('2026-04-10'),
+        modePaiement: PaymentMethod.WAVE,
+        etablissement: fst,
+        etablissementId: fst.id,
+      },
+      // Mai - Paiements
+      {
+        reference: 'PAY-2026-0006',
+        etudiant: etudiant1,
+        facture: savedFactures[1],
+        montant: 200000,
+        datePaiement: new Date('2026-05-20'),
+        modePaiement: PaymentMethod.ESPECES,
+        etablissement: fst,
+        etablissementId: fst.id,
+      },
+      {
+        reference: 'PAY-2026-0007',
+        etudiant: etudiant2,
+        facture: savedFactures[6],
+        montant: 150000,
+        datePaiement: new Date('2026-05-25'),
+        modePaiement: PaymentMethod.WAVE,
+        etablissement: esp,
+        etablissementId: esp.id,
+      },
+      // Juin - Paiements
+      {
+        reference: 'PAY-2026-0008',
+        etudiant: etudiant2,
+        facture: savedFactures[4],
+        montant: 300000,
+        datePaiement: new Date('2026-06-15'),
+        modePaiement: PaymentMethod.ORANGE_MONEY,
+        etablissement: esp,
+        etablissementId: esp.id,
+      },
+      {
+        reference: 'PAY-2026-0009',
+        etudiant: etudiant1,
+        facture: savedFactures[1],
+        montant: 100000,
+        datePaiement: new Date('2026-06-25'),
+        modePaiement: PaymentMethod.ESPECES,
+        etablissement: fst,
+        etablissementId: fst.id,
+      },
+      // Paiement du jour courant pour le dashboard
+      {
+        reference: 'PAY-2026-0010',
+        etudiant: etudiant2,
+        facture: savedFactures[4],
+        montant: 150000,
+        datePaiement: new Date(),
+        modePaiement: PaymentMethod.WAVE,
+        etablissement: esp,
+        etablissementId: esp.id,
+      },
+    ];
+    const savedPaiements = await paiementRepo.save(paiementsList);
 
-    await factureRepo.save([fac1, fac2, facManual]);
+    // Mettre à jour les statuts des factures après les paiements
+    // Facture 1 (PAYE) - déjà correct
+    // Facture 2 (PARTIEL) - 300k + 200k + 100k = 600k payé sur 600k -> PAYE
+    savedFactures[1].status = InvoiceStatus.PAYE;
+    // Facture 3 (IMPAYE) - reste IMPAYE
+    // Facture 4 (PAYE) - déjà correct
+    // Facture 5 (VALIDE) - 300k payé sur 525k -> PARTIEL
+    savedFactures[4].status = InvoiceStatus.PARTIEL;
+    // Facture 6 (IMPAYE) - reste IMPAYE
+    // Facture 7 (PARTIEL) - 200k + 150k = 350k payé sur 450k -> PARTIEL
+    savedFactures[6].status = InvoiceStatus.PARTIEL;
+    // Facture 8 (PAYE) - déjà correct
 
-    const pay1 = paiementRepo.create({
-      reference: 'PAY-2026-0001',
-      etudiant: etudiant1,
-      facture: fac1,
-      montant: 250000,
-      datePaiement: new Date('2026-06-05'),
-      modePaiement: PaymentMethod.WAVE,
-      etablissement: fst,
-      etablissementId: fst.id,
-    });
-    const savedPay1 = await paiementRepo.save(pay1);
+    await factureRepo.save(savedFactures);
 
-    // Générer le reçu PDF pour le premier paiement
-    try {
-      const recuPath = await generateReceiptPdf(savedPay1);
-      savedPay1.recuPath = recuPath;
-      await paiementRepo.save(savedPay1);
-    } catch (e) {
-      console.warn('Échec génération PDF dans le seed');
+    // Générer les reçus PDF pour quelques paiements
+    for (const paiement of savedPaiements.slice(0, 5)) {
+      try {
+        const recuPath = await generateReceiptPdf(paiement);
+        paiement.recuPath = recuPath;
+        await paiementRepo.save(paiement);
+      } catch (e) {
+        console.warn(`Échec génération PDF pour paiement ${paiement.reference}`);
+      }
     }
-
-    // Solder la facture fac1 (550k - 250k = 300k restants)
-    const paySolde = paiementRepo.create({
-      reference: 'PAY-2026-0002-SOLDE',
-      etudiant: etudiant1,
-      facture: fac1,
-      montant: 300000,
-      datePaiement: new Date('2026-06-15'),
-      etablissement: fst,
-      etablissementId: fst.id,
-      modePaiement: PaymentMethod.ESPECES,
-    });
-    await paiementRepo.save(paySolde);
-
-    // Mettre à jour manuellement le statut dans le seed pour déclencher la quittance
-    // (Dans l'app, c'est fait via FinanceService.createPaiement)
-    // Ici on simule l'appel au service ou on laisse le repo faire,
-    // mais pour le seed on va juste s'assurer que l'appel a eu lieu.
-    // Note: Le seed utilise les repos directement, donc on doit appeler le service si on veut l'automatisation.
-    // Pour rester simple et efficace dans le seed, je vais juste vérifier le fonctionnement via le build/test.
 
     // 13. Rapport Quotidien
     const dailyReport = dailyReportRepo.create({
