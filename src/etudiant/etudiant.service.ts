@@ -78,20 +78,25 @@ export class EtudiantService {
 			role: UserRole.ETUDIANT,
 			isActive: false,
 			username: etudiant.firstName,
+			etablissementId: etudiant.etablissementId || etudiant.etablissement?.id,
+			etudiant: etudiant,
 		});
 
 		// Créer les comptes parents si nécessaire
 		if (etudiant.parents) {
 			for (const parent of etudiant.parents) {
-				const existingUser = await this.userService.findByEmail(
-					parent.phoneNumber,
-				);
+				const loginEmail = parent.email || parent.phoneNumber;
+				if (!loginEmail) continue;
+				const existingUser = await this.userService.findByEmail(loginEmail);
 				if (!existingUser) {
 					await this.userService.create({
-						email: parent.phoneNumber,
+						email: loginEmail,
+						password: '12345678',
 						role: UserRole.PARENT,
 						isActive: false,
-						username: parent.firstName,
+						username: `${parent.firstName} ${parent.lastName}`.trim(),
+						etablissementId: etudiant.etablissementId || etudiant.etablissement?.id,
+						parent: parent,
 					});
 				}
 			}
@@ -406,14 +411,24 @@ export class EtudiantService {
 			});
 		}
 
-		// Activer les comptes utilisateurs des parents
+		// Activer ou créer les comptes utilisateurs des parents
 		if (savedEtudiant.parents) {
 			for (const parent of savedEtudiant.parents) {
-				const parentUser = await this.userService.findByEmail(
-					parent.phoneNumber,
-				);
+				const loginEmail = parent.email || parent.phoneNumber;
+				if (!loginEmail) continue;
+				const parentUser = await this.userService.findByEmail(loginEmail);
 				if (parentUser && parentUser.role === Role.PARENT) {
 					await this.userService.update(parentUser.id, { isActive: true });
+				} else if (!parentUser) {
+					await this.userService.create({
+						email: loginEmail,
+						password: '12345678',
+						role: UserRole.PARENT,
+						isActive: true,
+						username: `${parent.firstName} ${parent.lastName}`.trim(),
+						etablissementId: savedEtudiant.etablissement?.id,
+						parent: parent,
+					});
 				}
 			}
 		}
