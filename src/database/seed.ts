@@ -232,15 +232,6 @@ async function seed() {
       roleEnseignantAcl,
     ]);
 
-    // 0.1 Année Universitaire
-    const annee2026 = anneeRepo.create({
-      label: '2026-2027',
-      startDate: new Date('2026-10-01'),
-      endDate: new Date('2027-07-31'),
-      isActive: true,
-    });
-    await anneeRepo.save(annee2026);
-
     // 1. Établissements
     const fst = etablissementRepo.create({
       name: 'Faculté des Sciences et Techniques (FST)',
@@ -261,6 +252,17 @@ async function seed() {
       phone: '+221 33 824 00 00',
     });
     await etablissementRepo.save([fst, esp, iut]);
+
+    // 0.1 Année Universitaire
+    const annee2026 = anneeRepo.create({
+      label: '2026-2027',
+      startDate: new Date('2026-10-01'),
+      endDate: new Date('2027-07-31'),
+      isActive: true,
+      etablissement: fst,
+      etablissementId: fst.id,
+    });
+    await anneeRepo.save(annee2026);
 
     // 3. Classes (Parcours)
     const informatiqueFst = classeRepo.create({
@@ -290,46 +292,68 @@ async function seed() {
     const l1Fst = niveauRepo.create({
       name: 'Licence 1',
       classe: informatiqueFst,
+      etablissement: fst,
+      etablissementId: fst.id,
     });
     const l2Fst = niveauRepo.create({
       name: 'Licence 2',
       classe: informatiqueFst,
+      etablissement: fst,
+      etablissementId: fst.id,
     });
     const l3Fst = niveauRepo.create({
       name: 'Licence 3',
       classe: informatiqueFst,
+      etablissement: fst,
+      etablissementId: fst.id,
     });
     const m1Fst = niveauRepo.create({
       name: 'Master 1',
       classe: informatiqueFst,
+      etablissement: fst,
+      etablissementId: fst.id,
     });
     const m2Fst = niveauRepo.create({
       name: 'Master 2',
       classe: informatiqueFst,
+      etablissement: fst,
+      etablissementId: fst.id,
     });
     const l2Esp = niveauRepo.create({
       name: 'Licence 2',
       classe: informatiqueEsp,
+      etablissement: esp,
+      etablissementId: esp.id,
     });
     const l1Math = niveauRepo.create({
       name: 'Licence 1',
       classe: mathematiquesFst,
+      etablissement: fst,
+      etablissementId: fst.id,
     });
     const l2Math = niveauRepo.create({
       name: 'Licence 2',
       classe: mathematiquesFst,
+      etablissement: fst,
+      etablissementId: fst.id,
     });
     const l3Math = niveauRepo.create({
       name: 'Licence 3',
       classe: mathematiquesFst,
+      etablissement: fst,
+      etablissementId: fst.id,
     });
     const dut1Iut = niveauRepo.create({
       name: 'DUT 1',
       classe: genieElectriqueIut,
+      etablissement: iut,
+      etablissementId: iut.id,
     });
     const dut2Iut = niveauRepo.create({
       name: 'DUT 2',
       classe: genieElectriqueIut,
+      etablissement: iut,
+      etablissementId: iut.id,
     });
     await niveauRepo.save([
       l1Fst,
@@ -351,24 +375,32 @@ async function seed() {
       name: 'Algorithmique 1',
       coefficient: 4,
       niveau: l1Fst,
+      etablissement: fst,
+      etablissementId: fst.id,
     });
     const baseDonneesFst = matiereRepo.create({
       code: 'INF201',
       name: 'Bases de Données',
       coefficient: 3,
       niveau: l2Fst,
+      etablissement: fst,
+      etablissementId: fst.id,
     });
     const reseauxFst = matiereRepo.create({
       code: 'INF301',
       name: 'Réseaux Informatiques',
       coefficient: 3,
       niveau: l3Fst,
+      etablissement: fst,
+      etablissementId: fst.id,
     });
     const electroniqueIut = matiereRepo.create({
       code: 'GE101',
       name: 'Électronique Fondamentale',
       coefficient: 3,
       niveau: dut1Iut,
+      etablissement: iut,
+      etablissementId: iut.id,
     });
     await matiereRepo.save([
       algoFst,
@@ -385,6 +417,8 @@ async function seed() {
       matricule: 'FST-INF-001',
       dateEmbauche: new Date('2020-01-01'),
       phone: '+221 77 123 45 67',
+      etablissement: fst,
+      etablissementId: fst.id,
     });
     const profSow = enseignantRepo.create({
       firstName: 'Mariam',
@@ -393,6 +427,8 @@ async function seed() {
       matricule: 'FST-MAT-001',
       dateEmbauche: new Date('2021-01-01'),
       phone: '+221 77 987 65 43',
+      etablissement: fst,
+      etablissementId: fst.id,
     });
     const profNdiaye = enseignantRepo.create({
       firstName: 'Abdou',
@@ -401,6 +437,8 @@ async function seed() {
       matricule: 'IUT-GE-001',
       dateEmbauche: new Date('2022-01-01'),
       phone: '+221 77 555 44 33',
+      etablissement: iut,
+      etablissementId: iut.id,
     });
     await enseignantRepo.save([profDiallo, profSow, profNdiaye]);
 
@@ -438,18 +476,24 @@ async function seed() {
       gender: 'Père' as any,
       phoneNumber: '+221 77 111 22 33',
       email: 'modou.sow@email.sn',
+      etablissement: fst,
+      etablissementId: fst.id,
     });
     const parent2 = parentRepo.create({
       firstName: 'Awa',
       lastName: 'Sow',
       gender: 'Mère' as any,
       phoneNumber: '+221 77 444 55 66',
+      etablissement: fst,
+      etablissementId: fst.id,
     });
     const parent3 = parentRepo.create({
       firstName: 'Ibrahima',
       lastName: 'Ndiaye',
       gender: 'Père' as any,
       phoneNumber: '+221 77 666 77 88',
+      etablissement: iut,
+      etablissementId: iut.id,
     });
     await parentRepo.save([parent1, parent2, parent3]);
 
@@ -726,6 +770,8 @@ async function seed() {
       emploiDuTemp: cours1,
       status: 'Présent' as any,
       remark: "À l'heure",
+      etablissement: fst,
+      etablissementId: fst.id,
     });
     await presenceRepo.save(pres1);
 
@@ -736,6 +782,8 @@ async function seed() {
       motif: "Retards répétés au cours d'Algorithmique",
       dateDecision: new Date('2026-06-09'),
       isApplied: true,
+      etablissement: fst,
+      etablissementId: fst.id,
     });
     await sanctionRepo.save(sanc1);
 
@@ -746,6 +794,8 @@ async function seed() {
       type: FeeType.SCOLARITE,
       classe: informatiqueFst,
       niveau: l1Fst,
+      etablissement: fst,
+      etablissementId: fst.id,
     });
     const fraisInscr = fraisRepo.create({
       name: "Frais d'inscription L1",
@@ -753,6 +803,8 @@ async function seed() {
       type: FeeType.INSCRIPTION,
       classe: informatiqueFst,
       niveau: l1Fst,
+      etablissement: fst,
+      etablissementId: fst.id,
     });
     await fraisRepo.save([fraisL1, fraisInscr]);
 
@@ -763,6 +815,8 @@ async function seed() {
       dateEcheance: new Date('2026-07-01'),
       montantTotal: 550000,
       status: InvoiceStatus.PARTIEL,
+      etablissement: fst,
+      etablissementId: fst.id,
     });
     const fac2 = factureRepo.create({
       numero: 'FAC-2026-0002',
@@ -771,6 +825,8 @@ async function seed() {
       dateEcheance: new Date('2026-07-10'),
       montantTotal: 600000,
       status: InvoiceStatus.VALIDE,
+      etablissement: esp,
+      etablissementId: esp.id,
     });
 
     // Facture directement payée (Formulaire manuel)
@@ -781,6 +837,8 @@ async function seed() {
       montantTotal: 100000,
       status: InvoiceStatus.PAYE,
       notes: 'Règlement immédiat lors de la saisie manuelle',
+      etablissement: fst,
+      etablissementId: fst.id,
     });
 
     await factureRepo.save([fac1, fac2, facManual]);
@@ -792,6 +850,8 @@ async function seed() {
       montant: 250000,
       datePaiement: new Date('2026-06-05'),
       modePaiement: PaymentMethod.WAVE,
+      etablissement: fst,
+      etablissementId: fst.id,
     });
     const savedPay1 = await paiementRepo.save(pay1);
 
@@ -811,6 +871,8 @@ async function seed() {
       facture: fac1,
       montant: 300000,
       datePaiement: new Date('2026-06-15'),
+      etablissement: fst,
+      etablissementId: fst.id,
       modePaiement: PaymentMethod.ESPECES,
     });
     await paiementRepo.save(paySolde);
@@ -832,6 +894,8 @@ async function seed() {
       totalRetards: 0,
       totalSanctions: 1,
       isSubmitted: true,
+      etablissement: fst,
+      etablissementId: fst.id,
     });
     await dailyReportRepo.save(dailyReport);
 
@@ -851,6 +915,8 @@ async function seed() {
       originalName: 'calendrier_2026.pdf',
       mimeType: 'application/pdf',
       fileSize: 1024 * 500, // 500 KB
+      etablissement: fst,
+      etablissementId: fst.id,
     });
     await documentRepo.save(doc1);
 
@@ -874,6 +940,8 @@ async function seed() {
       classe: informatiqueFst,
       niveau: l1Fst,
       semestre: semestre1,
+      etablissement: fst,
+      etablissementId: fst.id,
     });
     const evalExam = evaluationRepo.create({
       title: 'Examen Final Algorithmique',
@@ -885,6 +953,8 @@ async function seed() {
       classe: informatiqueFst,
       niveau: l1Fst,
       semestre: semestre1,
+      etablissement: fst,
+      etablissementId: fst.id,
     });
     await evaluationRepo.save([evalCC, evalExam]);
 
@@ -892,11 +962,15 @@ async function seed() {
       value: 12.5,
       etudiant: etudiant1,
       evaluation: evalCC,
+      etablissement: fst,
+      etablissementId: fst.id,
     });
     const noteExam = noteRepo.create({
       value: 8.0, // Moyenne matière (12.5*0.4 + 8*0.6) = 5+4.8 = 9.8 (<10)
       etudiant: etudiant1,
       evaluation: evalExam,
+      etablissement: fst,
+      etablissementId: fst.id,
     });
     await noteRepo.save([noteCC, noteExam]);
 
@@ -911,6 +985,8 @@ async function seed() {
       classe: informatiqueFst,
       niveau: l1Fst,
       semestre: semestre1,
+      etablissement: fst,
+      etablissementId: fst.id,
     });
     await evaluationRepo.save(evalRattrapage);
 
@@ -918,6 +994,8 @@ async function seed() {
       value: 14.0, // Nouvelle moyenne (12.5*0.4 + 14*0.6) = 5+8.4 = 13.4 (>10)
       etudiant: etudiant1,
       evaluation: evalRattrapage,
+      etablissement: fst,
+      etablissementId: fst.id,
     });
     await noteRepo.save(noteRattrapage);
 
@@ -928,12 +1006,16 @@ async function seed() {
       content:
         "Le port de la blouse est obligatoire pour tous les étudiants dans l'enceinte de l'établissement.",
       category: DisciplineCategory.REGLEMENT_INTERIEUR,
+      etablissement: fst,
+      etablissementId: fst.id,
     });
     const reglement2 = disciplineRepo.create({
       title: 'Usage des Smartphones',
       content:
         "L'utilisation des téléphones portables est strictement interdite durant les heures de cours et d'examen.",
       category: DisciplineCategory.DISCIPLINE,
+      etablissement: fst,
+      etablissementId: fst.id,
     });
     await disciplineRepo.save([reglement1, reglement2]);
 
@@ -1073,6 +1155,8 @@ async function seed() {
       classe: informatiqueFst,
       niveau: l1Fst,
       enseignant: profDiallo,
+      etablissement: fst,
+      etablissementId: fst.id,
     });
     const devoir2 = devoirRepo.create({
       title: 'Projet Base de Données',
@@ -1082,6 +1166,8 @@ async function seed() {
       classe: informatiqueFst,
       niveau: l2Fst,
       enseignant: profDiallo,
+      etablissement: fst,
+      etablissementId: fst.id,
     });
     const savedDevoirs = await devoirRepo.save([devoir1, devoir2]);
 
@@ -1094,6 +1180,8 @@ async function seed() {
       originalName: 'rendu_tp1_ousmane.pdf',
       mimeType: 'application/pdf',
       fileSize: 1024 * 150,
+      etablissement: fst,
+      etablissementId: fst.id,
     });
     const savedDocRendu = await documentRepo.save(docRendu);
 
@@ -1102,6 +1190,8 @@ async function seed() {
       etudiant: etudiant1,
       document: savedDocRendu,
       comment: "Voici mon travail pour le TP 1. J'ai ajouté les bonus.",
+      etablissement: fst,
+      etablissementId: fst.id,
     });
     await submissionRepo.save(submission1);
 
