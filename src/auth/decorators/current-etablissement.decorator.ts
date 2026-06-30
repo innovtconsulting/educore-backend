@@ -6,7 +6,8 @@ export const CurrentEtablissement = createParamDecorator(
     const request = ctx.switchToHttp().getRequest();
     const user = request.user;
     
-    if (user?.role === UserRole.SUPER_ADMIN || user?.role === UserRole.PARENT) {
+    // Les SUPER_ADMIN et ADMIN peuvent voir toutes les données (pas de filtrage)
+    if (user?.role === UserRole.SUPER_ADMIN || user?.role === UserRole.ADMIN || user?.role === UserRole.PARENT) {
       return undefined;
     }
     

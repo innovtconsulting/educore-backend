@@ -2,6 +2,8 @@ import {
   Controller,
   Get,
   Post,
+  Patch,
+  Delete,
   Body,
   Param,
   Query,
@@ -47,6 +49,7 @@ export class FinanceController {
 
   // --- Frais ---
   @Post('frais')
+  @Roles(Role.COMPTABLE)
   @Permissions('FINANCE_MANAGE')
   @ApiOperation({ summary: 'Créer un nouveau type de frais' })
   async createFrais(
@@ -58,6 +61,7 @@ export class FinanceController {
   }
 
   @Get('frais')
+  @Roles(Role.ADMIN, Role.SUPER_ADMIN, Role.COMPTABLE)
   @Permissions('FINANCE_VIEW')
   @ApiOperation({ summary: 'Récupérer tous les frais configurés' })
   async findAllFrais(@CurrentEtablissement() tenantId?: number) {
@@ -65,8 +69,34 @@ export class FinanceController {
     return { message: 'Liste des frais récupérée avec succès', data };
   }
 
+  @Patch('frais/:id')
+  @Roles(Role.COMPTABLE)
+  @Permissions('FINANCE_MANAGE')
+  @ApiOperation({ summary: 'Modifier un frais' })
+  async updateFrais(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() dto: CreateFraisDto,
+    @CurrentEtablissement() tenantId?: number,
+  ) {
+    const data = await this.financeService.updateFrais(id, dto, tenantId);
+    return { message: 'Frais modifié avec succès', data };
+  }
+
+  @Delete('frais/:id')
+  @Roles(Role.COMPTABLE)
+  @Permissions('FINANCE_MANAGE')
+  @ApiOperation({ summary: 'Supprimer un frais' })
+  async deleteFrais(
+    @Param('id', ParseIntPipe) id: number,
+    @CurrentEtablissement() tenantId?: number,
+  ) {
+    await this.financeService.deleteFrais(id, tenantId);
+    return { message: 'Frais supprimé avec succès' };
+  }
+
   // --- Factures ---
   @Post('factures')
+  @Roles(Role.COMPTABLE)
   @Permissions('FINANCE_MANAGE')
   @ApiOperation({ summary: 'Émettre une nouvelle facture' })
   async createFacture(
@@ -78,6 +108,7 @@ export class FinanceController {
   }
 
   @Get('factures')
+  @Roles(Role.ADMIN, Role.SUPER_ADMIN, Role.COMPTABLE)
   @Permissions('FINANCE_VIEW')
   @ApiOperation({ summary: 'Récupérer toutes les factures' })
   async findAllFactures(
@@ -103,8 +134,34 @@ export class FinanceController {
     return { message: `Facture #${id} récupérée avec succès`, data };
   }
 
+  @Patch('factures/:id')
+  @Roles(Role.COMPTABLE)
+  @Permissions('FINANCE_MANAGE')
+  @ApiOperation({ summary: 'Modifier une facture' })
+  async updateFacture(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() dto: CreateFactureDto,
+    @CurrentEtablissement() tenantId?: number,
+  ) {
+    const data = await this.financeService.updateFacture(id, dto, tenantId);
+    return { message: 'Facture modifiée avec succès', data };
+  }
+
+  @Delete('factures/:id')
+  @Roles(Role.COMPTABLE)
+  @Permissions('FINANCE_MANAGE')
+  @ApiOperation({ summary: 'Supprimer une facture' })
+  async deleteFacture(
+    @Param('id', ParseIntPipe) id: number,
+    @CurrentEtablissement() tenantId?: number,
+  ) {
+    await this.financeService.deleteFacture(id, tenantId);
+    return { message: 'Facture supprimée avec succès' };
+  }
+
   // --- Paiements ---
   @Post('paiements')
+  @Roles(Role.COMPTABLE)
   @Permissions('FINANCE_MANAGE')
   @ApiOperation({
     summary: 'Enregistrer un paiement',
@@ -120,6 +177,7 @@ export class FinanceController {
   }
 
   @Get('paiements')
+  @Roles(Role.ADMIN, Role.SUPER_ADMIN, Role.COMPTABLE)
   @Permissions('FINANCE_VIEW')
   @ApiOperation({ summary: 'Récupérer tous les paiements' })
   async findAllPaiements(
@@ -133,7 +191,33 @@ export class FinanceController {
     return { message: 'Liste des paiements récupérée avec succès', data };
   }
 
+  @Patch('paiements/:id')
+  @Roles(Role.COMPTABLE)
+  @Permissions('FINANCE_MANAGE')
+  @ApiOperation({ summary: 'Modifier un paiement' })
+  async updatePaiement(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() dto: CreatePaiementDto,
+    @CurrentEtablissement() tenantId?: number,
+  ) {
+    const data = await this.financeService.updatePaiement(id, dto, tenantId);
+    return { message: 'Paiement modifié avec succès', data };
+  }
+
+  @Delete('paiements/:id')
+  @Roles(Role.COMPTABLE)
+  @Permissions('FINANCE_MANAGE')
+  @ApiOperation({ summary: 'Supprimer un paiement' })
+  async deletePaiement(
+    @Param('id', ParseIntPipe) id: number,
+    @CurrentEtablissement() tenantId?: number,
+  ) {
+    await this.financeService.deletePaiement(id, tenantId);
+    return { message: 'Paiement supprimé avec succès' };
+  }
+
   @Post('paiements/:id/generate-recu')
+  @Roles(Role.ADMIN, Role.SUPER_ADMIN, Role.COMPTABLE)
   @Permissions('FINANCE_MANAGE')
   @ApiOperation({ summary: "Générer manuellement le reçu d'un paiement" })
   async manualReceipt(
@@ -145,6 +229,7 @@ export class FinanceController {
   }
 
   @Post('factures/:id/generate-quittance')
+  @Roles(Role.ADMIN, Role.SUPER_ADMIN, Role.COMPTABLE)
   @Permissions('FINANCE_MANAGE')
   @ApiOperation({ summary: "Générer manuellement la quittance d'une facture" })
   async manualQuittance(
@@ -160,7 +245,7 @@ export class FinanceController {
 
   // --- Documents (Reçus & Quittances) ---
   @Get('paiements/:id/recu')
-  @Roles(Role.PARENT, Role.ETUDIANT)
+  @Roles(Role.PARENT, Role.ETUDIANT, Role.ADMIN, Role.SUPER_ADMIN, Role.COMPTABLE)
   @Permissions('FINANCE_VIEW')
   @ApiOperation({ summary: 'Télécharger le reçu de paiement' })
   async downloadRecu(
@@ -181,7 +266,7 @@ export class FinanceController {
   }
 
   @Get('factures/:id/quittance')
-  @Roles(Role.PARENT, Role.ETUDIANT)
+  @Roles(Role.PARENT, Role.ETUDIANT, Role.ADMIN, Role.SUPER_ADMIN, Role.COMPTABLE)
   @Permissions('FINANCE_VIEW')
   @ApiOperation({ summary: 'Télécharger la quittance de solde' })
   async downloadQuittance(
@@ -202,6 +287,7 @@ export class FinanceController {
   }
 
   @Post('factures/:id/quittance/upload')
+  @Roles(Role.COMPTABLE)
   @Permissions('FINANCE_MANAGE')
   @ApiConsumes('multipart/form-data')
   @ApiBody({
@@ -246,6 +332,7 @@ export class FinanceController {
   }
 
   @Post('paiements/:id/recu/upload')
+  @Roles(Role.COMPTABLE)
   @Permissions('FINANCE_MANAGE')
   @ApiConsumes('multipart/form-data')
   @ApiBody({
@@ -286,6 +373,7 @@ export class FinanceController {
 
   // --- Dashboard & Reports ---
   @Get('dashboard')
+  @Roles(Role.ADMIN, Role.SUPER_ADMIN, Role.COMPTABLE)
   @Permissions('FINANCE_REPORT')
   @ApiOperation({
     summary: 'Statistiques du tableau de bord financier',
@@ -298,6 +386,7 @@ export class FinanceController {
   }
 
   @Get('report')
+  @Roles(Role.ADMIN, Role.SUPER_ADMIN, Role.COMPTABLE)
   @Permissions('FINANCE_REPORT')
   @ApiOperation({
     summary: 'Générer un rapport financier',
@@ -328,6 +417,7 @@ export class FinanceController {
   }
 
   @Get('unpaid')
+  @Roles(Role.ADMIN, Role.SUPER_ADMIN, Role.COMPTABLE)
   @Permissions('FINANCE_VIEW')
   @ApiOperation({
     summary: 'Lister les factures impayées ou partiellement payées',
