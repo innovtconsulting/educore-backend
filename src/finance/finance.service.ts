@@ -38,6 +38,18 @@ export class FinanceService {
     public readonly niveauRepository: Repository<Niveau>,
   ) {}
 
+  private enrichFactureWithPaymentSummary(facture: Facture) {
+    const totalPaye = facture.paiements?.reduce(
+      (sum, p) => sum + Number(p.montant),
+      0,
+    );
+    facture.montantPaye = totalPaye ?? 0;
+    facture.montantRestant = Math.max(
+      Number(facture.montantTotal) - (totalPaye ?? 0),
+      0,
+    );
+  }
+
   // --- Gestion des Frais (Configuration) ---
 
   async createFrais(dto: CreateFraisDto, tenantId?: number) {
@@ -138,6 +150,8 @@ export class FinanceService {
       take: limit,
     });
 
+    items.forEach((facture) => this.enrichFactureWithPaymentSummary(facture));
+
     return {
       items,
       total,
@@ -158,6 +172,7 @@ export class FinanceService {
       relations: { etudiant: true, paiements: true },
     });
     if (!facture) throw new NotFoundException(`Facture #${id} introuvable`);
+    this.enrichFactureWithPaymentSummary(facture);
     return facture;
   }
 
@@ -452,7 +467,9 @@ export class FinanceService {
       query.andWhere('niveau.id = :niveauId', { niveauId });
     }
 
-    return await query.orderBy('facture.dateEcheance', 'ASC').getMany();
+    const factures = await query.orderBy('facture.dateEcheance', 'ASC').getMany();
+    factures.forEach((facture) => this.enrichFactureWithPaymentSummary(facture));
+    return factures;
   }
 
   async findByEtudiant(etudiantId: number) {

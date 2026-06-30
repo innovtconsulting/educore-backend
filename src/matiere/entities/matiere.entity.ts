@@ -24,6 +24,9 @@ export class Matiere {
   @Column({ type: 'decimal', precision: 5, scale: 2, default: 1.0 })
   coefficient!: number;
 
+  @Column({ type: 'int', nullable: false, default: 0 })
+  hours!: number;
+
   @ManyToOne(() => Niveau, (niveau) => niveau.matieres, { nullable: false })
   niveau!: Niveau;
 

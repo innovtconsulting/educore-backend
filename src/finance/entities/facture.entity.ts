@@ -74,6 +74,12 @@ export class Facture {
   @ApiProperty({ required: false })
   notes?: string;
 
+  @ApiProperty({ required: false })
+  montantPaye?: number;
+
+  @ApiProperty({ required: false })
+  montantRestant?: number;
+
   @Column({ nullable: true })
   @ApiProperty({ description: 'Chemin vers le PDF de la quittance finale' })
   quittancePath?: string;

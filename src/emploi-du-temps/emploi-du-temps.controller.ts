@@ -80,6 +80,41 @@ export class EmploiDuTempsController {
     );
   }
 
+  @Get('hours')
+  @Roles(Role.ETUDIANT, Role.ENSEIGNANT, Role.ADMIN, Role.SURVEILLANT)
+  @ApiOperation({
+    summary: 'Calculer le nombre total d heures effectuées pour une matière et un enseignant',
+  })
+  @ApiQuery({ name: 'enseignantId', required: true, type: Number })
+  @ApiQuery({ name: 'matiereId', required: true, type: Number })
+  @ApiQuery({
+    name: 'start',
+    required: false,
+    type: String,
+    description: 'Date de début du filtre (format ISO)',
+  })
+  @ApiQuery({
+    name: 'end',
+    required: false,
+    type: String,
+    description: 'Date de fin du filtre (format ISO)',
+  })
+  getTotalHoursByTeacherAndSubject(
+    @Query('enseignantId') enseignantId: string,
+    @Query('matiereId') matiereId: string,
+    @Query('start') start?: string,
+    @Query('end') end?: string,
+    @CurrentEtablissement() tenantId?: number,
+  ) {
+    return this.emploiDuTempsService.getTotalHoursByTeacherAndSubject(
+      +enseignantId,
+      +matiereId,
+      start,
+      end,
+      tenantId,
+    );
+  }
+
   @Get(':id')
   @Roles(Role.ETUDIANT, Role.ENSEIGNANT, Role.ADMIN, Role.SURVEILLANT)
   @ApiOperation({ summary: 'Récupérer un créneau par son ID' })
