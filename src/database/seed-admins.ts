@@ -53,14 +53,24 @@ async function seedAdmins() {
       console.log('✅ Rôle ACL Admin créé.');
     }
 
-    // 3. Création de l'Admin d'établissement
+    // 3. Récupérer ou créer l'établissement par défaut
+    let defaultEtab = await etablissementRepo.findOne({ where: {} });
+    if (!defaultEtab) {
+      defaultEtab = etablissementRepo.create({
+        name: 'ESPM',
+        address: 'Dakar, Sénégal',
+        email: 'contact@espm.sn',
+        phone: '+221 33 000 00 00',
+      });
+      await etablissementRepo.save(defaultEtab);
+      console.log(`✅ Établissement par défaut créé : ${defaultEtab.name}`);
+    }
+
+    // 4. Création ou mise à jour de l'Admin d'établissement
     const adminEmail = 'admin@espm.sn';
     let admin = await userRepo.findOne({ where: { email: adminEmail } });
 
     if (!admin) {
-      // On tente de lier l'admin au premier établissement trouvé
-      const firstEtab = await etablissementRepo.findOne({ where: {} });
-
       admin = userRepo.create({
         email: adminEmail,
         username: 'admin',
@@ -68,15 +78,19 @@ async function seedAdmins() {
         role: Role.ADMIN,
         isActive: true,
         aclRole: roleAdminAcl,
-        etablissement: firstEtab || undefined,
+        etablissement: defaultEtab,
+        etablissementId: defaultEtab.id,
       });
       await userRepo.save(admin);
-      const etabInfo = firstEtab
-        ? ` (Lié à ${firstEtab.name})`
-        : ' (Sans établissement)';
-      console.log(`✅ Admin créé : ${adminEmail} / password123${etabInfo}`);
+      console.log(`✅ Admin créé : ${adminEmail} / password123 (Lié à ${defaultEtab.name})`);
+    } else if (!admin.etablissementId) {
+      // Mise à jour si l'admin existe déjà sans établissement
+      admin.etablissement = defaultEtab;
+      admin.etablissementId = defaultEtab.id;
+      await userRepo.save(admin);
+      console.log(`✅ Admin mis à jour : établissement assigné (${defaultEtab.name})`);
     } else {
-      console.log('ℹ️ Admin existe déjà.');
+      console.log(`ℹ️ Admin existe déjà (lié à l'établissement ID ${admin.etablissementId}).`);
     }
 
     console.log('🚀 Seeding des administrateurs terminé avec succès !');

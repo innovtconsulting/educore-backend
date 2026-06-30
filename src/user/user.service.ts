@@ -34,7 +34,7 @@ export class UserService {
     private readonly aclService: AclService,
   ) {}
 
-  async create(userData: Partial<User>, tenantId?: number): Promise<User> {
+  async create(userData: Partial<User>, tenantId?: number, caller?: any): Promise<User> {
     if (userData.email) {
       userData.email = userData.email.toLowerCase().trim();
       const existingUser = await this.userRepository.findOne({
@@ -48,20 +48,32 @@ export class UserService {
     const password = userData.password || '12345678';
     userData.password = await bcrypt.hash(password, 10);
 
+    // tenantId depuis le JWT, ou etablissementId du caller en fallback,
+    // ou lookup DB si les deux sont absents (compte admin sans etablissementId dans le JWT)
+    let resolvedTenantId: number | undefined = tenantId ?? caller?.etablissementId;
+    if (!resolvedTenantId && caller?.sub && caller?.role !== Role.SUPER_ADMIN) {
+      const callerUser = await this.userRepository.findOne({
+        where: { id: caller.sub },
+      });
+      if (callerUser?.etablissementId) {
+        resolvedTenantId = callerUser.etablissementId;
+      }
+    }
+
     // Assigner automatiquement le rôle ACL basé sur le UserRole
     if (userData.role && !userData.aclRole) {
       const aclRole = await this.aclService.findRoleByName(
         userData.role,
-        tenantId,
+        resolvedTenantId,
       );
       if (aclRole) {
         userData.aclRole = aclRole;
       }
     }
 
-    // Si tenantId existe et pas d'etablissementId, on l'utilise le tenantId
-    if (tenantId && !userData.etablissementId) {
-      userData.etablissementId = tenantId;
+    // Si resolvedTenantId existe et pas d'etablissementId, on l'utilise
+    if (resolvedTenantId && !userData.etablissementId) {
+      userData.etablissementId = resolvedTenantId;
     }
 
     // Validation: pour les rôles autres que SUPER_ADMIN, etablissementId est obligatoire
@@ -133,7 +145,7 @@ export class UserService {
     });
   }
 
-  async findAll(filter: UserFilterDto, tenantId?: number) {
+  async findAll(filter: UserFilterDto, tenantId?: number, caller?: any) {
     const {
       page = 1,
       limit = 20,
@@ -152,8 +164,27 @@ export class UserService {
       .leftJoinAndSelect('u.etablissement', 'etablissement')
       .leftJoinAndSelect('u.aclRole', 'aclRole');
 
-    if (tenantId) {
-      qb.andWhere('etablissement.id = :tenantId', { tenantId });
+    const isSuperAdmin = caller?.role === Role.SUPER_ADMIN;
+
+    // Non-super_admin : jamais accès aux comptes super_admin
+    if (!isSuperAdmin) {
+      qb.andWhere('u.role != :superAdmin', { superAdmin: Role.SUPER_ADMIN });
+    }
+
+    let resolvedTenantId: number | undefined = tenantId ?? caller?.etablissementId;
+
+    // Si l'admin n'a pas d'etablissementId dans son JWT, lookup en base
+    if (!resolvedTenantId && !isSuperAdmin && caller?.sub) {
+      const callerUser = await this.userRepository.findOne({
+        where: { id: caller.sub },
+      });
+      if (callerUser?.etablissementId) {
+        resolvedTenantId = callerUser.etablissementId;
+      }
+    }
+
+    if (resolvedTenantId) {
+      qb.andWhere('etablissement.id = :resolvedTenantId', { resolvedTenantId });
     } else if (etablissementId) {
       qb.andWhere('etablissement.id = :etablissementId', { etablissementId });
     }

@@ -142,9 +142,10 @@ export class UserController {
   @ApiOperation({ summary: 'Créer un nouvel utilisateur' })
   create(
     @Body() createUserDto: CreateUserDto,
+    @Request() req: any,
     @CurrentEtablissement() tenantId?: number,
   ) {
-    return this.userService.create(createUserDto, tenantId);
+    return this.userService.create(createUserDto, tenantId, req.user);
   }
 
   @Get()
@@ -152,9 +153,10 @@ export class UserController {
   @ApiOperation({ summary: 'Lister tous les utilisateurs' })
   findAll(
     @Query() filter: UserFilterDto,
+    @Request() req: any,
     @CurrentEtablissement() tenantId?: number,
   ) {
-    return this.userService.findAll(filter, tenantId);
+    return this.userService.findAll(filter, tenantId, req.user);
   }
 
   @Get(':id')
