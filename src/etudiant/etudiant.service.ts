@@ -66,6 +66,34 @@ export class EtudiantService {
 		private readonly dataSource: DataSource,
 	) {}
 
+	// Crée un compte utilisateur (rôle PARENT) pour chaque parent qui n'en a pas encore,
+	// afin qu'il puisse se connecter à la plateforme. Active un compte existant si demandé.
+	private async createMissingParentAccounts(
+		parents: Parent[],
+		etablissementId?: number,
+		isActive = true,
+	): Promise<void> {
+		for (const parent of parents) {
+			const loginEmail = parent.email || parent.phoneNumber;
+			if (!loginEmail) continue;
+
+			const existingUser = await this.userService.findByEmail(loginEmail);
+			if (!existingUser) {
+				await this.userService.create({
+					email: loginEmail,
+					password: '12345678',
+					role: UserRole.PARENT,
+					isActive,
+					username: `${parent.firstName} ${parent.lastName}`.trim(),
+					etablissementId,
+					parent,
+				});
+			} else if (isActive && existingUser.role === Role.PARENT && !existingUser.isActive) {
+				await this.userService.update(existingUser.id, { isActive: true });
+			}
+		}
+	}
+
 	async preRegister(data: any): Promise<Etudiant> {
 		const { password, ...etudiantData } = data;
 
@@ -86,25 +114,7 @@ export class EtudiantService {
 			etudiant: etudiant,
 		});
 
-		// Créer les comptes parents si nécessaire
-		if (etudiant.parents) {
-			for (const parent of etudiant.parents) {
-				const loginEmail = parent.email || parent.phoneNumber;
-				if (!loginEmail) continue;
-				const existingUser = await this.userService.findByEmail(loginEmail);
-				if (!existingUser) {
-					await this.userService.create({
-						email: loginEmail,
-						password: '12345678',
-						role: UserRole.PARENT,
-						isActive: false,
-						username: `${parent.firstName} ${parent.lastName}`.trim(),
-						etablissementId: etudiant.etablissement?.id,
-						parent: parent,
-					});
-				}
-			}
-		}
+		// Les comptes parents ont déjà été créés (inactifs) par create() ci-dessus
 
 		return etudiant;
 	}
@@ -207,7 +217,13 @@ export class EtudiantService {
 		}) as Etudiant;
 
 		try {
-			return await this.etudiantRepository.save(etudiant);
+			const savedEtudiant = await this.etudiantRepository.save(etudiant);
+			await this.createMissingParentAccounts(
+				parents,
+				etablissementId,
+				savedEtudiant.status === EnrollmentStatus.ACTIF,
+			);
+			return savedEtudiant;
 		} catch (error) {
 			console.log('DEBUG - Error saving student:', error);
 			throw error;
@@ -349,8 +365,9 @@ export class EtudiantService {
 			etudiant.niveau = niveau;
 		}
 
+		let parents: Parent[] | undefined;
 		if (parentsData && parentsData.length > 0) {
-			const parents: Parent[] = [];
+			parents = [];
 			for (const pData of parentsData) {
 				let parent = await this.parentRepository.findOne({
 					where: [
@@ -377,6 +394,15 @@ export class EtudiantService {
 			await this.userService.update(etudiant.user.id, {
 				username: rest.firstName,
 			});
+		}
+
+		// Créer le compte utilisateur des parents nouvellement ajoutés (ou l'activer s'il existait déjà)
+		if (parents) {
+			await this.createMissingParentAccounts(
+				parents,
+				etablissementId || savedEtudiant.etablissement?.id,
+				savedEtudiant.status === EnrollmentStatus.ACTIF,
+			);
 		}
 
 		return savedEtudiant;
@@ -424,24 +450,11 @@ export class EtudiantService {
 
 		// Activer ou créer les comptes utilisateurs des parents
 		if (savedEtudiant.parents) {
-			for (const parent of savedEtudiant.parents) {
-				const loginEmail = parent.email || parent.phoneNumber;
-				if (!loginEmail) continue;
-				const parentUser = await this.userService.findByEmail(loginEmail);
-				if (parentUser && parentUser.role === Role.PARENT) {
-					await this.userService.update(parentUser.id, { isActive: true });
-				} else if (!parentUser) {
-					await this.userService.create({
-						email: loginEmail,
-						password: '12345678',
-						role: UserRole.PARENT,
-						isActive: true,
-						username: `${parent.firstName} ${parent.lastName}`.trim(),
-						etablissementId: savedEtudiant.etablissement?.id,
-						parent: parent,
-					});
-				}
-			}
+			await this.createMissingParentAccounts(
+				savedEtudiant.parents,
+				savedEtudiant.etablissement?.id,
+				true,
+			);
 		}
 
 		return savedEtudiant;
