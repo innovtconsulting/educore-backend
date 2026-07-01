@@ -1,4 +1,5 @@
 import { AppDataSource } from '../data-source';
+import { DeepPartial, FindOptionsWhere, ObjectLiteral, Repository } from 'typeorm';
 import { Etablissement } from '../etablissement/entities/etablissement.entity';
 import { Niveau } from '../niveau/entities/niveau.entity';
 import { Classe } from '../classe/entities/classe.entity';
@@ -52,6 +53,17 @@ import * as fs from 'fs';
 import * as path from 'path';
 
 dotenv.config();
+
+async function findOrCreate<T extends ObjectLiteral>(
+  repo: Repository<T>,
+  where: FindOptionsWhere<T>,
+  createData: DeepPartial<T>,
+): Promise<T> {
+  const existing = await repo.findOneBy(where);
+  if (existing) return existing;
+  const entity = repo.create(createData as any);
+  return repo.save(entity as any);
+}
 
 async function seed() {
   try {
@@ -176,55 +188,78 @@ async function seed() {
       { name: 'CONFIG_MANAGE', description: 'Gérer la configuration globale' },
       { name: 'DOCUMENT_MANAGE', description: 'Gérer la GED' },
     ];
-    const savedPerms = await permissionRepo.save(
-      perms.map((p) => permissionRepo.create(p)),
-    );
+    const savedPerms = [] as Permission[];
+    for (const permissionData of perms) {
+      const permission = await findOrCreate(
+        permissionRepo,
+        { name: permissionData.name },
+        permissionData,
+      );
+      savedPerms.push(permission);
+    }
 
     const getPerms = (names: string[]) =>
       savedPerms.filter((p) => names.includes(p.name));
 
-    const roleAdminAcl = roleAclRepo.create({
-      name: 'Admin',
-      description: "Administrateur d'établissement",
-      permissions: savedPerms, // L'admin de l'école a tout sauf peut-être CONFIG_MANAGE (réservé SuperAdmin)
-    });
-    const roleComptableAcl = roleAclRepo.create({
-      name: 'Comptable',
-      description: 'Gestionnaire financier',
-      permissions: getPerms([
-        'FINANCE_VIEW',
-        'FINANCE_MANAGE',
-        'FINANCE_REPORT',
-        'STUDENT_VIEW',
-        'ACADEMIC_VIEW',
-      ]),
-    });
-    const roleSurveillantAcl = roleAclRepo.create({
-      name: 'Surveillant',
-      description: 'Gestionnaire de la vie scolaire',
-      permissions: getPerms([
-        'STUDENT_VIEW',
-        'STUDENT_CREATE',
-        'STUDENT_EDIT',
-        'STUDENT_VALIDATE',
-        'ATTENDANCE_MANAGE',
-        'DISCIPLINE_MANAGE',
-        'REPORT_DAILY_MANAGE',
-        'SCHEDULE_VIEW',
-        'ACADEMIC_VIEW',
-      ]),
-    });
-    const roleEnseignantAcl = roleAclRepo.create({
-      name: 'Enseignant',
-      description: 'Personnel académique',
-      permissions: getPerms([
-        'STUDENT_VIEW',
-        'ACADEMIC_VIEW',
-        'ACADEMIC_MANAGE',
-        'SCHEDULE_VIEW',
-        'ATTENDANCE_MANAGE',
-      ]),
-    });
+    const roleAdminAcl = await findOrCreate(
+      roleAclRepo,
+      { name: 'Admin' },
+      {
+        name: 'Admin',
+        description: "Administrateur d'établissement",
+        permissions: savedPerms,
+      },
+    );
+    const roleComptableAcl = await findOrCreate(
+      roleAclRepo,
+      { name: 'Comptable' },
+      {
+        name: 'Comptable',
+        description: 'Gestionnaire financier',
+        permissions: getPerms([
+          'FINANCE_VIEW',
+          'FINANCE_MANAGE',
+          'FINANCE_REPORT',
+          'STUDENT_VIEW',
+          'ACADEMIC_VIEW',
+        ]),
+      },
+    );
+    const roleSurveillantAcl = await findOrCreate(
+      roleAclRepo,
+      { name: 'Surveillant' },
+      {
+        name: 'Surveillant',
+        description: 'Gestionnaire de la vie scolaire',
+        permissions: getPerms([
+          'STUDENT_VIEW',
+          'STUDENT_CREATE',
+          'STUDENT_EDIT',
+          'STUDENT_VALIDATE',
+          'ATTENDANCE_MANAGE',
+          'DISCIPLINE_MANAGE',
+          'REPORT_DAILY_MANAGE',
+          'SCHEDULE_VIEW',
+          'ACADEMIC_VIEW',
+        ]),
+      },
+    );
+    const roleEnseignantAcl = await findOrCreate(
+      roleAclRepo,
+      { name: 'Enseignant' },
+      {
+        name: 'Enseignant',
+        description: 'Personnel académique',
+        permissions: getPerms([
+          'STUDENT_VIEW',
+          'ACADEMIC_VIEW',
+          'ACADEMIC_MANAGE',
+          'SCHEDULE_VIEW',
+          'ATTENDANCE_MANAGE',
+        ]),
+      },
+    );
+
     await roleAclRepo.save([
       roleAdminAcl,
       roleComptableAcl,
@@ -233,25 +268,49 @@ async function seed() {
     ]);
 
     // 1. Établissements
-    const fst = etablissementRepo.create({
-      name: 'Faculté des Sciences et Techniques (FST)',
-      address: 'UCAD, Dakar',
-      email: 'contact.fst@ucad.edu.sn',
-      phone: '+221 33 825 00 00',
-    });
-    const esp = etablissementRepo.create({
-      name: 'École Supérieure Polytechnique (ESP)',
-      address: 'Avenue Cheikh Anta Diop, Dakar',
-      email: 'contact.esp@ucad.edu.sn',
-      phone: '+221 33 864 51 96',
-    });
-    const iut = etablissementRepo.create({
-      name: 'Institut Universitaire de Technologie (IUT)',
-      address: 'UCAD, Dakar',
-      email: 'contact.iut@ucad.edu.sn',
-      phone: '+221 33 824 00 00',
-    });
-    await etablissementRepo.save([fst, esp, iut]);
+    const fst = await findOrCreate(
+      etablissementRepo,
+      { email: 'contact.fst@ucad.edu.sn' },
+      {
+        name: 'Faculté des Sciences et Techniques (FST)',
+        address: 'UCAD, Dakar',
+        email: 'contact.fst@ucad.edu.sn',
+        phone: '+221 33 825 00 00',
+      },
+    );
+    const esp = await findOrCreate(
+      etablissementRepo,
+      { email: 'contact.esp@ucad.edu.sn' },
+      {
+        name: 'École Supérieure Polytechnique (ESP)',
+        address: 'Avenue Cheikh Anta Diop, Dakar',
+        email: 'contact.esp@ucad.edu.sn',
+        phone: '+221 33 864 51 96',
+      },
+    );
+    const iut = await findOrCreate(
+      etablissementRepo,
+      { email: 'contact.iut@ucad.edu.sn' },
+      {
+        name: 'Institut Universitaire de Technologie (IUT)',
+        address: 'UCAD, Dakar',
+        email: 'contact.iut@ucad.edu.sn',
+        phone: '+221 33 824 00 00',
+      },
+    );
+
+    // 1.1 Année Universitaire
+    const annee2026 = await findOrCreate(
+      anneeRepo,
+      { label: '2026-2027', etablissementId: fst.id },
+      {
+        label: '2026-2027',
+        startDate: new Date('2026-10-01'),
+        endDate: new Date('2027-07-31'),
+        isActive: true,
+        etablissement: fst,
+      },
+    );
 
     // 0.1 Année Universitaire
     const annee2026 = anneeRepo.create({
@@ -265,28 +324,38 @@ async function seed() {
     await anneeRepo.save(annee2026);
 
     // 3. Classes (Parcours)
-    const informatiqueFst = classeRepo.create({
-      name: 'Informatique',
-      etablissement: fst,
-    });
-    const informatiqueEsp = classeRepo.create({
-      name: 'Informatique',
-      etablissement: esp,
-    });
-    const mathematiquesFst = classeRepo.create({
-      name: 'Mathématiques',
-      etablissement: fst,
-    });
-    const genieElectriqueIut = classeRepo.create({
-      name: 'Génie Électrique',
-      etablissement: iut,
-    });
-    await classeRepo.save([
-      informatiqueFst,
-      informatiqueEsp,
-      mathematiquesFst,
-      genieElectriqueIut,
-    ]);
+    const informatiqueFst = await findOrCreate(
+      classeRepo,
+      { name: 'Informatique', etablissement: { id: fst.id } as any },
+      {
+        name: 'Informatique',
+        etablissement: fst,
+      },
+    );
+    const informatiqueEsp = await findOrCreate(
+      classeRepo,
+      { name: 'Informatique', etablissement: { id: esp.id } as any },
+      {
+        name: 'Informatique',
+        etablissement: esp,
+      },
+    );
+    const mathematiquesFst = await findOrCreate(
+      classeRepo,
+      { name: 'Mathématiques', etablissement: { id: fst.id } as any },
+      {
+        name: 'Mathématiques',
+        etablissement: fst,
+      },
+    );
+    const genieElectriqueIut = await findOrCreate(
+      classeRepo,
+      { name: 'Génie Électrique', etablissement: { id: iut.id } as any },
+      {
+        name: 'Génie Électrique',
+        etablissement: iut,
+      },
+    );
 
     // 2. Niveaux (now after Classes)
     const l1Fst = niveauRepo.create({

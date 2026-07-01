@@ -7,6 +7,7 @@ import {
   UpdateDateColumn,
   JoinColumn,
 } from 'typeorm';
+import { ApiProperty } from '@nestjs/swagger';
 import { Niveau } from '../../niveau/entities/niveau.entity';
 import { Etablissement } from '../../etablissement/entities/etablissement.entity';
 
