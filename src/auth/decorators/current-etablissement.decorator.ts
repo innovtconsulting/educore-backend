@@ -6,11 +6,11 @@ export const CurrentEtablissement = createParamDecorator(
     const request = ctx.switchToHttp().getRequest();
     const user = request.user;
     
-    // Les SUPER_ADMIN et ADMIN peuvent voir toutes les données (pas de filtrage)
-    if (user?.role === UserRole.SUPER_ADMIN || user?.role === UserRole.ADMIN || user?.role === UserRole.PARENT) {
+    // Seul le SUPER_ADMIN voit les données de tous les établissements
+    if (user?.role === UserRole.SUPER_ADMIN) {
       return undefined;
     }
-    
+
     return user?.etablissementId;
   },
 );

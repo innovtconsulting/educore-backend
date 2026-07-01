@@ -1,5 +1,7 @@
 import { Module } from '@nestjs/common';
+import { APP_INTERCEPTOR } from '@nestjs/core';
 import { ConfigModule } from '@nestjs/config';
+import { TenantResolutionInterceptor } from './common/interceptors/tenant-resolution.interceptor';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
@@ -149,6 +151,9 @@ import { AclModule } from './acl/acl.module';
     AclModule,
   ],
   controllers: [AppController],
-  providers: [AppService],
+  providers: [
+    AppService,
+    { provide: APP_INTERCEPTOR, useClass: TenantResolutionInterceptor },
+  ],
 })
 export class AppModule {}

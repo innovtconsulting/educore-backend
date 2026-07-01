@@ -312,17 +312,6 @@ async function seed() {
       },
     );
 
-    // 0.1 Année Universitaire
-    const annee2026 = anneeRepo.create({
-      label: '2026-2027',
-      startDate: new Date('2026-10-01'),
-      endDate: new Date('2027-07-31'),
-      isActive: true,
-      etablissement: fst,
-      etablissementId: fst.id,
-    });
-    await anneeRepo.save(annee2026);
-
     // 3. Classes (Parcours)
     const informatiqueFst = await findOrCreate(
       classeRepo,
