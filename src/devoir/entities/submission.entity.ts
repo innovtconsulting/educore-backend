@@ -33,9 +33,10 @@ export class Submission {
   @ApiProperty({ type: () => Etudiant })
   etudiant!: Etudiant;
 
-  @ManyToOne(() => Document, { nullable: false })
-  @ApiProperty({ type: () => Document })
-  document!: Document;
+  @ManyToOne(() => Document, { nullable: true, onDelete: 'SET NULL' })
+  @JoinColumn({ name: 'documentId' })
+  @ApiProperty({ type: () => Document, required: false })
+  document?: Document;
 
   @ManyToOne(() => Etablissement, { nullable: false })
   @JoinColumn({ name: 'etablissementId' })

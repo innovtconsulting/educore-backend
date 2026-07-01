@@ -244,6 +244,39 @@ export class EmploiDuTempsService {
     };
   }
 
+  async getTotalHoursByTeacherAndSubject(
+    enseignantId: number,
+    matiereId: number,
+    start?: string,
+    end?: string,
+    tenantId?: number,
+  ): Promise<{ hours: number; sessions: number }> {
+    const query = this.emploiDuTempRepository
+      .createQueryBuilder('e')
+      .where('e.enseignantId = :enseignantId', { enseignantId })
+      .andWhere('e.matiereId = :matiereId', { matiereId });
+
+    if (tenantId) {
+      query.andWhere('e.etablissementId = :tenantId', { tenantId });
+    }
+    if (start) {
+      query.andWhere('e.startTime >= :start', { start: new Date(start) });
+    }
+    if (end) {
+      query.andWhere('e.endTime <= :end', { end: new Date(end) });
+    }
+
+    const emplois = await query.getMany();
+    const totalMs = emplois.reduce(
+      (sum, emploi) => sum + (emploi.endTime.getTime() - emploi.startTime.getTime()),
+      0,
+    );
+    return {
+      hours: Number((totalMs / (1000 * 60 * 60)).toFixed(2)),
+      sessions: emplois.length,
+    };
+  }
+
   async findOne(id: number, tenantId?: number): Promise<EmploiDuTemp> {
     const where: any = { id };
     if (tenantId) where.etablissement = { id: tenantId };

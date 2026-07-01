@@ -25,7 +25,7 @@ export class MatiereService {
     createMatiereDto: CreateMatiereDto,
     tenantId?: number,
   ): Promise<Matiere> {
-    const { code, name, coefficient, niveauId, hours } = createMatiereDto;
+    const { code, name, coefficient, hours, niveauId } = createMatiereDto;
 
     // Vérifier l'unicité du code
     const existingCode = await this.matiereRepository.findOneBy({ code });
@@ -146,7 +146,7 @@ export class MatiereService {
     updateMatiereDto: UpdateMatiereDto,
     tenantId?: number,
   ): Promise<Matiere> {
-    const { code, name, coefficient, niveauId, hours } = updateMatiereDto;
+    const { code, name, coefficient, hours, niveauId } = updateMatiereDto;
     const matiere = await this.findOne(id, tenantId);
 
     if (code && code !== matiere.code) {

@@ -1,6 +1,6 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, ILike, FindOptionsWhere } from 'typeorm';
+import { Repository, ILike, FindOptionsWhere, DataSource } from 'typeorm';
 import { CreateDocumentDto } from './dto/create-document.dto';
 import { UpdateDocumentDto } from './dto/update-document.dto';
 import { Document } from './entities/document.entity';
@@ -13,6 +13,7 @@ export class DocumentService {
   constructor(
     @InjectRepository(Document)
     private readonly documentRepository: Repository<Document>,
+    private readonly dataSource: DataSource,
   ) {}
 
   async create(
@@ -78,16 +79,54 @@ export class DocumentService {
     tenantId?: number,
   ) {
     const document = await this.findOne(id, tenantId);
-    Object.assign(document, updateDocumentDto);
+    
+    // Si deleteFile est true, supprimer le fichier physique
+    if (updateDocumentDto.deleteFile && document.filePath) {
+      if (fs.existsSync(document.filePath)) {
+        fs.unlinkSync(document.filePath);
+      }
+      document.filePath = undefined as any;
+      document.originalName = undefined as any;
+      document.mimeType = undefined as any;
+      document.fileSize = undefined as any;
+    }
+    
+    // Mettre à jour les autres champs
+    const { deleteFile, ...otherFields } = updateDocumentDto;
+    Object.assign(document, otherFields);
+    
     return await this.documentRepository.save(document);
   }
 
   async remove(id: number, tenantId?: number) {
     const document = await this.findOne(id, tenantId);
-    // Supprimer le fichier physique
-    if (fs.existsSync(document.filePath)) {
-      fs.unlinkSync(document.filePath);
+    
+    // Vérifier si le document est utilisé dans des soumissions
+    const submissionRepo = this.dataSource.getRepository('Submission');
+    const submissions = await submissionRepo
+      .createQueryBuilder('submission')
+      .leftJoin('submission.document', 'document')
+      .where('document.id = :id', { id })
+      .getMany();
+    
+    if (submissions.length > 0) {
+      // Supprimer le fichier physique
+      if (document.filePath && fs.existsSync(document.filePath)) {
+        fs.unlinkSync(document.filePath);
+      }
+      
+      // Mettre à jour les soumissions pour retirer la référence au document
+      for (const submission of submissions) {
+        submission.document = undefined as any;
+        await submissionRepo.save(submission);
+      }
+    } else {
+      // Supprimer le fichier physique
+      if (document.filePath && fs.existsSync(document.filePath)) {
+        fs.unlinkSync(document.filePath);
+      }
     }
+    
     return await this.documentRepository.remove(document);
   }
 }

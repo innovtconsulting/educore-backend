@@ -312,6 +312,17 @@ async function seed() {
       },
     );
 
+    // 0.1 Année Universitaire
+    const annee2026 = anneeRepo.create({
+      label: '2026-2027',
+      startDate: new Date('2026-10-01'),
+      endDate: new Date('2027-07-31'),
+      isActive: true,
+      etablissement: fst,
+      etablissementId: fst.id,
+    });
+    await anneeRepo.save(annee2026);
+
     // 3. Classes (Parcours)
     const informatiqueFst = await findOrCreate(
       classeRepo,
@@ -347,148 +358,85 @@ async function seed() {
     );
 
     // 2. Niveaux (now after Classes)
-    const l1Fst =
-      (await niveauRepo.findOne({
-        where: { name: 'Licence 1', classe: { id: informatiqueFst.id } as any },
-      })) ||
-      (await niveauRepo.save(
-        niveauRepo.create({
-          name: 'Licence 1',
-          classe: informatiqueFst,
-          etablissement: fst,
-        }),
-      ));
-    const l2Fst =
-      (await niveauRepo.findOne({
-        where: { name: 'Licence 2', classe: { id: informatiqueFst.id } as any },
-      })) ||
-      (await niveauRepo.save(
-        niveauRepo.create({
-          name: 'Licence 2',
-          classe: informatiqueFst,
-          etablissement: fst,
-        }),
-      ));
-    const l3Fst =
-      (await niveauRepo.findOne({
-        where: { name: 'Licence 3', classe: { id: informatiqueFst.id } as any },
-      })) ||
-      (await niveauRepo.save(
-        niveauRepo.create({
-          name: 'Licence 3',
-          classe: informatiqueFst,
-          etablissement: fst,
-        }),
-      ));
-    const m1Fst =
-      (await niveauRepo.findOne({
-        where: { name: 'Master 1', classe: { id: informatiqueFst.id } as any },
-      })) ||
-      (await niveauRepo.save(
-        niveauRepo.create({
-          name: 'Master 1',
-          classe: informatiqueFst,
-          etablissement: fst,
-        }),
-      ));
-    const m2Fst =
-      (await niveauRepo.findOne({
-        where: { name: 'Master 2', classe: { id: informatiqueFst.id } as any },
-      })) ||
-      (await niveauRepo.save(
-        niveauRepo.create({
-          name: 'Master 2',
-          classe: informatiqueFst,
-          etablissement: fst,
-        }),
-      ));
-    const l2Esp =
-      (await niveauRepo.findOne({
-        where: { name: 'Licence 2', classe: { id: informatiqueEsp.id } as any },
-      })) ||
-      (await niveauRepo.save(
-        niveauRepo.create({
-          name: 'Licence 2',
-          classe: informatiqueEsp,
-          etablissement: esp,
-        }),
-      ));
-    const l1Math =
-      (await niveauRepo.findOne({
-        where: {
-          name: 'Licence 1',
-          classe: { id: mathematiquesFst.id } as any,
-        },
-      })) ||
-      (await niveauRepo.save(
-        niveauRepo.create({
-          name: 'Licence 1',
-          classe: mathematiquesFst,
-          etablissement: fst,
-        }),
-      ));
-    const l2Math =
-      (await niveauRepo.findOne({
-        where: {
-          name: 'Licence 2',
-          classe: { id: mathematiquesFst.id } as any,
-        },
-      })) ||
-      (await niveauRepo.save(
-        niveauRepo.create({
-          name: 'Licence 2',
-          classe: mathematiquesFst,
-          etablissement: fst,
-        }),
-      ));
-    const l3Math =
-      (await niveauRepo.findOne({
-        where: {
-          name: 'Licence 3',
-          classe: { id: mathematiquesFst.id } as any,
-        },
-      })) ||
-      (await niveauRepo.save(
-        niveauRepo.create({
-          name: 'Licence 3',
-          classe: mathematiquesFst,
-          etablissement: fst,
-        }),
-      ));
-    const dut1Iut =
-      (await niveauRepo.findOne({
-        where: {
-          name: 'DUT 1',
-          classe: { id: genieElectriqueIut.id } as any,
-        },
-      })) ||
-      (await niveauRepo.save(
-        niveauRepo.create({
-          name: 'DUT 1',
-          classe: genieElectriqueIut,
-          etablissement: iut,
-        }),
-      ));
-    const dut2Iut =
-      (await niveauRepo.findOne({
-        where: {
-          name: 'DUT 2',
-          classe: { id: genieElectriqueIut.id } as any,
-        },
-      })) ||
-      (await niveauRepo.save(
-        niveauRepo.create({
-          name: 'DUT 2',
-          classe: genieElectriqueIut,
-          etablissement: iut,
-        }),
-      ));
+    const l1Fst = niveauRepo.create({
+      name: 'Licence 1',
+      classe: informatiqueFst,
+      etablissement: fst,
+      etablissementId: fst.id,
+    });
+    const l2Fst = niveauRepo.create({
+      name: 'Licence 2',
+      classe: informatiqueFst,
+      etablissement: fst,
+      etablissementId: fst.id,
+    });
+    const l3Fst = niveauRepo.create({
+      name: 'Licence 3',
+      classe: informatiqueFst,
+      etablissement: fst,
+      etablissementId: fst.id,
+    });
+    const m1Fst = niveauRepo.create({
+      name: 'Master 1',
+      classe: informatiqueFst,
+      etablissement: fst,
+      etablissementId: fst.id,
+    });
+    const m2Fst = niveauRepo.create({
+      name: 'Master 2',
+      classe: informatiqueFst,
+      etablissement: fst,
+      etablissementId: fst.id,
+    });
+    const l1Esp = niveauRepo.create({
+      name: 'Licence 1',
+      classe: informatiqueEsp,
+      etablissement: esp,
+      etablissementId: esp.id,
+    });
+    const l2Esp = niveauRepo.create({
+      name: 'Licence 2',
+      classe: informatiqueEsp,
+      etablissement: esp,
+      etablissementId: esp.id,
+    });
+    const l1Math = niveauRepo.create({
+      name: 'Licence 1',
+      classe: mathematiquesFst,
+      etablissement: fst,
+      etablissementId: fst.id,
+    });
+    const l2Math = niveauRepo.create({
+      name: 'Licence 2',
+      classe: mathematiquesFst,
+      etablissement: fst,
+      etablissementId: fst.id,
+    });
+    const l3Math = niveauRepo.create({
+      name: 'Licence 3',
+      classe: mathematiquesFst,
+      etablissement: fst,
+      etablissementId: fst.id,
+    });
+    const dut1Iut = niveauRepo.create({
+      name: 'DUT 1',
+      classe: genieElectriqueIut,
+      etablissement: iut,
+      etablissementId: iut.id,
+    });
+    const dut2Iut = niveauRepo.create({
+      name: 'DUT 2',
+      classe: genieElectriqueIut,
+      etablissement: iut,
+      etablissementId: iut.id,
+    });
     await niveauRepo.save([
       l1Fst,
       l2Fst,
       l3Fst,
       m1Fst,
       m2Fst,
+      l1Esp,
       l2Esp,
       l1Math,
       l2Math,
@@ -498,54 +446,44 @@ async function seed() {
     ]);
 
     // 4. Matières
-    const algoFst = await findOrCreate(
-      matiereRepo,
-      { code: 'INF101' },
-      {
-        code: 'INF101',
-        name: 'Algorithmique 1',
-        coefficient: 4,
-        hours: 30,
-        niveau: l1Fst,
-        etablissement: fst,
-      },
-    );
-    const baseDonneesFst = await findOrCreate(
-      matiereRepo,
-      { code: 'INF201' },
-      {
-        code: 'INF201',
-        name: 'Bases de Données',
-        coefficient: 3,
-        hours: 24,
-        niveau: l2Fst,
-        etablissement: fst,
-      },
-    );
-    const reseauxFst = await findOrCreate(
-      matiereRepo,
-      { code: 'INF301' },
-      {
-        code: 'INF301',
-        name: 'Réseaux Informatiques',
-        coefficient: 3,
-        hours: 24,
-        niveau: l3Fst,
-        etablissement: fst,
-      },
-    );
-    const electroniqueIut = await findOrCreate(
-      matiereRepo,
-      { code: 'GE101' },
-      {
-        code: 'GE101',
-        name: 'Électronique Fondamentale',
-        coefficient: 3,
-        hours: 30,
-        niveau: dut1Iut,
-        etablissement: iut,
-      },
-    );
+    const algoFst = matiereRepo.create({
+      code: 'INF101',
+      name: 'Algorithmique 1',
+      coefficient: 4,
+      niveau: l1Fst,
+      etablissement: fst,
+      etablissementId: fst.id,
+    });
+    const baseDonneesFst = matiereRepo.create({
+      code: 'INF201',
+      name: 'Bases de Données',
+      coefficient: 3,
+      niveau: l2Fst,
+      etablissement: fst,
+      etablissementId: fst.id,
+    });
+    const reseauxFst = matiereRepo.create({
+      code: 'INF301',
+      name: 'Réseaux Informatiques',
+      coefficient: 3,
+      niveau: l3Fst,
+      etablissement: fst,
+      etablissementId: fst.id,
+    });
+    const electroniqueIut = matiereRepo.create({
+      code: 'GE101',
+      name: 'Électronique Fondamentale',
+      coefficient: 3,
+      niveau: dut1Iut,
+      etablissement: iut,
+      etablissementId: iut.id,
+    });
+    await matiereRepo.save([
+      algoFst,
+      baseDonneesFst,
+      reseauxFst,
+      electroniqueIut,
+    ]);
 
     // 5. Enseignants
     const profDiallo = enseignantRepo.create({
@@ -556,6 +494,7 @@ async function seed() {
       dateEmbauche: new Date('2020-01-01'),
       phone: '+221 77 123 45 67',
       etablissement: fst,
+      etablissementId: fst.id,
     });
     const profSow = enseignantRepo.create({
       firstName: 'Mariam',
@@ -565,6 +504,7 @@ async function seed() {
       dateEmbauche: new Date('2021-01-01'),
       phone: '+221 77 987 65 43',
       etablissement: fst,
+      etablissementId: fst.id,
     });
     const profNdiaye = enseignantRepo.create({
       firstName: 'Abdou',
@@ -574,6 +514,7 @@ async function seed() {
       dateEmbauche: new Date('2022-01-01'),
       phone: '+221 77 555 44 33',
       etablissement: iut,
+      etablissementId: iut.id,
     });
     await enseignantRepo.save([profDiallo, profSow, profNdiaye]);
 
@@ -611,18 +552,24 @@ async function seed() {
       gender: 'Père' as any,
       phoneNumber: '+221 77 111 22 33',
       email: 'modou.sow@email.sn',
+      etablissement: fst,
+      etablissementId: fst.id,
     });
     const parent2 = parentRepo.create({
       firstName: 'Awa',
       lastName: 'Sow',
       gender: 'Mère' as any,
       phoneNumber: '+221 77 444 55 66',
+      etablissement: fst,
+      etablissementId: fst.id,
     });
     const parent3 = parentRepo.create({
       firstName: 'Ibrahima',
       lastName: 'Ndiaye',
       gender: 'Père' as any,
       phoneNumber: '+221 77 666 77 88',
+      etablissement: iut,
+      etablissementId: iut.id,
     });
     await parentRepo.save([parent1, parent2, parent3]);
 
@@ -899,6 +846,8 @@ async function seed() {
       emploiDuTemp: cours1,
       status: 'Présent' as any,
       remark: "À l'heure",
+      etablissement: fst,
+      etablissementId: fst.id,
     });
     await presenceRepo.save(pres1);
 
@@ -909,91 +858,321 @@ async function seed() {
       motif: "Retards répétés au cours d'Algorithmique",
       dateDecision: new Date('2026-06-09'),
       isApplied: true,
+      etablissement: fst,
+      etablissementId: fst.id,
     });
     await sanctionRepo.save(sanc1);
 
-    // 12. Finance
-    const fraisL1 = fraisRepo.create({
-      name: 'Scolarité Licence 1 Informatique',
-      amount: 500000,
-      type: FeeType.SCOLARITE,
-      classe: informatiqueFst,
-      niveau: l1Fst,
-    });
-    const fraisInscr = fraisRepo.create({
-      name: "Frais d'inscription L1",
-      amount: 50000,
-      type: FeeType.INSCRIPTION,
-      classe: informatiqueFst,
-      niveau: l1Fst,
-    });
-    await fraisRepo.save([fraisL1, fraisInscr]);
+    // 12. Finance - Données enrichies pour le tableau de bord
+    // Frais pour différents niveaux et classes
+    const fraisList = [
+      // FST - L1
+      {
+        name: 'Scolarité L1 Informatique',
+        amount: 500000,
+        type: FeeType.SCOLARITE,
+        classe: informatiqueFst,
+        niveau: l1Fst,
+        etablissement: fst,
+        etablissementId: fst.id,
+      },
+      {
+        name: "Frais d'inscription L1",
+        amount: 50000,
+        type: FeeType.INSCRIPTION,
+        classe: informatiqueFst,
+        niveau: l1Fst,
+        etablissement: fst,
+        etablissementId: fst.id,
+      },
+      // FST - L2
+      {
+        name: 'Scolarité L2 Informatique',
+        amount: 550000,
+        type: FeeType.SCOLARITE,
+        classe: informatiqueFst,
+        niveau: l2Fst,
+        etablissement: fst,
+        etablissementId: fst.id,
+      },
+      {
+        name: "Frais d'inscription L2",
+        amount: 55000,
+        type: FeeType.INSCRIPTION,
+        classe: informatiqueFst,
+        niveau: l2Fst,
+        etablissement: fst,
+        etablissementId: fst.id,
+      },
+      // FST - L3
+      {
+        name: 'Scolarité L3 Informatique',
+        amount: 600000,
+        type: FeeType.SCOLARITE,
+        classe: informatiqueFst,
+        niveau: l3Fst,
+        etablissement: fst,
+        etablissementId: fst.id,
+      },
+      // ESP - L1
+      {
+        name: 'Scolarité L1 Informatique ESP',
+        amount: 450000,
+        type: FeeType.SCOLARITE,
+        classe: informatiqueEsp,
+        niveau: l1Esp,
+        etablissement: esp,
+        etablissementId: esp.id,
+      },
+      {
+        name: "Frais d'inscription L1 ESP",
+        amount: 45000,
+        type: FeeType.INSCRIPTION,
+        classe: informatiqueEsp,
+        niveau: l1Esp,
+        etablissement: esp,
+        etablissementId: esp.id,
+      },
+      // ESP - L2
+      {
+        name: 'Scolarité L2 Informatique ESP',
+        amount: 480000,
+        type: FeeType.SCOLARITE,
+        classe: informatiqueEsp,
+        niveau: l2Esp,
+        etablissement: esp,
+        etablissementId: esp.id,
+      },
+    ];
+    const savedFrais = await fraisRepo.save(fraisList);
 
-    const fac1 = factureRepo.create({
-      numero: 'FAC-2026-0001',
-      etudiant: etudiant1,
-      dateEmission: new Date('2026-06-01'),
-      dateEcheance: new Date('2026-07-01'),
-      montantTotal: 550000,
-      status: InvoiceStatus.PARTIEL,
-    });
-    const fac2 = factureRepo.create({
-      numero: 'FAC-2026-0002',
-      etudiant: etudiant2,
-      dateEmission: new Date('2026-06-10'),
-      dateEcheance: new Date('2026-07-10'),
-      montantTotal: 600000,
-      status: InvoiceStatus.VALIDE,
-    });
+    // Factures pour différents étudiants avec différents statuts
+    const facturesList = [
+      // Étudiant 1 - FST - Plusieurs factures
+      {
+        numero: 'FAC-2026-0001',
+        etudiant: etudiant1,
+        dateEmission: new Date('2026-01-15'),
+        dateEcheance: new Date('2026-02-15'),
+        montantTotal: 550000,
+        status: InvoiceStatus.PAYE,
+        etablissement: fst,
+        etablissementId: fst.id,
+      },
+      {
+        numero: 'FAC-2026-0002',
+        etudiant: etudiant1,
+        dateEmission: new Date('2026-06-01'),
+        dateEcheance: new Date('2026-07-01'),
+        montantTotal: 600000,
+        status: InvoiceStatus.PARTIEL,
+        etablissement: fst,
+        etablissementId: fst.id,
+      },
+      {
+        numero: 'FAC-2026-0003',
+        etudiant: etudiant1,
+        dateEmission: new Date('2026-06-10'),
+        dateEcheance: new Date('2026-07-10'),
+        montantTotal: 50000,
+        status: InvoiceStatus.VALIDE,
+        etablissement: fst,
+        etablissementId: fst.id,
+      },
+      // Étudiant 2 - ESP - Factures
+      {
+        numero: 'FAC-2026-0004',
+        etudiant: etudiant2,
+        dateEmission: new Date('2026-02-20'),
+        dateEcheance: new Date('2026-03-20'),
+        montantTotal: 495000,
+        status: InvoiceStatus.PAYE,
+        etablissement: esp,
+        etablissementId: esp.id,
+      },
+      {
+        numero: 'FAC-2026-0005',
+        etudiant: etudiant2,
+        dateEmission: new Date('2026-06-05'),
+        dateEcheance: new Date('2026-07-05'),
+        montantTotal: 525000,
+        status: InvoiceStatus.VALIDE,
+        etablissement: esp,
+        etablissementId: esp.id,
+      },
+      // Étudiant 3 - IUT - Une facture impayée
+      {
+        numero: 'FAC-2026-0006',
+        etudiant: etudiant3,
+        dateEmission: new Date('2026-06-12'),
+        dateEcheance: new Date('2026-07-12'),
+        montantTotal: 655000,
+        status: InvoiceStatus.VALIDE,
+        etablissement: iut,
+        etablissementId: iut.id,
+      },
+      // Étudiant 2 - ESP - Facture partiellement payée
+      {
+        numero: 'FAC-2026-0007',
+        etudiant: etudiant2,
+        dateEmission: new Date('2026-05-01'),
+        dateEcheance: new Date('2026-06-01'),
+        montantTotal: 450000,
+        status: InvoiceStatus.PARTIEL,
+        etablissement: esp,
+        etablissementId: esp.id,
+      },
+      // Étudiant 1 - FST - Facture payée
+      {
+        numero: 'FAC-2026-0008',
+        etudiant: etudiant1,
+        dateEmission: new Date('2026-04-10'),
+        dateEcheance: new Date('2026-05-10'),
+        montantTotal: 500000,
+        status: InvoiceStatus.PAYE,
+        etablissement: fst,
+        etablissementId: fst.id,
+      },
+    ];
+    const savedFactures = await factureRepo.save(facturesList);
 
-    // Facture directement payée (Formulaire manuel)
-    const facManual = factureRepo.create({
-      numero: 'FAC-MANUAL-001',
-      etudiant: etudiant1,
-      dateEmission: new Date('2026-06-11'),
-      montantTotal: 100000,
-      status: InvoiceStatus.PAYE,
-      notes: 'Règlement immédiat lors de la saisie manuelle',
-    });
+    // Paiements avec différents modes et dates pour l'évolution mensuelle
+    const paiementsList = [
+      // Janvier - Paiements
+      {
+        reference: 'PAY-2026-0001',
+        etudiant: etudiant1,
+        facture: savedFactures[0],
+        montant: 550000,
+        datePaiement: new Date('2026-01-20'),
+        modePaiement: PaymentMethod.WAVE,
+        etablissement: fst,
+        etablissementId: fst.id,
+      },
+      {
+        reference: 'PAY-2026-0002',
+        etudiant: etudiant2,
+        facture: savedFactures[3],
+        montant: 495000,
+        datePaiement: new Date('2026-02-25'),
+        modePaiement: PaymentMethod.ESPECES,
+        etablissement: esp,
+        etablissementId: esp.id,
+      },
+      // Février - Paiements
+      {
+        reference: 'PAY-2026-0003',
+        etudiant: etudiant2,
+        facture: savedFactures[6],
+        montant: 200000,
+        datePaiement: new Date('2026-02-15'),
+        modePaiement: PaymentMethod.ORANGE_MONEY,
+        etablissement: esp,
+        etablissementId: esp.id,
+      },
+      // Mars - Paiements
+      {
+        reference: 'PAY-2026-0004',
+        etudiant: etudiant1,
+        facture: savedFactures[7],
+        montant: 500000,
+        datePaiement: new Date('2026-03-15'),
+        modePaiement: PaymentMethod.VIREMENT,
+        etablissement: fst,
+        etablissementId: fst.id,
+      },
+      // Avril - Paiements
+      {
+        reference: 'PAY-2026-0005',
+        etudiant: etudiant1,
+        facture: savedFactures[1],
+        montant: 300000,
+        datePaiement: new Date('2026-04-10'),
+        modePaiement: PaymentMethod.WAVE,
+        etablissement: fst,
+        etablissementId: fst.id,
+      },
+      // Mai - Paiements
+      {
+        reference: 'PAY-2026-0006',
+        etudiant: etudiant1,
+        facture: savedFactures[1],
+        montant: 200000,
+        datePaiement: new Date('2026-05-20'),
+        modePaiement: PaymentMethod.ESPECES,
+        etablissement: fst,
+        etablissementId: fst.id,
+      },
+      {
+        reference: 'PAY-2026-0007',
+        etudiant: etudiant2,
+        facture: savedFactures[6],
+        montant: 150000,
+        datePaiement: new Date('2026-05-25'),
+        modePaiement: PaymentMethod.WAVE,
+        etablissement: esp,
+        etablissementId: esp.id,
+      },
+      // Juin - Paiements
+      {
+        reference: 'PAY-2026-0008',
+        etudiant: etudiant2,
+        facture: savedFactures[4],
+        montant: 300000,
+        datePaiement: new Date('2026-06-15'),
+        modePaiement: PaymentMethod.ORANGE_MONEY,
+        etablissement: esp,
+        etablissementId: esp.id,
+      },
+      {
+        reference: 'PAY-2026-0009',
+        etudiant: etudiant1,
+        facture: savedFactures[1],
+        montant: 100000,
+        datePaiement: new Date('2026-06-25'),
+        modePaiement: PaymentMethod.ESPECES,
+        etablissement: fst,
+        etablissementId: fst.id,
+      },
+      // Paiement du jour courant pour le dashboard
+      {
+        reference: 'PAY-2026-0010',
+        etudiant: etudiant2,
+        facture: savedFactures[4],
+        montant: 150000,
+        datePaiement: new Date(),
+        modePaiement: PaymentMethod.WAVE,
+        etablissement: esp,
+        etablissementId: esp.id,
+      },
+    ];
+    const savedPaiements = await paiementRepo.save(paiementsList);
 
-    await factureRepo.save([fac1, fac2, facManual]);
+    // Mettre à jour les statuts des factures après les paiements
+    // Facture 1 (PAYE) - déjà correct
+    // Facture 2 (PARTIEL) - 300k + 200k + 100k = 600k payé sur 600k -> PAYE
+    savedFactures[1].status = InvoiceStatus.PAYE;
+    // Facture 3 (IMPAYE) - reste IMPAYE
+    // Facture 4 (PAYE) - déjà correct
+    // Facture 5 (VALIDE) - 300k payé sur 525k -> PARTIEL
+    savedFactures[4].status = InvoiceStatus.PARTIEL;
+    // Facture 6 (IMPAYE) - reste IMPAYE
+    // Facture 7 (PARTIEL) - 200k + 150k = 350k payé sur 450k -> PARTIEL
+    savedFactures[6].status = InvoiceStatus.PARTIEL;
+    // Facture 8 (PAYE) - déjà correct
 
-    const pay1 = paiementRepo.create({
-      reference: 'PAY-2026-0001',
-      etudiant: etudiant1,
-      facture: fac1,
-      montant: 250000,
-      datePaiement: new Date('2026-06-05'),
-      modePaiement: PaymentMethod.WAVE,
-    });
-    const savedPay1 = await paiementRepo.save(pay1);
+    await factureRepo.save(savedFactures);
 
-    // Générer le reçu PDF pour le premier paiement
-    try {
-      const recuPath = await generateReceiptPdf(savedPay1);
-      savedPay1.recuPath = recuPath;
-      await paiementRepo.save(savedPay1);
-    } catch (e) {
-      console.warn('Échec génération PDF dans le seed');
+    // Générer les reçus PDF pour quelques paiements
+    for (const paiement of savedPaiements.slice(0, 5)) {
+      try {
+        const recuPath = await generateReceiptPdf(paiement);
+        paiement.recuPath = recuPath;
+        await paiementRepo.save(paiement);
+      } catch (e) {
+        console.warn(`Échec génération PDF pour paiement ${paiement.reference}`);
+      }
     }
-
-    // Solder la facture fac1 (550k - 250k = 300k restants)
-    const paySolde = paiementRepo.create({
-      reference: 'PAY-2026-0002-SOLDE',
-      etudiant: etudiant1,
-      facture: fac1,
-      montant: 300000,
-      datePaiement: new Date('2026-06-15'),
-      modePaiement: PaymentMethod.ESPECES,
-    });
-    await paiementRepo.save(paySolde);
-
-    // Mettre à jour manuellement le statut dans le seed pour déclencher la quittance
-    // (Dans l'app, c'est fait via FinanceService.createPaiement)
-    // Ici on simule l'appel au service ou on laisse le repo faire,
-    // mais pour le seed on va juste s'assurer que l'appel a eu lieu.
-    // Note: Le seed utilise les repos directement, donc on doit appeler le service si on veut l'automatisation.
-    // Pour rester simple et efficace dans le seed, je vais juste vérifier le fonctionnement via le build/test.
 
     // 13. Rapport Quotidien
     const dailyReport = dailyReportRepo.create({
@@ -1005,6 +1184,8 @@ async function seed() {
       totalRetards: 0,
       totalSanctions: 1,
       isSubmitted: true,
+      etablissement: fst,
+      etablissementId: fst.id,
     });
     await dailyReportRepo.save(dailyReport);
 
@@ -1024,6 +1205,8 @@ async function seed() {
       originalName: 'calendrier_2026.pdf',
       mimeType: 'application/pdf',
       fileSize: 1024 * 500, // 500 KB
+      etablissement: fst,
+      etablissementId: fst.id,
     });
     await documentRepo.save(doc1);
 
@@ -1047,6 +1230,8 @@ async function seed() {
       classe: informatiqueFst,
       niveau: l1Fst,
       semestre: semestre1,
+      etablissement: fst,
+      etablissementId: fst.id,
     });
     const evalExam = evaluationRepo.create({
       title: 'Examen Final Algorithmique',
@@ -1058,6 +1243,8 @@ async function seed() {
       classe: informatiqueFst,
       niveau: l1Fst,
       semestre: semestre1,
+      etablissement: fst,
+      etablissementId: fst.id,
     });
     await evaluationRepo.save([evalCC, evalExam]);
 
@@ -1065,11 +1252,15 @@ async function seed() {
       value: 12.5,
       etudiant: etudiant1,
       evaluation: evalCC,
+      etablissement: fst,
+      etablissementId: fst.id,
     });
     const noteExam = noteRepo.create({
       value: 8.0, // Moyenne matière (12.5*0.4 + 8*0.6) = 5+4.8 = 9.8 (<10)
       etudiant: etudiant1,
       evaluation: evalExam,
+      etablissement: fst,
+      etablissementId: fst.id,
     });
     await noteRepo.save([noteCC, noteExam]);
 
@@ -1084,6 +1275,8 @@ async function seed() {
       classe: informatiqueFst,
       niveau: l1Fst,
       semestre: semestre1,
+      etablissement: fst,
+      etablissementId: fst.id,
     });
     await evaluationRepo.save(evalRattrapage);
 
@@ -1091,6 +1284,8 @@ async function seed() {
       value: 14.0, // Nouvelle moyenne (12.5*0.4 + 14*0.6) = 5+8.4 = 13.4 (>10)
       etudiant: etudiant1,
       evaluation: evalRattrapage,
+      etablissement: fst,
+      etablissementId: fst.id,
     });
     await noteRepo.save(noteRattrapage);
 
@@ -1101,12 +1296,16 @@ async function seed() {
       content:
         "Le port de la blouse est obligatoire pour tous les étudiants dans l'enceinte de l'établissement.",
       category: DisciplineCategory.REGLEMENT_INTERIEUR,
+      etablissement: fst,
+      etablissementId: fst.id,
     });
     const reglement2 = disciplineRepo.create({
       title: 'Usage des Smartphones',
       content:
         "L'utilisation des téléphones portables est strictement interdite durant les heures de cours et d'examen.",
       category: DisciplineCategory.DISCIPLINE,
+      etablissement: fst,
+      etablissementId: fst.id,
     });
     await disciplineRepo.save([reglement1, reglement2]);
 
@@ -1246,6 +1445,8 @@ async function seed() {
       classe: informatiqueFst,
       niveau: l1Fst,
       enseignant: profDiallo,
+      etablissement: fst,
+      etablissementId: fst.id,
     });
     const devoir2 = devoirRepo.create({
       title: 'Projet Base de Données',
@@ -1255,6 +1456,8 @@ async function seed() {
       classe: informatiqueFst,
       niveau: l2Fst,
       enseignant: profDiallo,
+      etablissement: fst,
+      etablissementId: fst.id,
     });
     const savedDevoirs = await devoirRepo.save([devoir1, devoir2]);
 
@@ -1267,6 +1470,8 @@ async function seed() {
       originalName: 'rendu_tp1_ousmane.pdf',
       mimeType: 'application/pdf',
       fileSize: 1024 * 150,
+      etablissement: fst,
+      etablissementId: fst.id,
     });
     const savedDocRendu = await documentRepo.save(docRendu);
 
@@ -1275,6 +1480,8 @@ async function seed() {
       etudiant: etudiant1,
       document: savedDocRendu,
       comment: "Voici mon travail pour le TP 1. J'ai ajouté les bonus.",
+      etablissement: fst,
+      etablissementId: fst.id,
     });
     await submissionRepo.save(submission1);
 

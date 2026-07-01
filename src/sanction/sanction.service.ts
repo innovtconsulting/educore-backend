@@ -31,6 +31,7 @@ export class SanctionService {
     const sanction = this.sanctionRepository.create({
       ...rest,
       etudiant,
+      etablissement: etudiant.etablissement,
       dateDecision: new Date(rest.dateDecision),
       dateDebut: rest.dateDebut ? new Date(rest.dateDebut) : undefined,
       dateFin: rest.dateFin ? new Date(rest.dateFin) : undefined,

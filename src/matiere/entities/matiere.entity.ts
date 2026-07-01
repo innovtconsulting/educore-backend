@@ -25,8 +25,7 @@ export class Matiere {
   @Column({ type: 'decimal', precision: 5, scale: 2, default: 1.0 })
   coefficient!: number;
 
-  @Column({ type: 'int', default: 0 })
-  @ApiProperty({ example: 30, description: 'Nombre d heures horaires de la matière' })
+  @Column({ type: 'int', nullable: false, default: 0 })
   hours!: number;
 
   @ManyToOne(() => Niveau, (niveau) => niveau.matieres, { nullable: false })

@@ -54,7 +54,7 @@ export async function generateReceiptPdf(paiement: Paiement): Promise<string> {
         .fontSize(14)
         .text('Détails du Paiement', { underline: true })
         .fontSize(12)
-        .text(`Montant payé: ${paiement.montant} FCFA`)
+        .text(`Montant payé: ${paiement.montant.toLocaleString('fr-FR')} Ar`)
         .text(`Mode de paiement: ${paiement.modePaiement}`);
 
       if (paiement.facture) {
@@ -136,7 +136,7 @@ export async function generateQuittancePdf(facture: Facture): Promise<string> {
       doc
         .font('Helvetica-Bold')
         .fontSize(12)
-        .text(`Montant Total Honoré: ${facture.montantTotal} FCFA`)
+        .text(`Montant Total Honoré: ${facture.montantTotal.toLocaleString('fr-FR')} Ar`)
         .moveDown();
 
       doc.moveDown(3);
