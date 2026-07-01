@@ -39,7 +39,8 @@ export class AuthService {
   }
 
   async login(user: any) {
-    const permissions = user.aclRole?.permissions?.map((p: any) => p.name) || [];
+    const permissions =
+      user.aclRole?.permissions?.map((p: any) => p.name) || [];
 
     const etablissementId =
       user.role === UserRole.PARENT

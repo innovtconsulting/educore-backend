@@ -50,7 +50,9 @@ export class EnseignantService {
 
     const email = rawEmail.toLowerCase().trim();
 
-    const existingEmail = await this.enseignantRepository.findOne({ where: { email: ILike(email) } });
+    const existingEmail = await this.enseignantRepository.findOne({
+      where: { email: ILike(email) },
+    });
     if (existingEmail) {
       throw new BadRequestException(
         `Un enseignant avec l'email "${email}" existe déjà`,
@@ -91,7 +93,10 @@ export class EnseignantService {
         etablissement,
         etablissementId: finalEtablissementId,
       });
-      const savedEnseignant = await queryRunner.manager.save(Enseignant, enseignant);
+      const savedEnseignant = await queryRunner.manager.save(
+        Enseignant,
+        enseignant,
+      );
 
       await this.userService.createWithRunner(queryRunner, {
         email,
@@ -135,7 +140,9 @@ export class EnseignantService {
 
     // Apply tenant filter on the enseignant's own etablissementId (not the affectation's)
     if (tenantId) {
-      queryBuilder.andWhere('enseignant.etablissementId = :tenantId', { tenantId });
+      queryBuilder.andWhere('enseignant.etablissementId = :tenantId', {
+        tenantId,
+      });
     }
 
     // Apply etablissementId filter
@@ -273,7 +280,10 @@ export class EnseignantService {
     await this.enseignantRepository.remove(enseignant);
   }
 
-  async resetCredentials(id: number, tenantId?: number): Promise<{ email: string; password: string }> {
+  async resetCredentials(
+    id: number,
+    tenantId?: number,
+  ): Promise<{ email: string; password: string }> {
     const enseignant = await this.findOne(id, tenantId);
     const normalizedEmail = enseignant.email.toLowerCase().trim();
 
@@ -314,7 +324,11 @@ export class EnseignantService {
     createAffectationDto: CreateAffectationDto,
     tenantId?: number,
   ): Promise<Affectation> {
-    const { matiereId, etablissementId: dtoEtablissementId, niveauId } = createAffectationDto;
+    const {
+      matiereId,
+      etablissementId: dtoEtablissementId,
+      niveauId,
+    } = createAffectationDto;
 
     const finalEtablissementId = tenantId || dtoEtablissementId;
     if (!finalEtablissementId) {
@@ -415,6 +429,6 @@ export class EnseignantService {
       where: { enseignant: { id: enseignantId } },
       relations: { matiere: true },
     });
-    return [...new Set(affectations.map((a) => a.matiere?.id).filter(Boolean) as number[])];
+    return [...new Set(affectations.map((a) => a.matiere?.id).filter(Boolean))];
   }
 }

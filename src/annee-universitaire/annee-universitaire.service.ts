@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { CreateAnneeUniversitaireDto } from './dto/create-annee-universitaire.dto';
@@ -18,14 +22,18 @@ export class AnneeUniversitaireService {
   async create(dto: CreateAnneeUniversitaireDto, tenantId?: number) {
     const { etablissementId: dtoEtablissementId, ...rest } = dto;
     const etablissementId = tenantId || dtoEtablissementId;
-    
+
     if (!etablissementId) {
       throw new BadRequestException("ID d'établissement manquant");
     }
 
-    const etablissement = await this.etablissementRepo.findOneBy({ id: etablissementId });
+    const etablissement = await this.etablissementRepo.findOneBy({
+      id: etablissementId,
+    });
     if (!etablissement) {
-      throw new NotFoundException(`Établissement #${etablissementId} introuvable`);
+      throw new NotFoundException(
+        `Établissement #${etablissementId} introuvable`,
+      );
     }
 
     if (rest.isActive) {
@@ -61,11 +69,18 @@ export class AnneeUniversitaireService {
     return annee;
   }
 
-  async update(id: number, dto: UpdateAnneeUniversitaireDto, tenantId?: number) {
+  async update(
+    id: number,
+    dto: UpdateAnneeUniversitaireDto,
+    tenantId?: number,
+  ) {
     const annee = await this.findOne(id, tenantId);
 
     if (dto.isActive && !annee.isActive) {
-      await this.repo.update({ etablissementId: annee.etablissementId }, { isActive: false });
+      await this.repo.update(
+        { etablissementId: annee.etablissementId },
+        { isActive: false },
+      );
     }
     Object.assign(annee, dto);
     return await this.repo.save(annee);

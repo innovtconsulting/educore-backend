@@ -94,7 +94,11 @@ export class DocumentController {
     if (!file) {
       throw new BadRequestException('Le fichier est obligatoire');
     }
-    const data = await this.documentService.create(createDocumentDto, file, tenantId);
+    const data = await this.documentService.create(
+      createDocumentDto,
+      file,
+      tenantId,
+    );
     return {
       message: 'Document uploadé avec succès',
       data,
@@ -155,13 +159,23 @@ export class DocumentController {
   }
 
   @Get()
-  @Roles(Role.ETUDIANT, Role.PARENT, Role.ENSEIGNANT, Role.ADMIN, Role.SURVEILLANT, Role.COMPTABLE)
+  @Roles(
+    Role.ETUDIANT,
+    Role.PARENT,
+    Role.ENSEIGNANT,
+    Role.ADMIN,
+    Role.SURVEILLANT,
+    Role.COMPTABLE,
+  )
   @ApiOperation({
     summary: 'Récupérer tous les documents',
     description:
       'Liste tous les documents enregistrés dans la GED (Gestion Électronique de Documents).',
   })
-  async findAll(@Query() paginationQuery: PaginationQueryDto, @CurrentEtablissement() tenantId?: number) {
+  async findAll(
+    @Query() paginationQuery: PaginationQueryDto,
+    @CurrentEtablissement() tenantId?: number,
+  ) {
     const data = await this.documentService.findAll(paginationQuery, tenantId);
     return {
       message: 'Liste des documents récupérée avec succès',
@@ -170,13 +184,23 @@ export class DocumentController {
   }
 
   @Get(':id')
-  @Roles(Role.ETUDIANT, Role.PARENT, Role.ENSEIGNANT, Role.ADMIN, Role.SURVEILLANT, Role.COMPTABLE)
+  @Roles(
+    Role.ETUDIANT,
+    Role.PARENT,
+    Role.ENSEIGNANT,
+    Role.ADMIN,
+    Role.SURVEILLANT,
+    Role.COMPTABLE,
+  )
   @ApiOperation({
     summary: 'Récupérer un document par son ID',
     description:
       "Affiche les informations détaillées d'un document et son lien de téléchargement.",
   })
-  async findOne(@Param('id') id: string, @CurrentEtablissement() tenantId?: number) {
+  async findOne(
+    @Param('id') id: string,
+    @CurrentEtablissement() tenantId?: number,
+  ) {
     const data = await this.documentService.findOne(+id, tenantId);
     return {
       message: `Document #${id} récupéré avec succès`,
@@ -196,7 +220,11 @@ export class DocumentController {
     @Body() updateDocumentDto: UpdateDocumentDto,
     @CurrentEtablissement() tenantId?: number,
   ) {
-    const data = await this.documentService.update(+id, updateDocumentDto, tenantId);
+    const data = await this.documentService.update(
+      +id,
+      updateDocumentDto,
+      tenantId,
+    );
     return {
       message: `Document #${id} mis à jour avec succès`,
       data,
@@ -210,7 +238,10 @@ export class DocumentController {
     description:
       "Supprime l'entrée en base de données ET le fichier physique sur le serveur.",
   })
-  async remove(@Param('id') id: string, @CurrentEtablissement() tenantId?: number) {
+  async remove(
+    @Param('id') id: string,
+    @CurrentEtablissement() tenantId?: number,
+  ) {
     await this.documentService.remove(+id, tenantId);
     return {
       message: `Document #${id} supprimé avec succès`,

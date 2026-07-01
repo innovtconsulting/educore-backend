@@ -268,7 +268,8 @@ export class EmploiDuTempsService {
 
     const emplois = await query.getMany();
     const totalMs = emplois.reduce(
-      (sum, emploi) => sum + (emploi.endTime.getTime() - emploi.startTime.getTime()),
+      (sum, emploi) =>
+        sum + (emploi.endTime.getTime() - emploi.startTime.getTime()),
       0,
     );
     return {

@@ -136,8 +136,11 @@ describe('Parent Module (e2e)', () => {
     const etablissement = await request(app.getHttpServer())
       .get('/api/etablissement')
       .set('Authorization', `Bearer ${accessToken}`);
-    
-    console.log('DEBUG - Etablissement body:', JSON.stringify(etablissement.body, null, 2));
+
+    console.log(
+      'DEBUG - Etablissement body:',
+      JSON.stringify(etablissement.body, null, 2),
+    );
 
     const niveau = await request(app.getHttpServer())
       .get('/api/niveau')

@@ -33,12 +33,21 @@ export class SemestreController {
     description:
       'Définit une période académique (Semestre 1 ou 2) rattachée à une année universitaire.',
   })
-  create(@Body() createSemestreDto: CreateSemestreDto, @CurrentEtablissement() tenantId?: number) {
+  create(
+    @Body() createSemestreDto: CreateSemestreDto,
+    @CurrentEtablissement() tenantId?: number,
+  ) {
     return this.semestreService.create(createSemestreDto, tenantId);
   }
 
   @Get()
-  @Roles(Role.PARENT, Role.ETUDIANT, Role.ENSEIGNANT, Role.ADMIN, Role.SURVEILLANT)
+  @Roles(
+    Role.PARENT,
+    Role.ETUDIANT,
+    Role.ENSEIGNANT,
+    Role.ADMIN,
+    Role.SURVEILLANT,
+  )
   @Permissions('ACADEMIC_VIEW')
   @ApiOperation({
     summary: 'Lister tous les semestres',

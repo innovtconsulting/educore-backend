@@ -1101,7 +1101,9 @@ async function seed() {
         paiement.recuPath = recuPath;
         await paiementRepo.save(paiement);
       } catch (e) {
-        console.warn(`Échec génération PDF pour paiement ${paiement.reference}`);
+        console.warn(
+          `Échec génération PDF pour paiement ${paiement.reference}`,
+        );
       }
     }
 

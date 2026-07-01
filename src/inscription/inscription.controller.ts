@@ -70,7 +70,11 @@ export class InscriptionController {
   @ApiOperation({
     summary: "Consulter l'historique des inscriptions d'un étudiant",
   })
-  getHistory(@Param('etudiantId') etudiantId: string, @Request() req: any, @CurrentEtablissement() tenantId?: number) {
+  getHistory(
+    @Param('etudiantId') etudiantId: string,
+    @Request() req: any,
+    @CurrentEtablissement() tenantId?: number,
+  ) {
     // Si c'est un étudiant, il ne peut voir que son propre historique
     if (
       req.user.role === Role.ETUDIANT &&

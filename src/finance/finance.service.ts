@@ -93,13 +93,15 @@ export class FinanceService {
 
     if (classeId) {
       const classe = await this.classeRepository.findOneBy({ id: classeId });
-      if (!classe) throw new NotFoundException(`Classe #${classeId} introuvable`);
+      if (!classe)
+        throw new NotFoundException(`Classe #${classeId} introuvable`);
       frais.classe = classe;
     }
 
     if (niveauId) {
       const niveau = await this.niveauRepository.findOneBy({ id: niveauId });
-      if (!niveau) throw new NotFoundException(`Niveau #${niveauId} introuvable`);
+      if (!niveau)
+        throw new NotFoundException(`Niveau #${niveauId} introuvable`);
       frais.niveau = niveau;
     }
 
@@ -219,7 +221,8 @@ export class FinanceService {
       const etudiant = await this.etudiantRepository.findOne({
         where: TenantHelper.addTenantFilter({ id: dto.etudiantId }, tenantId),
       });
-      if (!etudiant) throw new NotFoundException(`Étudiant #${dto.etudiantId} introuvable`);
+      if (!etudiant)
+        throw new NotFoundException(`Étudiant #${dto.etudiantId} introuvable`);
       facture.etudiant = etudiant;
     }
 
@@ -377,7 +380,8 @@ export class FinanceService {
       const etudiant = await this.etudiantRepository.findOne({
         where: TenantHelper.addTenantFilter({ id: dto.etudiantId }, tenantId),
       });
-      if (!etudiant) throw new NotFoundException(`Étudiant #${dto.etudiantId} introuvable`);
+      if (!etudiant)
+        throw new NotFoundException(`Étudiant #${dto.etudiantId} introuvable`);
       paiement.etudiant = etudiant;
     }
 
@@ -408,7 +412,7 @@ export class FinanceService {
 
   async getDashboardStats(tenantId?: number) {
     // Pour le dashboard, si pas de tenantId, on ne filtre pas pour voir toutes les données
-    const where = tenantId 
+    const where = tenantId
       ? TenantHelper.addTenantFilter({}, tenantId, 'etudiant.etablissement')
       : {};
 
@@ -420,7 +424,7 @@ export class FinanceService {
       where: where,
       relations: { etudiant: { niveau: true, classe: true } },
     });
-    
+
     const totalCollected = allPaiements.reduce(
       (sum, p) => sum + Number(p.montant),
       0,
@@ -434,23 +438,29 @@ export class FinanceService {
       (sum, p) => sum + Number(p.montant),
       0,
     );
-    
+
     // Si pas de paiements ce mois, prendre le dernier mois avec des paiements
     if (monthPaiements.length === 0 && allPaiements.length > 0) {
       const latestPaymentDate = allPaiements.reduce((latest, p) => {
         const paymentDate = new Date(p.datePaiement);
         return paymentDate > latest ? paymentDate : latest;
       }, new Date(0));
-      
-      const startOfLastMonth = new Date(latestPaymentDate.getFullYear(), latestPaymentDate.getMonth(), 1);
-      const endOfLastMonth = new Date(latestPaymentDate.getFullYear(), latestPaymentDate.getMonth() + 1, 0);
-      
-      monthPaiements = allPaiements.filter(
-        (p) => {
-          const paymentDate = new Date(p.datePaiement);
-          return paymentDate >= startOfLastMonth && paymentDate <= endOfLastMonth;
-        }
+
+      const startOfLastMonth = new Date(
+        latestPaymentDate.getFullYear(),
+        latestPaymentDate.getMonth(),
+        1,
       );
+      const endOfLastMonth = new Date(
+        latestPaymentDate.getFullYear(),
+        latestPaymentDate.getMonth() + 1,
+        0,
+      );
+
+      monthPaiements = allPaiements.filter((p) => {
+        const paymentDate = new Date(p.datePaiement);
+        return paymentDate >= startOfLastMonth && paymentDate <= endOfLastMonth;
+      });
       monthCollected = monthPaiements.reduce(
         (sum, p) => sum + Number(p.montant),
         0,
@@ -469,12 +479,12 @@ export class FinanceService {
       where: where,
       relations: { etudiant: { niveau: true, classe: true } },
     });
-    
+
     const totalInvoiced = allFactures.reduce(
       (sum, f) => sum + Number(f.montantTotal),
       0,
     );
-    
+
     const totalPending = totalInvoiced - totalCollected;
 
     // Calcul par niveau
@@ -482,12 +492,12 @@ export class FinanceService {
     allFactures.forEach((f) => {
       const niveauName = f.etudiant.niveau.name;
       if (!statsByNiveau[niveauName]) {
-        statsByNiveau[niveauName] = { 
-          invoiced: 0, 
-          collected: 0, 
+        statsByNiveau[niveauName] = {
+          invoiced: 0,
+          collected: 0,
           pending: 0,
           countFactures: 0,
-          countStudents: new Set()
+          countStudents: new Set(),
         };
       }
       statsByNiveau[niveauName].invoiced += Number(f.montantTotal);
@@ -504,8 +514,10 @@ export class FinanceService {
 
     for (const niveauName in statsByNiveau) {
       statsByNiveau[niveauName].pending =
-        statsByNiveau[niveauName].invoiced - statsByNiveau[niveauName].collected;
-      statsByNiveau[niveauName].countStudents = statsByNiveau[niveauName].countStudents.size;
+        statsByNiveau[niveauName].invoiced -
+        statsByNiveau[niveauName].collected;
+      statsByNiveau[niveauName].countStudents =
+        statsByNiveau[niveauName].countStudents.size;
     }
 
     // Calcul par classe
@@ -513,12 +525,12 @@ export class FinanceService {
     allFactures.forEach((f) => {
       const classeName = f.etudiant.classe.name;
       if (!statsByClasse[classeName]) {
-        statsByClasse[classeName] = { 
-          invoiced: 0, 
-          collected: 0, 
+        statsByClasse[classeName] = {
+          invoiced: 0,
+          collected: 0,
           pending: 0,
           countFactures: 0,
-          countStudents: new Set()
+          countStudents: new Set(),
         };
       }
       statsByClasse[classeName].invoiced += Number(f.montantTotal);
@@ -536,7 +548,8 @@ export class FinanceService {
     for (const classe in statsByClasse) {
       statsByClasse[classe].pending =
         statsByClasse[classe].invoiced - statsByClasse[classe].collected;
-      statsByClasse[classe].countStudents = statsByClasse[classe].countStudents.size;
+      statsByClasse[classe].countStudents =
+        statsByClasse[classe].countStudents.size;
     }
 
     // Calcul par mode de paiement
@@ -572,7 +585,7 @@ export class FinanceService {
         .filter((p) => p.facture?.id === f.id)
         .reduce((sum, p) => sum + Number(p.montant), 0);
       const debt = Number(f.montantTotal) - totalPaye;
-      
+
       if (debt > 0) {
         if (!studentsWithDebt.has(studentId)) {
           studentsWithDebt.set(studentId, {
@@ -601,13 +614,18 @@ export class FinanceService {
     for (let i = 5; i >= 0; i--) {
       const monthDate = new Date(now.getFullYear(), now.getMonth() - i, 1);
       const monthEnd = new Date(now.getFullYear(), now.getMonth() - i + 1, 0);
-      
+
       const monthPayments = allPaiements.filter(
-        (p) => new Date(p.datePaiement) >= monthDate && new Date(p.datePaiement) <= monthEnd
+        (p) =>
+          new Date(p.datePaiement) >= monthDate &&
+          new Date(p.datePaiement) <= monthEnd,
       );
-      
+
       monthlyEvolution.push({
-        month: monthDate.toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' }),
+        month: monthDate.toLocaleDateString('fr-FR', {
+          month: 'long',
+          year: 'numeric',
+        }),
         amount: monthPayments.reduce((sum, p) => sum + Number(p.montant), 0),
         count: monthPayments.length,
       });
@@ -623,16 +641,16 @@ export class FinanceService {
       countFactures: allFactures.length,
       countPaiements: allPaiements.length,
       countStudentsWithDebt: studentsWithDebt.size,
-      
+
       // Ventilations
       statsByNiveau,
       statsByClasse,
       statsByPaymentMode,
       statsByStatus,
-      
+
       // Liste des débiteurs
       topDebtors,
-      
+
       // Évolution mensuelle
       monthlyEvolution,
     };
@@ -656,8 +674,11 @@ export class FinanceService {
     });
 
     // Calculer les totaux pour le rapport
-    const totalCollected = paiements.reduce((sum, p) => sum + Number(p.montant), 0);
-    
+    const totalCollected = paiements.reduce(
+      (sum, p) => sum + Number(p.montant),
+      0,
+    );
+
     // Récupérer les factures pour calculer le total facturé
     const facturesWhere = TenantHelper.addTenantFilter(
       {},
@@ -668,7 +689,10 @@ export class FinanceService {
       where: facturesWhere,
       relations: { etudiant: { niveau: true } },
     });
-    const totalInvoiced = factures.reduce((sum, f) => sum + Number(f.montantTotal), 0);
+    const totalInvoiced = factures.reduce(
+      (sum, f) => sum + Number(f.montantTotal),
+      0,
+    );
     const totalPending = totalInvoiced - totalCollected;
 
     // Répartition par niveau pour le rapport
@@ -692,7 +716,8 @@ export class FinanceService {
 
     for (const niveauName in statsByNiveau) {
       statsByNiveau[niveauName].pending =
-        statsByNiveau[niveauName].invoiced - statsByNiveau[niveauName].collected;
+        statsByNiveau[niveauName].invoiced -
+        statsByNiveau[niveauName].collected;
     }
 
     return {
@@ -779,13 +804,20 @@ export class FinanceService {
       query.andWhere('niveau.id = :niveauId', { niveauId });
     }
 
-    const factures = await query.orderBy('facture.dateEcheance', 'ASC').getMany();
-    factures.forEach((facture) => this.enrichFactureWithPaymentSummary(facture));
+    const factures = await query
+      .orderBy('facture.dateEcheance', 'ASC')
+      .getMany();
+    factures.forEach((facture) =>
+      this.enrichFactureWithPaymentSummary(facture),
+    );
     return factures;
-    
+
     // Calculer le montant restant pour chaque facture
-    return factures.map(facture => {
-      const totalPaye = facture.paiements.reduce((sum, p) => sum + Number(p.montant), 0);
+    return factures.map((facture) => {
+      const totalPaye = facture.paiements.reduce(
+        (sum, p) => sum + Number(p.montant),
+        0,
+      );
       const montantRestant = Number(facture.montantTotal) - totalPaye;
       return {
         ...facture,

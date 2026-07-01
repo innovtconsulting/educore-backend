@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, ILike, FindOptionsWhere, DataSource } from 'typeorm';
 import { CreateDocumentDto } from './dto/create-document.dto';
@@ -79,7 +83,7 @@ export class DocumentService {
     tenantId?: number,
   ) {
     const document = await this.findOne(id, tenantId);
-    
+
     // Si deleteFile est true, supprimer le fichier physique
     if (updateDocumentDto.deleteFile && document.filePath) {
       if (fs.existsSync(document.filePath)) {
@@ -90,17 +94,17 @@ export class DocumentService {
       document.mimeType = undefined as any;
       document.fileSize = undefined as any;
     }
-    
+
     // Mettre à jour les autres champs
     const { deleteFile, ...otherFields } = updateDocumentDto;
     Object.assign(document, otherFields);
-    
+
     return await this.documentRepository.save(document);
   }
 
   async remove(id: number, tenantId?: number) {
     const document = await this.findOne(id, tenantId);
-    
+
     // Vérifier si le document est utilisé dans des soumissions
     const submissionRepo = this.dataSource.getRepository('Submission');
     const submissions = await submissionRepo
@@ -108,13 +112,13 @@ export class DocumentService {
       .leftJoin('submission.document', 'document')
       .where('document.id = :id', { id })
       .getMany();
-    
+
     if (submissions.length > 0) {
       // Supprimer le fichier physique
       if (document.filePath && fs.existsSync(document.filePath)) {
         fs.unlinkSync(document.filePath);
       }
-      
+
       // Mettre à jour les soumissions pour retirer la référence au document
       for (const submission of submissions) {
         submission.document = undefined as any;
@@ -126,7 +130,7 @@ export class DocumentService {
         fs.unlinkSync(document.filePath);
       }
     }
-    
+
     return await this.documentRepository.remove(document);
   }
 }

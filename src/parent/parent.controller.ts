@@ -37,7 +37,10 @@ export class ParentController {
   @Post()
   @Permissions('STUDENT_CREATE')
   @ApiOperation({ summary: 'Créer un nouveau parent' })
-  create(@Body() createParentDto: CreateParentDto, @CurrentEtablissement() tenantId?: number) {
+  create(
+    @Body() createParentDto: CreateParentDto,
+    @CurrentEtablissement() tenantId?: number,
+  ) {
     return this.parentService.create(createParentDto, tenantId);
   }
 
@@ -49,21 +52,30 @@ export class ParentController {
     required: false,
     description: 'Recherche par nom parent ou étudiant, ou matricule',
   })
-  getContacts(@Query('search') search?: string, @CurrentEtablissement() tenantId?: number) {
+  getContacts(
+    @Query('search') search?: string,
+    @CurrentEtablissement() tenantId?: number,
+  ) {
     return this.parentService.getContacts(search, tenantId);
   }
 
   @Get()
   @Permissions('STUDENT_VIEW')
   @ApiOperation({ summary: 'Liste de tous les parents' })
-  findAll(@Query() paginationQuery: PaginationQueryDto, @CurrentEtablissement() tenantId?: number) {
+  findAll(
+    @Query() paginationQuery: PaginationQueryDto,
+    @CurrentEtablissement() tenantId?: number,
+  ) {
     return this.parentService.findAll(paginationQuery, tenantId);
   }
 
   @Get(':id')
   @Permissions('STUDENT_VIEW')
   @ApiOperation({ summary: "Détails d'un parent" })
-  findOne(@Param('id', ParseIntPipe) id: number, @CurrentEtablissement() tenantId?: number) {
+  findOne(
+    @Param('id', ParseIntPipe) id: number,
+    @CurrentEtablissement() tenantId?: number,
+  ) {
     return this.parentService.findOne(id, tenantId);
   }
 
@@ -81,7 +93,10 @@ export class ParentController {
   @Delete(':id')
   @Permissions('STUDENT_EDIT')
   @ApiOperation({ summary: 'Supprimer un parent' })
-  remove(@Param('id', ParseIntPipe) id: number, @CurrentEtablissement() tenantId?: number) {
+  remove(
+    @Param('id', ParseIntPipe) id: number,
+    @CurrentEtablissement() tenantId?: number,
+  ) {
     return this.parentService.remove(id, tenantId);
   }
 }

@@ -30,7 +30,7 @@ export class CreateMatiereDto {
     description: 'ID du niveau',
   })
   @Type(() => Number)
-  @IsNumber({}, { message: 'L\'ID du niveau doit être un nombre' })
-  @IsNotEmpty({ message: 'L\'ID du niveau est obligatoire' })
+  @IsNumber({}, { message: "L'ID du niveau doit être un nombre" })
+  @IsNotEmpty({ message: "L'ID du niveau est obligatoire" })
   niveauId!: number;
 }

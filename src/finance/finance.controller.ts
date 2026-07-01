@@ -245,7 +245,13 @@ export class FinanceController {
 
   // --- Documents (Reçus & Quittances) ---
   @Get('paiements/:id/recu')
-  @Roles(Role.PARENT, Role.ETUDIANT, Role.ADMIN, Role.SUPER_ADMIN, Role.COMPTABLE)
+  @Roles(
+    Role.PARENT,
+    Role.ETUDIANT,
+    Role.ADMIN,
+    Role.SUPER_ADMIN,
+    Role.COMPTABLE,
+  )
   @Permissions('FINANCE_VIEW')
   @ApiOperation({ summary: 'Télécharger le reçu de paiement' })
   async downloadRecu(
@@ -266,7 +272,13 @@ export class FinanceController {
   }
 
   @Get('factures/:id/quittance')
-  @Roles(Role.PARENT, Role.ETUDIANT, Role.ADMIN, Role.SUPER_ADMIN, Role.COMPTABLE)
+  @Roles(
+    Role.PARENT,
+    Role.ETUDIANT,
+    Role.ADMIN,
+    Role.SUPER_ADMIN,
+    Role.COMPTABLE,
+  )
   @Permissions('FINANCE_VIEW')
   @ApiOperation({ summary: 'Télécharger la quittance de solde' })
   async downloadQuittance(

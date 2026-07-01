@@ -69,7 +69,10 @@ export class MatiereController {
     description:
       "Affiche les informations détaillées d'une matière spécifique.",
   })
-  async findOne(@Param('id') id: string, @CurrentEtablissement() tenantId?: number) {
+  async findOne(
+    @Param('id') id: string,
+    @CurrentEtablissement() tenantId?: number,
+  ) {
     const data = await this.matiereService.findOne(+id, tenantId);
     return {
       message: `Matière #${id} récupérée avec succès`,
@@ -89,7 +92,11 @@ export class MatiereController {
     @Body() updateMatiereDto: UpdateMatiereDto,
     @CurrentEtablissement() tenantId?: number,
   ) {
-    const data = await this.matiereService.update(+id, updateMatiereDto, tenantId);
+    const data = await this.matiereService.update(
+      +id,
+      updateMatiereDto,
+      tenantId,
+    );
     return {
       message: `Matière #${id} mise à jour avec succès`,
       data,
@@ -102,7 +109,10 @@ export class MatiereController {
     summary: 'Supprimer une matière',
     description: 'Supprime définitivement une matière du système.',
   })
-  async remove(@Param('id') id: string, @CurrentEtablissement() tenantId?: number) {
+  async remove(
+    @Param('id') id: string,
+    @CurrentEtablissement() tenantId?: number,
+  ) {
     await this.matiereService.remove(+id, tenantId);
     return {
       message: `Matière #${id} supprimée avec succès`,

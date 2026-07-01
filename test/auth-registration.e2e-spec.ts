@@ -74,7 +74,9 @@ describe('Registration & Activation (e2e)', () => {
         });
 
       expect(res.status).toBe(400);
-      expect(res.body.message).toContain("L'auto-inscription n'est pas disponible pour le rôle Admin");
+      expect(res.body.message).toContain(
+        "L'auto-inscription n'est pas disponible pour le rôle Admin",
+      );
     });
   });
 

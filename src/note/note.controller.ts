@@ -87,7 +87,13 @@ export class NoteController {
   }
 
   @Get()
-  @Roles(Role.ETUDIANT, Role.PARENT, Role.ENSEIGNANT, Role.ADMIN, Role.SURVEILLANT)
+  @Roles(
+    Role.ETUDIANT,
+    Role.PARENT,
+    Role.ENSEIGNANT,
+    Role.ADMIN,
+    Role.SURVEILLANT,
+  )
   @Permissions('ACADEMIC_VIEW')
   @ApiOperation({
     summary: 'Lister les notes',
@@ -115,7 +121,7 @@ export class NoteController {
   @Get('entry-sheet/:evaluationId')
   @Roles(Role.ENSEIGNANT, Role.ADMIN)
   @ApiOperation({
-    summary: "Feuille de saisie des notes pour une évaluation",
+    summary: 'Feuille de saisie des notes pour une évaluation',
     description:
       "Retourne la liste des étudiants de la classe/niveau de l'évaluation avec leurs notes existantes (si saisies). Réservé à l'enseignant responsable de la matière.",
   })
@@ -124,7 +130,11 @@ export class NoteController {
     @Request() req: any,
     @CurrentEtablissement() tenantId?: number,
   ) {
-    const data = await this.noteService.getEntrySheet(evaluationId, req.user, tenantId);
+    const data = await this.noteService.getEntrySheet(
+      evaluationId,
+      req.user,
+      tenantId,
+    );
     return { message: 'Feuille de saisie récupérée avec succès', data };
   }
 

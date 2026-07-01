@@ -29,7 +29,10 @@ export class GlobalSettingController {
   @Post()
   @Permissions('CONFIG_MANAGE')
   @ApiOperation({ summary: 'Ajouter un nouveau paramètre' })
-  create(@Body() dto: CreateGlobalSettingDto, @CurrentEtablissement() tenantId?: number) {
+  create(
+    @Body() dto: CreateGlobalSettingDto,
+    @CurrentEtablissement() tenantId?: number,
+  ) {
     return this.service.create(dto, tenantId);
   }
 
@@ -41,14 +44,21 @@ export class GlobalSettingController {
 
   @Get(':key')
   @ApiOperation({ summary: 'Récupérer un paramètre spécifique par sa clé' })
-  findOne(@Param('key') key: string, @CurrentEtablissement() tenantId?: number) {
+  findOne(
+    @Param('key') key: string,
+    @CurrentEtablissement() tenantId?: number,
+  ) {
     return this.service.findOne(key, tenantId);
   }
 
   @Patch(':key')
   @Permissions('CONFIG_MANAGE')
   @ApiOperation({ summary: 'Modifier un paramètre' })
-  update(@Param('key') key: string, @Body() dto: UpdateGlobalSettingDto, @CurrentEtablissement() tenantId?: number) {
+  update(
+    @Param('key') key: string,
+    @Body() dto: UpdateGlobalSettingDto,
+    @CurrentEtablissement() tenantId?: number,
+  ) {
     return this.service.update(key, dto, tenantId);
   }
 

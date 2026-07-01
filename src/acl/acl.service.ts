@@ -27,9 +27,9 @@ export class AclService {
     if (tenantId) {
       where.etablissement = { id: tenantId };
     }
-    return await this.permissionRepository.find({ 
+    return await this.permissionRepository.find({
       where,
-      order: { name: 'ASC' } 
+      order: { name: 'ASC' },
     });
   }
 
@@ -47,7 +47,10 @@ export class AclService {
     return permission;
   }
 
-  async createPermission(data: CreatePermissionDto, tenantId?: number): Promise<Permission> {
+  async createPermission(
+    data: CreatePermissionDto,
+    tenantId?: number,
+  ): Promise<Permission> {
     const where: any = { name: data.name };
     if (tenantId) {
       where.etablissement = { id: tenantId };
@@ -161,7 +164,11 @@ export class AclService {
     return await this.roleRepository.save(role);
   }
 
-  async updateRole(id: number, data: UpdateRoleDto, tenantId?: number): Promise<Role> {
+  async updateRole(
+    id: number,
+    data: UpdateRoleDto,
+    tenantId?: number,
+  ): Promise<Role> {
     const { permissionIds, ...roleData } = data;
     const role = await this.findOneRole(id, tenantId);
 

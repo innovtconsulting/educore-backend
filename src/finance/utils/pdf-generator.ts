@@ -136,7 +136,9 @@ export async function generateQuittancePdf(facture: Facture): Promise<string> {
       doc
         .font('Helvetica-Bold')
         .fontSize(12)
-        .text(`Montant Total Honoré: ${facture.montantTotal.toLocaleString('fr-FR')} Ar`)
+        .text(
+          `Montant Total Honoré: ${facture.montantTotal.toLocaleString('fr-FR')} Ar`,
+        )
         .moveDown();
 
       doc.moveDown(3);

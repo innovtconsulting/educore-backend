@@ -29,7 +29,10 @@ export class AnneeUniversitaireController {
   @Post()
   @Permissions('ACADEMIC_CONFIG')
   @ApiOperation({ summary: 'Créer une nouvelle année universitaire' })
-  create(@Body() dto: CreateAnneeUniversitaireDto, @CurrentEtablissement() tenantId?: number) {
+  create(
+    @Body() dto: CreateAnneeUniversitaireDto,
+    @CurrentEtablissement() tenantId?: number,
+  ) {
     return this.service.create(dto, tenantId);
   }
 
@@ -57,7 +60,11 @@ export class AnneeUniversitaireController {
   @Patch(':id')
   @Permissions('ACADEMIC_CONFIG')
   @ApiOperation({ summary: 'Modifier une année universitaire' })
-  update(@Param('id') id: string, @Body() dto: UpdateAnneeUniversitaireDto, @CurrentEtablissement() tenantId?: number) {
+  update(
+    @Param('id') id: string,
+    @Body() dto: UpdateAnneeUniversitaireDto,
+    @CurrentEtablissement() tenantId?: number,
+  ) {
     return this.service.update(+id, dto, tenantId);
   }
 

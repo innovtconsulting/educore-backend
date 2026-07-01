@@ -1,5 +1,12 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsEmail, IsEnum, IsOptional, IsString, MinLength, IsNumber } from 'class-validator';
+import {
+  IsEmail,
+  IsEnum,
+  IsOptional,
+  IsString,
+  MinLength,
+  IsNumber,
+} from 'class-validator';
 import { UserRole } from '../entities/user.entity';
 
 export class CreateUserDto {
@@ -23,7 +30,12 @@ export class CreateUserDto {
   @IsEnum(UserRole)
   role!: UserRole;
 
-  @ApiProperty({ example: 1, required: false, description: "ID de l'établissement (requis pour les rôles autres que SUPER_ADMIN)" })
+  @ApiProperty({
+    example: 1,
+    required: false,
+    description:
+      "ID de l'établissement (requis pour les rôles autres que SUPER_ADMIN)",
+  })
   @IsNumber()
   @IsOptional()
   etablissementId?: number;

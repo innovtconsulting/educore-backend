@@ -43,7 +43,11 @@ export class EvaluationController {
     @Request() req: any,
     @CurrentEtablissement() tenantId?: number,
   ) {
-    return this.evaluationService.create(createEvaluationDto, req.user, tenantId);
+    return this.evaluationService.create(
+      createEvaluationDto,
+      req.user,
+      tenantId,
+    );
   }
 
   @Get()
@@ -54,8 +58,14 @@ export class EvaluationController {
     description:
       'Récupère la liste complète des évaluations avec leurs relations (matière, classe, niveau, semestre).',
   })
-  async findAll(@Query() paginationQuery: PaginationQueryDto, @CurrentEtablissement() tenantId?: number) {
-    const data = await this.evaluationService.findAll(paginationQuery, tenantId);
+  async findAll(
+    @Query() paginationQuery: PaginationQueryDto,
+    @CurrentEtablissement() tenantId?: number,
+  ) {
+    const data = await this.evaluationService.findAll(
+      paginationQuery,
+      tenantId,
+    );
     return {
       message: 'Liste des évaluations récupérée avec succès',
       data,
@@ -109,7 +119,12 @@ export class EvaluationController {
     @Request() req: any,
     @CurrentEtablissement() tenantId?: number,
   ) {
-    return this.evaluationService.update(+id, updateEvaluationDto, req.user, tenantId);
+    return this.evaluationService.update(
+      +id,
+      updateEvaluationDto,
+      req.user,
+      tenantId,
+    );
   }
 
   @Delete(':id')
@@ -118,7 +133,11 @@ export class EvaluationController {
     summary: 'Supprimer une évaluation',
     description: 'Supprime définitivement une évaluation du système.',
   })
-  remove(@Param('id') id: string, @Request() req: any, @CurrentEtablissement() tenantId?: number) {
+  remove(
+    @Param('id') id: string,
+    @Request() req: any,
+    @CurrentEtablissement() tenantId?: number,
+  ) {
     return this.evaluationService.remove(+id, req.user, tenantId);
   }
 }

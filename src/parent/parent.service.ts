@@ -18,7 +18,10 @@ export class ParentService {
     private readonly parentRepository: Repository<Parent>,
   ) {}
 
-  async create(createParentDto: CreateParentDto, tenantId?: number): Promise<Parent> {
+  async create(
+    createParentDto: CreateParentDto,
+    tenantId?: number,
+  ): Promise<Parent> {
     const finalEtablissementId = tenantId || createParentDto.etablissementId;
     if (!finalEtablissementId) {
       throw new Error("ID d'établissement manquant");

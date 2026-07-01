@@ -54,7 +54,10 @@ export class ClasseController {
     @CurrentEtablissement() tenantId?: number,
     @Query('etablissementId') etablissementId?: string,
   ) {
-    const data = await this.classeService.findAll(tenantId, etablissementId ? +etablissementId : undefined);
+    const data = await this.classeService.findAll(
+      tenantId,
+      etablissementId ? +etablissementId : undefined,
+    );
     return {
       message: 'Liste des parcours (classes) récupérée avec succès',
       data,
@@ -67,7 +70,10 @@ export class ClasseController {
     summary: 'Récupérer une classe par ID',
     description: "Affiche les informations détaillées d'une classe spécifique.",
   })
-  async findOne(@Param('id') id: string, @CurrentEtablissement() tenantId?: number) {
+  async findOne(
+    @Param('id') id: string,
+    @CurrentEtablissement() tenantId?: number,
+  ) {
     const data = await this.classeService.findOne(+id, tenantId);
     return {
       message: `Classe #${id} récupérée avec succès`,
@@ -86,7 +92,11 @@ export class ClasseController {
     @Body() updateClasseDto: UpdateClasseDto,
     @CurrentEtablissement() tenantId?: number,
   ) {
-    const data = await this.classeService.update(+id, updateClasseDto, tenantId);
+    const data = await this.classeService.update(
+      +id,
+      updateClasseDto,
+      tenantId,
+    );
     return {
       message: `Classe #${id} mise à jour avec succès`,
       data,
@@ -99,7 +109,10 @@ export class ClasseController {
     summary: 'Supprimer une classe',
     description: 'Supprime une classe du système.',
   })
-  async remove(@Param('id') id: string, @CurrentEtablissement() tenantId?: number) {
+  async remove(
+    @Param('id') id: string,
+    @CurrentEtablissement() tenantId?: number,
+  ) {
     await this.classeService.remove(+id, tenantId);
     return {
       message: `Classe #${id} supprimée avec succès`,

@@ -141,8 +141,14 @@ export class EvaluationService {
     return await this.evaluationRepository.save(evaluation);
   }
 
-  async findForTeacher(enseignantId: number, classeId?: number, niveauId?: number, tenantId?: number) {
-    const matiereIds = await this.enseignantService.getMatiereIdsByEnseignant(enseignantId);
+  async findForTeacher(
+    enseignantId: number,
+    classeId?: number,
+    niveauId?: number,
+    tenantId?: number,
+  ) {
+    const matiereIds =
+      await this.enseignantService.getMatiereIdsByEnseignant(enseignantId);
     if (matiereIds.length === 0) return [];
 
     const query = this.evaluationRepository

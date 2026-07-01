@@ -1,10 +1,8 @@
 import { Module } from '@nestjs/common';
-import { TypeOrmModule } from '@nestjs/typeorm';
-import { Document } from '../document/entities/document.entity';
-import { Submission } from '../devoir/entities/submission.entity';
+import { NotificationService } from './services/notification.service';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Document, Submission])],
-  exports: [TypeOrmModule],
+  providers: [NotificationService],
+  exports: [NotificationService],
 })
 export class SharedModule {}

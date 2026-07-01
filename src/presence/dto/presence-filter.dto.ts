@@ -23,17 +23,26 @@ export class PresenceFilterDto extends PaginationQueryDto {
   @IsInt()
   matiereId?: number;
 
-  @ApiPropertyOptional({ description: 'Date de début (ISO 8601)', example: '2026-06-01T00:00:00' })
+  @ApiPropertyOptional({
+    description: 'Date de début (ISO 8601)',
+    example: '2026-06-01T00:00:00',
+  })
   @IsOptional()
   @IsDateString()
   startDate?: string;
 
-  @ApiPropertyOptional({ description: 'Date de fin (ISO 8601)', example: '2026-06-30T23:59:59' })
+  @ApiPropertyOptional({
+    description: 'Date de fin (ISO 8601)',
+    example: '2026-06-30T23:59:59',
+  })
   @IsOptional()
   @IsDateString()
   endDate?: string;
 
-  @ApiPropertyOptional({ description: 'Filtrer par statut', enum: PresenceStatus })
+  @ApiPropertyOptional({
+    description: 'Filtrer par statut',
+    enum: PresenceStatus,
+  })
   @IsOptional()
   @IsEnum(PresenceStatus)
   status?: PresenceStatus;
