@@ -20,6 +20,7 @@ import { Inscription } from './inscription.entity';
 
 export enum EnrollmentStatus {
   ACTIF = 'Actif',
+  INACTIF = 'Inactif',
   REFUSE = 'Refusé',
   EN_ATTENTE = 'En Attente',
   SUSPENDU = 'Suspendu',

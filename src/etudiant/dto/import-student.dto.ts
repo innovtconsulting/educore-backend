@@ -104,6 +104,25 @@ export class RunImportDto {
   @ValidateNested({ each: true })
   @Type(() => EstablishmentToCreateDto)
   etablissementsACreer?: EstablishmentToCreateDto[];
+
+  @ApiProperty({
+    required: false,
+    description:
+      "Si vrai, crée automatiquement une inscription (année universitaire active) pour chaque étudiant importé, au parcours et niveau indiqués dans le fichier Excel",
+  })
+  @IsBoolean()
+  @IsOptional()
+  inscrireAutomatiquement?: boolean;
+
+  @ApiProperty({
+    required: false,
+    default: true,
+    description:
+      'Statut appliqué à tous les étudiants importés : true = Actif, false = Inactif',
+  })
+  @IsBoolean()
+  @IsOptional()
+  statutActif?: boolean;
 }
 
 export class ImportReportSheetDto {

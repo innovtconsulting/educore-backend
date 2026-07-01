@@ -16,6 +16,7 @@ import {
 import { CreateEtudiantDto } from './dto/create-etudiant.dto';
 import { UpdateEtudiantDto } from './dto/update-etudiant.dto';
 import { Etudiant, EnrollmentStatus } from './entities/etudiant.entity';
+import { Inscription, InscriptionStatus } from './entities/inscription.entity';
 import { Etablissement } from '../etablissement/entities/etablissement.entity';
 import { Classe } from '../classe/entities/classe.entity';
 import { Niveau } from '../niveau/entities/niveau.entity';
@@ -31,6 +32,8 @@ import * as ExcelJS from 'exceljs';
 import { ClasseService } from '../classe/classe.service';
 import { NiveauService } from '../niveau/niveau.service';
 import { TenantHelper } from '../common/tenant/tenant.helper';
+import { AnneeUniversitaireService } from '../annee-universitaire/annee-universitaire.service';
+import { AnneeUniversitaire } from '../annee-universitaire/entities/annee-universitaire.entity';
 import {
 	CheckImportResultDto,
 	CheckImportResultSheetDto,
@@ -59,6 +62,7 @@ export class EtudiantService {
 		private readonly userService: UserService,
 		private readonly classeService: ClasseService,
 		private readonly niveauService: NiveauService,
+		private readonly anneeUniversitaireService: AnneeUniversitaireService,
 		private readonly dataSource: DataSource,
 	) {}
 
@@ -1077,6 +1081,20 @@ export class EtudiantService {
 					continue;
 				}
 
+				// Résoudre l'année universitaire active si l'inscription automatique est demandée
+				let anneeActive: AnneeUniversitaire | null = null;
+				if (runDto.inscrireAutomatiquement) {
+					try {
+						anneeActive = await this.anneeUniversitaireService.getActiveYear(
+							etablissement.id,
+						);
+					} catch {
+						sheetReport.erreurs.push(
+							`Aucune année universitaire active pour "${acronyme}" : inscription automatique ignorée`,
+						);
+					}
+				}
+
 				// Get and map headers
 				const headerRow = worksheet.getRow(1);
 				const headers: string[] = [];
@@ -1224,7 +1242,10 @@ export class EtudiantService {
 								email: email || null,
 								phoneNumber: telephone,
 								telephonesSupplementaires,
-								status: EnrollmentStatus.ACTIF,
+								status:
+									runDto.statutActif === false
+										? EnrollmentStatus.INACTIF
+										: EnrollmentStatus.ACTIF,
 								etablissement,
 								classe,
 								niveau,
@@ -1242,6 +1263,22 @@ export class EtudiantService {
 								etudiant: savedEtudiantRun,
 							});
 						}
+
+						// Inscription automatique au parcours et niveau importés
+						if (runDto.inscrireAutomatiquement && anneeActive) {
+							const inscription = queryRunner.manager
+								.getRepository(Inscription)
+								.create({
+									etudiant: savedEtudiantRun,
+									anneeUniversitaire: anneeActive,
+									classe,
+									niveau,
+									etablissement,
+									status: InscriptionStatus.ACTIF,
+								});
+							await queryRunner.manager.save(inscription);
+						}
+
 						sheetReport.nombreEtudiantsImportes++;
 						totalEtudiantsImportes++;
 					} catch (error) {

@@ -10,6 +10,7 @@ import { ParentModule } from '../parent/parent.module';
 import { UserModule } from '../user/user.module';
 import { ClasseModule } from '../classe/classe.module';
 import { NiveauModule } from '../niveau/niveau.module';
+import { AnneeUniversitaireModule } from '../annee-universitaire/annee-universitaire.module';
 
 @Module({
   imports: [
@@ -18,6 +19,7 @@ import { NiveauModule } from '../niveau/niveau.module';
     forwardRef(() => UserModule),
     ClasseModule,
     NiveauModule,
+    AnneeUniversitaireModule,
   ],
   controllers: [EtudiantController],
   providers: [EtudiantService],
