@@ -8,6 +8,7 @@ import {
   ParseIntPipe,
   UseGuards,
   NotFoundException,
+  Request,
 } from '@nestjs/common';
 import { ReportingService } from './reporting.service';
 import {
@@ -34,11 +35,11 @@ export class ReportingController {
   constructor(private readonly reportingService: ReportingService) {}
 
   @Get('global-stats')
-  @Roles(Role.ADMIN)
+  @Roles(Role.ADMIN, Role.SUPER_ADMIN)
   @Permissions('ACADEMIC_VIEW')
   @ApiOperation({ summary: 'Consulter les statistiques globales du système' })
-  async getGlobalStats(@CurrentEtablissement() tenantId?: number) {
-    const data = await this.reportingService.getGlobalStats(tenantId);
+  async getGlobalStats(@Request() req: any, @CurrentEtablissement() tenantId?: number) {
+    const data = await this.reportingService.getGlobalStats(tenantId, req.user);
     return {
       message: 'Statistiques globales récupérées avec succès',
       data,

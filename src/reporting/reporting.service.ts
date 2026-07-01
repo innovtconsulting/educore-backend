@@ -16,6 +16,7 @@ import { Classe } from '../classe/entities/classe.entity';
 import { Facture } from '../finance/entities/facture.entity';
 import { Paiement } from '../finance/entities/paiement.entity';
 import { TenantHelper } from '../common/tenant/tenant.helper';
+import { User, Role } from '../user/entities/user.entity';
 
 @Injectable()
 export class ReportingService {
@@ -36,39 +37,51 @@ export class ReportingService {
     private readonly factureRepository: Repository<Facture>,
     @InjectRepository(Paiement)
     private readonly paiementRepository: Repository<Paiement>,
+    @InjectRepository(User)
+    private readonly userRepository: Repository<User>,
   ) {}
 
-  async getGlobalStats(tenantId?: number) {
+  private async resolveCallerTenantId(tenantId?: number, caller?: any): Promise<number | undefined> {
+    let resolved = tenantId ?? caller?.etablissementId;
+    if (!resolved && caller?.sub && caller?.role !== Role.SUPER_ADMIN) {
+      const callerUser = await this.userRepository.findOne({ where: { id: caller.sub } });
+      resolved = callerUser?.etablissementId;
+    }
+    return resolved ?? undefined;
+  }
+
+  async getGlobalStats(tenantId?: number, caller?: any) {
+    const resolvedTenantId = await this.resolveCallerTenantId(tenantId, caller);
     const [totalEtudiants, totalEnseignants, totalClasses] = await Promise.all([
       this.etudiantRepository.count({
         where: TenantHelper.addTenantFilter(
           { status: EnrollmentStatus.ACTIF },
-          tenantId,
+          resolvedTenantId,
         ) as any,
       }),
       this.enseignantRepository.count({
-        where: TenantHelper.addTenantFilter({}, tenantId) as any,
+        where: TenantHelper.addTenantFilter({}, resolvedTenantId) as any,
       }),
       this.classeRepository.count({
-        where: TenantHelper.addTenantFilter({}, tenantId) as any,
+        where: TenantHelper.addTenantFilter({}, resolvedTenantId) as any,
       }),
     ]);
 
     const financialQuery = this.factureRepository.createQueryBuilder('f');
-    if (tenantId) {
+    if (resolvedTenantId) {
       financialQuery
         .innerJoin('f.etudiant', 'e')
-        .andWhere('e.etablissementId = :tenantId', { tenantId });
+        .andWhere('e.etablissementId = :resolvedTenantId', { resolvedTenantId });
     }
     const financialStats = await financialQuery
       .select('SUM(f.montantTotal)', 'totalInvoiced')
       .getRawOne();
 
     const paymentQuery = this.paiementRepository.createQueryBuilder('p');
-    if (tenantId) {
+    if (resolvedTenantId) {
       paymentQuery
         .innerJoin('p.etudiant', 'e')
-        .andWhere('e.etablissementId = :tenantId', { tenantId });
+        .andWhere('e.etablissementId = :resolvedTenantId', { resolvedTenantId });
     }
     const paymentStats = await paymentQuery
       .select('SUM(p.montant)', 'totalCollected')

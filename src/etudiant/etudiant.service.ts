@@ -218,6 +218,7 @@ export class EtudiantService {
 			niveauId?: number;
 		},
 		tenantId?: number,
+		caller?: any,
 	): Promise<{
 		items: Etudiant[];
 		total: number;
@@ -232,11 +233,17 @@ export class EtudiantService {
 
 		const where: FindOptionsWhere<Etudiant>[] = [];
 
+		// Résoudre le tenantId : JWT → etablissementId du caller → DB lookup
+		let resolvedTenantId = tenantId ?? caller?.etablissementId;
+		if (!resolvedTenantId && caller?.sub && caller?.role !== UserRole.SUPER_ADMIN) {
+			const callerUser = await this.userService.findOne(caller.sub);
+			resolvedTenantId = callerUser?.etablissementId;
+		}
+
 		const baseWhere: any = {};
 		if (status) baseWhere.status = status;
-		if (tenantId) baseWhere.etablissement = { id: tenantId };
-		if (etablissementId && !tenantId)
-			baseWhere.etablissement = { id: etablissementId };
+		if (resolvedTenantId) baseWhere.etablissement = { id: resolvedTenantId };
+		else if (etablissementId) baseWhere.etablissement = { id: etablissementId };
 		if (classeId) baseWhere.classe = { id: classeId };
 		if (niveauId) baseWhere.niveau = { id: niveauId };
 

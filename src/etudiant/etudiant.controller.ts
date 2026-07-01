@@ -11,6 +11,7 @@ import {
   BadRequestException,
   Query,
   UseGuards,
+  Request,
 } from '@nestjs/common';
 import { EtudiantService } from './etudiant.service';
 import { CreateEtudiantDto } from './dto/create-etudiant.dto';
@@ -67,9 +68,10 @@ export class EtudiantController {
   @ApiOperation({ summary: 'Récupérer tous les étudiants' })
   async findAll(
     @Query() filterDto: EtudiantFilterDto,
+    @Request() req: any,
     @CurrentEtablissement() tenantId?: number,
   ) {
-    const data = await this.etudiantService.findAll(filterDto, tenantId);
+    const data = await this.etudiantService.findAll(filterDto, tenantId, req.user);
     return {
       message: 'Liste des étudiants récupérée avec succès',
       data,

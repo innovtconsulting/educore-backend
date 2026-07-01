@@ -10,6 +10,7 @@ import { Enseignant } from '../enseignant/entities/enseignant.entity';
 import { Classe } from '../classe/entities/classe.entity';
 import { Facture } from '../finance/entities/facture.entity';
 import { Paiement } from '../finance/entities/paiement.entity';
+import { User } from '../user/entities/user.entity';
 
 @Module({
   imports: [
@@ -22,6 +23,7 @@ import { Paiement } from '../finance/entities/paiement.entity';
       Classe,
       Facture,
       Paiement,
+      User,
     ]),
   ],
   controllers: [ReportingController],
