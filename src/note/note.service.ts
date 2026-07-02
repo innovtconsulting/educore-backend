@@ -139,6 +139,45 @@ export class NoteService {
     return savedNotes;
   }
 
+  async createForEvaluation(
+    evaluationId: number,
+    payload: any,
+    user: any,
+    tenantId?: number,
+  ) {
+    const items = payload.items || payload.notes;
+
+    if (Array.isArray(items)) {
+      return this.bulkCreate(
+        {
+          evaluationId,
+          items: items.map((item) => ({
+            etudiantId: Number(item.etudiantId),
+            value: this.resolveNoteValue(item.value ?? item.noteSur20),
+            remark: item.remark ?? item.observation,
+          })),
+        },
+        user,
+        tenantId,
+      );
+    }
+
+    if (!payload.etudiantId) {
+      throw new BadRequestException("L'étudiant est obligatoire");
+    }
+
+    return this.create(
+      {
+        evaluationId,
+        etudiantId: Number(payload.etudiantId),
+        value: this.resolveNoteValue(payload.value ?? payload.noteSur20),
+        remark: payload.remark ?? payload.observation,
+      },
+      user,
+      tenantId,
+    );
+  }
+
   async findAll(
     paginationQuery: PaginationQueryDto,
     user?: any,
@@ -380,5 +419,15 @@ export class NoteService {
         };
       }),
     };
+  }
+
+  private resolveNoteValue(value: any) {
+    const noteValue = Number(value);
+
+    if (!Number.isFinite(noteValue) || noteValue < 0 || noteValue > 20) {
+      throw new BadRequestException('La note doit être comprise entre 0 et 20');
+    }
+
+    return noteValue;
   }
 }

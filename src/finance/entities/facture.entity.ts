@@ -52,6 +52,10 @@ export class Facture {
   @ApiProperty()
   dateEmission!: Date;
 
+  @Column({ type: 'date', nullable: true })
+  @ApiProperty({ required: false })
+  dateEcheance?: Date;
+
   @Column({ type: 'decimal', precision: 12, scale: 2 })
   @ApiProperty()
   montantTotal!: number;

@@ -4,6 +4,7 @@ import {
   ArrayMinSize,
   IsArray,
   IsBoolean,
+  IsDateString,
   IsEnum,
   IsNumber,
   IsOptional,
@@ -42,6 +43,11 @@ export class CreateFeeGroupDto {
   @ApiProperty({ enum: FeeType, default: FeeType.SCOLARITE })
   @IsEnum(FeeType)
   type!: FeeType;
+
+  @ApiProperty({ example: '2026-07-31', required: false })
+  @IsDateString()
+  @IsOptional()
+  dateEcheance?: string;
 
   @ApiProperty({ type: [FeeScopeDto] })
   @IsArray()

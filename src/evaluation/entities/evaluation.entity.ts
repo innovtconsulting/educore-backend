@@ -17,6 +17,10 @@ import { Note } from '../../note/entities/note.entity';
 import { Etablissement } from '../../etablissement/entities/etablissement.entity';
 
 export enum EvaluationType {
+  DEVOIR = 'DEVOIR',
+  CONTROLE = 'CONTROLE',
+  EXAMEN_STANDARD = 'EXAMEN',
+  PARTICIPATION = 'PARTICIPATION',
   CC = 'Contrôle Continu',
   EXAMEN = 'Examen',
   PROJET = 'Projet',

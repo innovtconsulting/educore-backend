@@ -30,6 +30,7 @@ import { Inscription } from './etudiant/entities/inscription.entity';
 import { GlobalSetting } from './global-setting/entities/global-setting.entity';
 import { Role as AclRole } from './acl/entities/role.entity';
 import { Permission } from './acl/entities/permission.entity';
+import { Notification } from './notifications/entities/notification.entity';
 import * as dotenv from 'dotenv';
 
 dotenv.config();
@@ -76,6 +77,7 @@ export const AppDataSource = new DataSource({
     Salle,
     Inscription,
     GlobalSetting,
+    Notification,
   ],
   ssl:
     process.env.DB_HOST === 'localhost' || !process.env.DATABASE_URL

@@ -144,6 +144,9 @@ export class FinanceService {
             etablissementId: tenantId,
             anneeUniversitaire: anneeActive,
             dateEmission: new Date(),
+            dateEcheance: dto.dateEcheance
+              ? new Date(dto.dateEcheance)
+              : undefined,
             montantTotal: frais.amount,
             status: InvoiceStatus.VALIDE,
           }),

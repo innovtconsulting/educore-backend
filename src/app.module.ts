@@ -49,7 +49,7 @@ import { Role as AclRole } from './acl/entities/role.entity';
 import { Permission as AclPermission } from './acl/entities/permission.entity';
 import { ReportingModule } from './reporting/reporting.module';
 import { DocumentModule } from './document/document.module';
-import { EvaluationModule } from './evaluation/evaluation.module';
+import { EvaluationsModule } from './evaluations/evaluations.module';
 import { SemestreModule } from './semestre/semestre.module';
 import { NoteModule } from './note/note.module';
 import { BulletinModule } from './bulletin/bulletin.module';
@@ -72,6 +72,8 @@ import { Annonce } from './annonce/entities/annonce.entity';
 import { NotificationTokenModule } from './notification-token/notification-token.module';
 import { NotificationToken } from './notification-token/entities/notification-token.entity';
 import { SharedModule } from './shared/shared.module';
+import { NotificationsModule } from './notifications/notifications.module';
+import { Notification } from './notifications/entities/notification.entity';
 
 @Module({
   imports: [
@@ -120,6 +122,7 @@ import { SharedModule } from './shared/shared.module';
         GlobalSetting,
         Annonce,
         NotificationToken,
+        Notification,
       ],
       synchronize: process.env.NODE_ENV !== 'production',
       ssl:
@@ -140,7 +143,7 @@ import { SharedModule } from './shared/shared.module';
     FinanceModule,
     ReportingModule,
     DocumentModule,
-    EvaluationModule,
+    EvaluationsModule,
     SemestreModule,
     NoteModule,
     BulletinModule,
@@ -160,6 +163,7 @@ import { SharedModule } from './shared/shared.module';
     AclModule,
     AnnonceModule,
     NotificationTokenModule,
+    NotificationsModule,
     SharedModule,
   ],
   controllers: [AppController],

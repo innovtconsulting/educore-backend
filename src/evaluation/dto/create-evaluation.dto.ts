@@ -15,8 +15,13 @@ import {
 export class CreateEvaluationDto {
   @ApiProperty({ example: 'Examen Final Algorithmique' })
   @IsString()
-  @IsNotEmpty()
-  title!: string;
+  @IsOptional()
+  title?: string;
+
+  @ApiProperty({ example: 'Examen Final Algorithmique', required: false })
+  @IsString()
+  @IsOptional()
+  titre?: string;
 
   @ApiProperty({ enum: EvaluationType, example: EvaluationType.EXAMEN })
   @IsEnum(EvaluationType)
@@ -30,13 +35,23 @@ export class CreateEvaluationDto {
 
   @ApiProperty({ example: 1.0 })
   @IsNumber()
-  @IsNotEmpty()
-  weight!: number;
+  @IsOptional()
+  weight?: number;
+
+  @ApiProperty({ example: 1.0, required: false })
+  @IsNumber()
+  @IsOptional()
+  coefficient?: number;
 
   @ApiProperty({ example: '2026-06-15' })
   @IsDateString()
-  @IsNotEmpty()
-  date!: string;
+  @IsOptional()
+  date?: string;
+
+  @ApiProperty({ example: '2026-06-15', required: false })
+  @IsDateString()
+  @IsOptional()
+  dateEvaluation?: string;
 
   @ApiProperty({ example: 1 })
   @IsNumber()
