@@ -27,6 +27,9 @@ import { Devoir } from './devoir/entities/devoir.entity';
 import { Submission } from './devoir/entities/submission.entity';
 import { Salle } from './salle/entities/salle.entity';
 import { Inscription } from './etudiant/entities/inscription.entity';
+import { SiteStage } from './site-stage/entities/site-stage.entity';
+import { PeriodeStage } from './site-stage/entities/periode-stage.entity';
+import { AffectationStage } from './site-stage/entities/affectation-stage.entity';
 import { GlobalSetting } from './global-setting/entities/global-setting.entity';
 import { Role as AclRole } from './acl/entities/role.entity';
 import { Permission } from './acl/entities/permission.entity';
@@ -78,6 +81,9 @@ export const AppDataSource = new DataSource({
     Inscription,
     GlobalSetting,
     Notification,
+    SiteStage,
+    PeriodeStage,
+    AffectationStage,
   ],
   ssl:
     process.env.DB_HOST === 'localhost' || !process.env.DATABASE_URL

@@ -71,6 +71,10 @@ import { AnnonceModule } from './annonce/annonce.module';
 import { Annonce } from './annonce/entities/annonce.entity';
 import { NotificationTokenModule } from './notification-token/notification-token.module';
 import { NotificationToken } from './notification-token/entities/notification-token.entity';
+import { SiteStageModule } from './site-stage/site-stage.module';
+import { SiteStage } from './site-stage/entities/site-stage.entity';
+import { PeriodeStage } from './site-stage/entities/periode-stage.entity';
+import { AffectationStage } from './site-stage/entities/affectation-stage.entity';
 import { SharedModule } from './shared/shared.module';
 import { NotificationsModule } from './notifications/notifications.module';
 import { Notification } from './notifications/entities/notification.entity';
@@ -123,6 +127,9 @@ import { Notification } from './notifications/entities/notification.entity';
         Annonce,
         NotificationToken,
         Notification,
+        SiteStage,
+        PeriodeStage,
+        AffectationStage,
       ],
       synchronize: process.env.NODE_ENV !== 'production',
       ssl:
@@ -164,6 +171,7 @@ import { Notification } from './notifications/entities/notification.entity';
     AnnonceModule,
     NotificationTokenModule,
     NotificationsModule,
+    SiteStageModule,
     SharedModule,
   ],
   controllers: [AppController],
