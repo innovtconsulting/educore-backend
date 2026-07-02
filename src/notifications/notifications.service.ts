@@ -19,6 +19,7 @@ import { AnneeUniversitaire } from '../annee-universitaire/entities/annee-univer
 
 const OVERDUE_TEST_STUDENT = {
   email: 'etudiant.retard@test.com',
+  username: 'etudiant_retard',
   phoneNumber: '+221770000001',
   password: 'password123',
   firstName: 'Étudiant Retard',
@@ -124,20 +125,17 @@ export class NotificationsService {
       anneeUniversitaire,
       etablissement,
     );
-    const check = await this.syncAllOverdueTuitionNotifications();
+    await this.syncAllOverdueTuitionNotifications();
     const dedupeKey = `${NotificationType.ECOLAGE_RETARD}:${user.id}:${facture.id}`;
     const notification = await this.notificationRepository.findOne({
       where: { dedupeKey },
     });
 
     return {
-      credentials: {
-        email: OVERDUE_TEST_STUDENT.email,
-        password: OVERDUE_TEST_STUDENT.password,
-      },
       user: {
         id: user.id,
         email: user.email,
+        username: user.username,
         role: user.role,
         isActive: user.isActive,
       },
@@ -167,10 +165,6 @@ export class NotificationsService {
             dedupeKey: notification.dedupeKey,
           }
         : null,
-      check: {
-        checkedFactures: check?.checkedFactures ?? 0,
-        notificationsCreatedOrExisting: check?.notifications?.length ?? 0,
-      },
     };
   }
 
@@ -425,7 +419,7 @@ export class NotificationsService {
     }
 
     user.email = OVERDUE_TEST_STUDENT.email;
-    user.username = `${OVERDUE_TEST_STUDENT.firstName} ${OVERDUE_TEST_STUDENT.lastName}`;
+    user.username = OVERDUE_TEST_STUDENT.username;
     user.password = await bcrypt.hash(OVERDUE_TEST_STUDENT.password, 10);
     user.role = Role.ETUDIANT;
     user.isActive = true;
