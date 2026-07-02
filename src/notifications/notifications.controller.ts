@@ -4,16 +4,20 @@ import {
   Param,
   ParseIntPipe,
   Patch,
+  Post,
   Request,
   UseGuards,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { RolesGuard } from '../auth/guards/roles.guard';
+import { Roles } from '../auth/decorators/roles.decorator';
+import { Role } from '../user/entities/user.entity';
 import { NotificationsService } from './notifications.service';
 
 @ApiTags('notifications')
 @ApiBearerAuth()
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, RolesGuard)
 @Controller('notifications')
 export class NotificationsController {
   constructor(private readonly notificationsService: NotificationsService) {}
@@ -32,5 +36,27 @@ export class NotificationsController {
   async markAsRead(@Param('id', ParseIntPipe) id: number, @Request() req: any) {
     const data = await this.notificationsService.markAsRead(id, req.user);
     return { message: 'Notification marquée comme lue', data };
+  }
+
+  @Post('ecolage-retard/check')
+  @Roles(
+    Role.SUPER_ADMIN,
+    Role.ADMIN,
+    Role.COMPTABLE,
+    Role.ETUDIANT,
+    Role.PARENT,
+  )
+  @ApiOperation({
+    summary: "Détecter les retards d'écolage et créer les notifications",
+  })
+  async checkOverdueTuition(@Request() req: any) {
+    const data =
+      await this.notificationsService.checkOverdueTuitionNotifications(
+        req.user,
+      );
+    return {
+      message: "Vérification des retards d'écolage terminée",
+      data,
+    };
   }
 }

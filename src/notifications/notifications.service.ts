@@ -17,8 +17,12 @@ export class NotificationsService {
   ) {}
 
   async findForUser(authUser: any) {
-    await this.syncOverdueTuitionNotificationsForUser(authUser);
+    if (this.canViewAllOverdueNotifications(authUser)) {
+      await this.syncAllOverdueTuitionNotifications();
+      return await this.findAllOverdueTuitionNotifications();
+    }
 
+    await this.syncOverdueTuitionNotificationsForUser(authUser);
     return await this.notificationRepository.find({
       where: { recipient: { id: authUser.id } },
       relations: {
@@ -31,6 +35,14 @@ export class NotificationsService {
         createdAt: 'DESC',
       },
     });
+  }
+
+  async checkOverdueTuitionNotifications(authUser: any) {
+    if (this.canViewAllOverdueNotifications(authUser)) {
+      return await this.syncAllOverdueTuitionNotifications();
+    }
+
+    return await this.syncOverdueTuitionNotificationsForUser(authUser);
   }
 
   async markAsRead(id: number, authUser: any) {
@@ -64,10 +76,63 @@ export class NotificationsService {
     if (etudiantIds.length === 0) return;
 
     const overdueFactures = await this.findOverdueFactures(etudiantIds);
+    const notifications: Notification[] = [];
 
     for (const facture of overdueFactures) {
-      await this.createOverdueNotificationIfNeeded(recipient, facture);
+      const notification = await this.createOverdueNotificationIfNeeded(
+        recipient,
+        facture,
+      );
+      if (notification) notifications.push(notification);
     }
+
+    return {
+      checkedFactures: overdueFactures.length,
+      notifications,
+    };
+  }
+
+  async syncAllOverdueTuitionNotifications() {
+    const overdueFactures = await this.findAllOverdueFactures();
+    const notifications: Notification[] = [];
+
+    for (const facture of overdueFactures) {
+      const recipients = await this.findRecipientsForFacture(facture);
+      for (const recipient of recipients) {
+        const notification = await this.createOverdueNotificationIfNeeded(
+          recipient,
+          facture,
+        );
+        if (notification) notifications.push(notification);
+      }
+    }
+
+    return {
+      checkedFactures: overdueFactures.length,
+      notifications,
+    };
+  }
+
+  private canViewAllOverdueNotifications(authUser: any) {
+    return [Role.SUPER_ADMIN, Role.ADMIN, Role.COMPTABLE].includes(
+      authUser.role,
+    );
+  }
+
+  private async findAllOverdueTuitionNotifications() {
+    return await this.notificationRepository.find({
+      where: { type: NotificationType.ECOLAGE_RETARD },
+      relations: {
+        recipient: true,
+        facture: {
+          etudiant: true,
+        },
+      },
+      order: {
+        isRead: 'ASC',
+        createdAt: 'DESC',
+      },
+    });
   }
 
   private getRelatedStudentIds(recipient: User, authUser: any) {
@@ -109,6 +174,57 @@ export class NotificationsService {
     });
   }
 
+  private async findAllOverdueFactures() {
+    const today = new Date().toISOString().slice(0, 10);
+
+    const factures = await this.factureRepository
+      .createQueryBuilder('facture')
+      .leftJoinAndSelect('facture.etudiant', 'etudiant')
+      .leftJoinAndSelect('facture.paiements', 'paiements')
+      .where('facture.dateEcheance IS NOT NULL')
+      .andWhere('facture.dateEcheance < :today', { today })
+      .andWhere('facture.status IN (:...statuses)', {
+        statuses: [InvoiceStatus.VALIDE, InvoiceStatus.PARTIEL],
+      })
+      .orderBy('facture.dateEcheance', 'ASC')
+      .getMany();
+
+    return factures.filter((facture) => {
+      const paidAmount = (facture.paiements || []).reduce(
+        (sum, paiement) => sum + Number(paiement.montant || 0),
+        0,
+      );
+      return paidAmount < Number(facture.montantTotal || 0);
+    });
+  }
+
+  private async findRecipientsForFacture(facture: Facture) {
+    const recipients: User[] = [];
+    const etudiantId = facture.etudiant?.id;
+    if (!etudiantId) return recipients;
+
+    const studentUser = await this.userRepository.findOne({
+      where: { etudiant: { id: etudiantId } },
+      relations: { etudiant: true },
+    });
+    if (studentUser) recipients.push(studentUser);
+
+    const parentUsers = await this.userRepository
+      .createQueryBuilder('user')
+      .leftJoinAndSelect('user.parent', 'parent')
+      .leftJoin('parent.etudiants', 'etudiant')
+      .where('etudiant.id = :etudiantId', { etudiantId })
+      .getMany();
+
+    for (const parentUser of parentUsers) {
+      if (!recipients.some((recipient) => recipient.id === parentUser.id)) {
+        recipients.push(parentUser);
+      }
+    }
+
+    return recipients;
+  }
+
   private async createOverdueNotificationIfNeeded(
     recipient: User,
     facture: Facture,
@@ -121,9 +237,9 @@ export class NotificationsService {
     if (existing) return existing;
 
     const notification = this.notificationRepository.create({
-      title: 'Retard de paiement',
+      title: 'Écolage en retard',
       message:
-        'Votre écolage est en retard. Veuillez régulariser votre paiement.',
+        "Votre paiement d'écolage est en retard. Veuillez régulariser votre situation auprès de l’administration.",
       type: NotificationType.ECOLAGE_RETARD,
       isRead: false,
       dedupeKey,
