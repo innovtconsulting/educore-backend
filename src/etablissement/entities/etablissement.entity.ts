@@ -50,6 +50,9 @@ export class Etablissement {
   @Column({ nullable: true, length: 20 })
   phone!: string;
 
+  @Column({ nullable: true })
+  logoPath?: string;
+
   @OneToMany(() => Classe, (classe) => classe.etablissement)
   classes!: Classe[];
 

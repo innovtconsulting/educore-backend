@@ -7,8 +7,15 @@ import {
   Param,
   Delete,
   UseGuards,
+  UseInterceptors,
+  UploadedFile,
+  ForbiddenException,
+  BadRequestException,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
+import { FileInterceptor } from '@nestjs/platform-express';
+import { diskStorage } from 'multer';
+import { extname } from 'path';
+import { ApiTags, ApiOperation, ApiConsumes, ApiBody, ApiBearerAuth } from '@nestjs/swagger';
 import { EtablissementService } from './etablissement.service';
 import { CreateEtablissementDto } from './dto/create-etablissement.dto';
 import { UpdateEtablissementDto } from './dto/update-etablissement.dto';
@@ -100,5 +107,63 @@ export class EtablissementController {
     return {
       message: `Etablissement #${id} supprimée avec succès`,
     };
+  }
+
+  // Réservé aux ADMIN d'établissement (pas SUPER_ADMIN) : @CurrentEtablissement()
+  // renvoie undefined pour un SUPER_ADMIN, ce qu'on rejette explicitement ci-dessous,
+  // car le RolesGuard laisse toujours passer SUPER_ADMIN quel que soit @Roles().
+  @Post('logo')
+  @Roles(Role.ADMIN)
+  @Permissions('CONFIG_MANAGE')
+  @ApiOperation({
+    summary: "Changer le logo de son établissement (réservé à l'admin d'établissement)",
+    description: 'PNG uniquement, 2 Mo max, idéalement avec un fond transparent.',
+  })
+  @ApiConsumes('multipart/form-data')
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: { file: { type: 'string', format: 'binary' } },
+    },
+  })
+  @UseInterceptors(
+    FileInterceptor('file', {
+      storage: diskStorage({
+        destination: './uploads/logos',
+        filename: (req, file, cb) => {
+          const randomName = Array(32)
+            .fill(null)
+            .map(() => Math.round(Math.random() * 16).toString(16))
+            .join('');
+          cb(null, `${randomName}${extname(file.originalname)}`);
+        },
+      }),
+      fileFilter: (req, file, cb) => {
+        const isPng =
+          file.mimetype === 'image/png' && /\.png$/i.test(file.originalname);
+        if (!isPng) {
+          return cb(
+            new BadRequestException('Le logo doit être un fichier PNG'),
+            false,
+          );
+        }
+        cb(null, true);
+      },
+      limits: { fileSize: 2 * 1024 * 1024 }, // 2MB
+    }),
+  )
+  async uploadLogo(
+    @UploadedFile() file: Express.Multer.File,
+    @CurrentEtablissement() tenantId?: number,
+  ) {
+    if (!tenantId) {
+      throw new ForbiddenException(
+        "Cette action est réservée à l'administrateur de l'établissement",
+      );
+    }
+    if (!file) throw new BadRequestException('Fichier logo manquant');
+
+    const data = await this.etablissementService.updateLogo(tenantId, file.path);
+    return { message: 'Logo mis à jour avec succès', data };
   }
 }

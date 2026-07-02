@@ -66,6 +66,14 @@ export class AuthService {
         role: user.role,
         isActive: user.isActive,
         etablissementId,
+        etablissement: user.etablissement
+          ? {
+              id: user.etablissement.id,
+              name: user.etablissement.name,
+              acronyme: user.etablissement.acronyme,
+              logoPath: user.etablissement.logoPath,
+            }
+          : null,
         enseignant: user.enseignant || null,
         etudiant: user.etudiant || null,
         parent: user.parent || null,

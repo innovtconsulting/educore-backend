@@ -1,6 +1,9 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
+import { unlink } from 'fs/promises';
+import { existsSync } from 'fs';
+import { join } from 'path';
 import { CreateEtablissementDto } from './dto/create-etablissement.dto';
 import { UpdateEtablissementDto } from './dto/update-etablissement.dto';
 import { Etablissement } from './entities/etablissement.entity';
@@ -55,5 +58,20 @@ export class EtablissementService {
   async remove(id: number, tenantId?: number): Promise<void> {
     const etablissement = await this.findOne(id, tenantId);
     await this.etablissementRepository.remove(etablissement);
+  }
+
+  async updateLogo(id: number, filePath: string): Promise<Etablissement> {
+    const etablissement = await this.findOne(id);
+
+    // Supprimer l'ancien logo si un nouveau vient d'être uploadé
+    if (etablissement.logoPath) {
+      const oldPath = join(process.cwd(), etablissement.logoPath);
+      if (existsSync(oldPath)) {
+        await unlink(oldPath).catch(() => {});
+      }
+    }
+
+    etablissement.logoPath = filePath.replace(/\\/g, '/');
+    return await this.etablissementRepository.save(etablissement);
   }
 }
