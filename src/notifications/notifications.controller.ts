@@ -59,4 +59,20 @@ export class NotificationsController {
       data,
     };
   }
+
+  @Post('ecolage-retard/test-student')
+  @Roles(Role.SUPER_ADMIN, Role.ADMIN)
+  @ApiOperation({
+    summary: "Créer l'étudiant de test et une facture d'écolage en retard",
+  })
+  async prepareOverdueTuitionTestStudent(@Request() req: any) {
+    const data =
+      await this.notificationsService.prepareOverdueTuitionTestStudent(
+        req.user,
+      );
+    return {
+      message: 'Étudiant de test écolage en retard prêt',
+      data,
+    };
+  }
 }

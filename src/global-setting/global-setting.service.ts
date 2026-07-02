@@ -62,7 +62,7 @@ export class GlobalSettingService implements OnModuleInit {
       // FINANCIAL
       {
         key: 'FINANCIAL_CURRENCY',
-        value: 'CFA',
+        value: 'Ariary',
         category: SettingCategory.FINANCIAL,
         description: 'Devise du système',
       },

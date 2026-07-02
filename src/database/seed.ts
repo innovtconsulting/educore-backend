@@ -120,7 +120,7 @@ async function seed() {
       },
       {
         key: 'FINANCIAL_CURRENCY',
-        value: 'CFA',
+        value: 'Ariary',
         category: SettingCategory.FINANCIAL,
         description: 'Devise du système',
       },
