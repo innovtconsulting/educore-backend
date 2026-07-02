@@ -114,6 +114,11 @@ export class CreateEtudiantDto {
   @ApiProperty({ default: false, required: false })
   @IsBoolean()
   @IsOptional()
+  releveNotes?: boolean;
+
+  @ApiProperty({ default: false, required: false })
+  @IsBoolean()
+  @IsOptional()
   cartonChemise?: boolean;
 
   @ApiProperty({ default: false, required: false })

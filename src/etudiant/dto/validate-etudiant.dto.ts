@@ -65,6 +65,15 @@ export class ValidateEtudiantDto {
   transfertFile?: boolean;
 
   @ApiProperty({
+    example: false,
+    description: 'Le relevé de notes est-il fourni ?',
+    required: false,
+  })
+  @IsBoolean()
+  @IsOptional()
+  releveNotes?: boolean;
+
+  @ApiProperty({
     example: true,
     description: 'Le carton chemise est-il fourni ?',
     required: false,

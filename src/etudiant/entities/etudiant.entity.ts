@@ -101,6 +101,9 @@ export class Etudiant {
   transfertFile!: boolean;
 
   @Column({ default: false })
+  releveNotes!: boolean;
+
+  @Column({ default: false })
   cartonChemise!: boolean;
 
   @Column({ default: false })
