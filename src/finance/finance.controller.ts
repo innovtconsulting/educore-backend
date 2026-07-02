@@ -223,15 +223,25 @@ export class FinanceController {
   @Get('report')
   @Roles(Role.ADMIN, Role.SUPER_ADMIN, Role.COMPTABLE)
   @Permissions('FINANCE_REPORT')
-  @ApiOperation({ summary: 'Générer un rapport financier sur une période' })
+  @ApiOperation({ summary: 'Générer un rapport financier sur une période, filtrable par parcours/niveau' })
   @ApiQuery({ name: 'start', required: false })
   @ApiQuery({ name: 'end', required: false })
+  @ApiQuery({ name: 'classeId', required: false, type: Number })
+  @ApiQuery({ name: 'niveauId', required: false, type: Number })
   async getReport(
     @Query('start') start?: string,
     @Query('end') end?: string,
+    @Query('classeId') classeId?: string,
+    @Query('niveauId') niveauId?: string,
     @CurrentEtablissement() tenantId?: number,
   ) {
-    const data = await this.financeService.getFinancialReport(start, end, tenantId);
+    const data = await this.financeService.getFinancialReport(
+      start,
+      end,
+      tenantId,
+      classeId ? +classeId : undefined,
+      niveauId ? +niveauId : undefined,
+    );
     return { message: 'Rapport financier généré avec succès', data };
   }
 

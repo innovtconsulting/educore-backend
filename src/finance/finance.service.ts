@@ -703,10 +703,25 @@ export class FinanceService {
     };
   }
 
-  async getFinancialReport(start?: string, end?: string, tenantId?: number) {
+  async getFinancialReport(
+    start?: string,
+    end?: string,
+    tenantId?: number,
+    classeId?: number,
+    niveauId?: number,
+  ) {
+    // Filtre étudiant partagé (parcours/niveau), fusionné avec le filtre tenant
+    // par TenantHelper.addTenantFilter (deep-merge, ne s'écrasent pas entre eux).
+    const etudiantFilter: any = {};
+    if (classeId) etudiantFilter.classe = { id: classeId };
+    if (niveauId) etudiantFilter.niveau = { id: niveauId };
+
     let paiementsWhere: any = {};
     if (start && end) {
       paiementsWhere.datePaiement = Between(new Date(start), new Date(end));
+    }
+    if (Object.keys(etudiantFilter).length > 0) {
+      paiementsWhere.etudiant = etudiantFilter;
     }
     paiementsWhere = TenantHelper.addTenantFilter(
       paiementsWhere,
@@ -716,7 +731,7 @@ export class FinanceService {
 
     const paiements = await this.paiementRepository.find({
       where: paiementsWhere,
-      relations: { etudiant: { niveau: true }, facture: true },
+      relations: { etudiant: { niveau: true, classe: true }, facture: true },
       order: { datePaiement: 'ASC' },
     });
 
@@ -728,6 +743,9 @@ export class FinanceService {
     if (start && end) {
       facturesWhere.dateEmission = Between(new Date(start), new Date(end));
     }
+    if (Object.keys(etudiantFilter).length > 0) {
+      facturesWhere.etudiant = etudiantFilter;
+    }
     facturesWhere = TenantHelper.addTenantFilter(
       facturesWhere,
       tenantId,
@@ -735,32 +753,57 @@ export class FinanceService {
     );
     const factures = await this.factureRepository.find({
       where: facturesWhere,
-      relations: { etudiant: { niveau: true } },
+      relations: { etudiant: { niveau: true, classe: true } },
     });
     const totalInvoiced = factures.reduce((sum, f) => sum + Number(f.montantTotal), 0);
     const totalPending = totalInvoiced - totalCollected;
 
-    const statsByNiveau: any = {};
-    factures.forEach((f) => {
-      if (!f.etudiant?.niveau?.name) return;
-      const niveauName = f.etudiant.niveau.name;
-      if (!statsByNiveau[niveauName]) {
-        statsByNiveau[niveauName] = { invoiced: 0, collected: 0, pending: 0 };
+    // --- Répartition par parcours, détaillée par niveau ---
+    // (un niveau seul ne suffit pas à grouper : son nom - "L1", "L2"... - est
+    // réutilisé d'un parcours à l'autre, donc on groupe d'abord par parcours)
+    const statsByClasse: Record<
+      string,
+      {
+        invoiced: number;
+        collected: number;
+        pending: number;
+        niveaux: Record<string, { invoiced: number; collected: number; pending: number }>;
       }
-      statsByNiveau[niveauName].invoiced += Number(f.montantTotal);
+    > = {};
+
+    factures.forEach((f) => {
+      const classeName = f.etudiant?.classe?.name;
+      const niveauName = f.etudiant?.niveau?.name;
+      if (!classeName || !niveauName) return;
+      if (!statsByClasse[classeName]) {
+        statsByClasse[classeName] = { invoiced: 0, collected: 0, pending: 0, niveaux: {} };
+      }
+      if (!statsByClasse[classeName].niveaux[niveauName]) {
+        statsByClasse[classeName].niveaux[niveauName] = { invoiced: 0, collected: 0, pending: 0 };
+      }
+      statsByClasse[classeName].invoiced += Number(f.montantTotal);
+      statsByClasse[classeName].niveaux[niveauName].invoiced += Number(f.montantTotal);
     });
 
     paiements.forEach((p) => {
-      if (!p.etudiant?.niveau?.name) return;
-      const niveauName = p.etudiant.niveau.name;
-      if (statsByNiveau[niveauName]) {
-        statsByNiveau[niveauName].collected += Number(p.montant);
+      const classeName = p.etudiant?.classe?.name;
+      const niveauName = p.etudiant?.niveau?.name;
+      if (!classeName || !niveauName) return;
+      if (statsByClasse[classeName]) {
+        statsByClasse[classeName].collected += Number(p.montant);
+        if (statsByClasse[classeName].niveaux[niveauName]) {
+          statsByClasse[classeName].niveaux[niveauName].collected += Number(p.montant);
+        }
       }
     });
 
-    for (const niveauName in statsByNiveau) {
-      statsByNiveau[niveauName].pending =
-        statsByNiveau[niveauName].invoiced - statsByNiveau[niveauName].collected;
+    for (const classeName in statsByClasse) {
+      const c = statsByClasse[classeName];
+      c.pending = c.invoiced - c.collected;
+      for (const niveauName in c.niveaux) {
+        const n = c.niveaux[niveauName];
+        n.pending = n.invoiced - n.collected;
+      }
     }
 
     // --- Dépenses de la même période ---
@@ -787,7 +830,7 @@ export class FinanceService {
       netResult,
       count: paiements.length,
       data: paiements,
-      statsByNiveau,
+      statsByClasse,
       depenses,
       statsByCategory,
     };
