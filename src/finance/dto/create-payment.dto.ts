@@ -5,30 +5,14 @@ import {
   IsNotEmpty,
   IsNumber,
   IsOptional,
-  IsString,
   Min,
 } from 'class-validator';
 import { PaymentMethod } from '../entities/paiement.entity';
 
-export class CreatePaiementDto {
-  @ApiProperty({ example: 'PAY-2026-0001' })
-  @IsString()
-  @IsNotEmpty()
-  reference!: string;
-
-  @ApiProperty({ example: 1 })
-  @IsNumber()
-  @IsNotEmpty()
-  etudiantId!: number;
-
-  @ApiProperty({ example: 1, required: false })
-  @IsNumber()
-  @IsOptional()
-  factureId?: number;
-
+export class CreatePaymentDto {
   @ApiProperty({ example: 100000 })
   @IsNumber()
-  @Min(0)
+  @Min(0.01)
   montant!: number;
 
   @ApiProperty({ example: '2026-06-09' })

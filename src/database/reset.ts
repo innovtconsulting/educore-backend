@@ -23,6 +23,7 @@ import { User } from '../user/entities/user.entity';
 import { Frais } from '../finance/entities/frais.entity';
 import { Facture } from '../finance/entities/facture.entity';
 import { Paiement } from '../finance/entities/paiement.entity';
+import { Depense } from '../finance/entities/depense.entity';
 import { Discipline } from '../discipline/entities/discipline.entity';
 import { Inscription } from '../etudiant/entities/inscription.entity'; // Correction du nom si nécessaire, mais glob a dit inscription.entity.ts
 import { GeneratedDocument } from '../certificate/entities/generated-document.entity';
@@ -63,6 +64,7 @@ const dataSource = new DataSource({
     Frais,
     Facture,
     Paiement,
+    Depense,
     Discipline,
     Devoir,
     Submission,

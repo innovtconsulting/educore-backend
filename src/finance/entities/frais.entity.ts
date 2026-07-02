@@ -2,6 +2,7 @@ import {
   Column,
   CreateDateColumn,
   Entity,
+  Index,
   ManyToOne,
   PrimaryGeneratedColumn,
   UpdateDateColumn,
@@ -11,12 +12,12 @@ import { Classe } from '../../classe/entities/classe.entity';
 import { Niveau } from '../../niveau/entities/niveau.entity';
 import { ApiProperty } from '@nestjs/swagger';
 import { Etablissement } from '../../etablissement/entities/etablissement.entity';
+import { AnneeUniversitaire } from '../../annee-universitaire/entities/annee-universitaire.entity';
 
 export enum FeeType {
   INSCRIPTION = 'Inscription',
   SCOLARITE = 'Scolarité',
   EXAMEN = 'Examen',
-  UNIFORME = 'Uniforme',
   AUTRE = 'Autre',
 }
 
@@ -41,13 +42,28 @@ export class Frais {
   @ApiProperty({ enum: FeeType })
   type!: FeeType;
 
-  @ManyToOne(() => Classe, { nullable: true, onDelete: 'SET NULL' })
-  @ApiProperty({ type: () => Classe, required: false })
-  classe?: Classe;
+  @Column({ type: 'uuid' })
+  @Index()
+  @ApiProperty({
+    description: 'Identifiant commun à toutes les lignes (classe+niveau) créées lors du même appel de création de frais',
+  })
+  groupeId!: string;
 
-  @ManyToOne(() => Niveau, { nullable: true, onDelete: 'SET NULL' })
-  @ApiProperty({ type: () => Niveau, required: false })
-  niveau?: Niveau;
+  @ManyToOne(() => Classe, { nullable: false })
+  @ApiProperty({ type: () => Classe })
+  classe!: Classe;
+
+  @ManyToOne(() => Niveau, { nullable: false })
+  @ApiProperty({ type: () => Niveau })
+  niveau!: Niveau;
+
+  @ManyToOne(() => AnneeUniversitaire, { nullable: false })
+  @JoinColumn({ name: 'anneeUniversitaireId' })
+  @ApiProperty({ type: () => AnneeUniversitaire })
+  anneeUniversitaire!: AnneeUniversitaire;
+
+  @Column({ nullable: false })
+  anneeUniversitaireId!: number;
 
   @ManyToOne(() => Etablissement, { nullable: false })
   @JoinColumn({ name: 'etablissementId' })

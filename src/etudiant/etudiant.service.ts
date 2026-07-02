@@ -847,7 +847,11 @@ export class EtudiantService {
 		return classe;
 	}
 
-	// Find or create Niveau — toujours rattaché à une Classe (parcours) existante
+	// Find or create Niveau — toujours rattaché à une Classe (parcours) existante.
+	// Le nom d'un niveau (ex: "L1") n'est pas unique par établissement : chaque
+	// parcours a son propre niveau "L1", donc la recherche doit être scopée par
+	// (nom, classe), jamais seulement (nom, établissement) — sinon deux parcours
+	// partageant un même nom de niveau se "volent" mutuellement leur niveau.
 	private async findOrCreateNiveau(
 		nom: string,
 		classe: Classe,
@@ -856,15 +860,10 @@ export class EtudiantService {
 	): Promise<Niveau> {
 		const repo = queryRunner.manager.getRepository(Niveau);
 		let niveau = await repo.findOne({
-			where: { name: nom, etablissement: { id: etablissement.id } },
-			relations: { classe: true },
+			where: { name: nom, classe: { id: classe.id } },
 		});
 		if (!niveau) {
 			niveau = repo.create({ name: nom, classe, etablissement });
-			niveau = await repo.save(niveau);
-		} else if (!niveau.classe || niveau.classe.id !== classe.id) {
-			// Rattacher au bon parcours si ce n'est pas déjà le cas
-			niveau.classe = classe;
 			niveau = await repo.save(niveau);
 		}
 		return niveau;

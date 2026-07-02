@@ -20,6 +20,7 @@ import { Note } from './note/entities/note.entity';
 import { Frais } from './finance/entities/frais.entity';
 import { Facture } from './finance/entities/facture.entity';
 import { Paiement } from './finance/entities/paiement.entity';
+import { Depense } from './finance/entities/depense.entity';
 import { Discipline } from './discipline/entities/discipline.entity';
 import { User } from './user/entities/user.entity';
 import { Devoir } from './devoir/entities/devoir.entity';
@@ -67,6 +68,7 @@ export const AppDataSource = new DataSource({
     Frais,
     Facture,
     Paiement,
+    Depense,
     Discipline,
     User,
     Devoir,

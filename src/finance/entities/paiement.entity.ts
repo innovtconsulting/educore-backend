@@ -6,6 +6,7 @@ import {
   PrimaryGeneratedColumn,
   UpdateDateColumn,
   JoinColumn,
+  Unique,
 } from 'typeorm';
 import { Etudiant } from '../../etudiant/entities/etudiant.entity';
 import { Facture } from './facture.entity';
@@ -22,6 +23,7 @@ export enum PaymentMethod {
 }
 
 @Entity()
+@Unique(['factureId', 'tranche'])
 export class Paiement {
   @PrimaryGeneratedColumn()
   @ApiProperty()
@@ -36,11 +38,19 @@ export class Paiement {
   etudiant!: Etudiant;
 
   @ManyToOne(() => Facture, (facture) => facture.paiements, {
-    nullable: true,
-    onDelete: 'SET NULL',
+    nullable: false,
+    onDelete: 'CASCADE',
   })
-  @ApiProperty({ type: () => Facture, required: false })
-  facture?: Facture;
+  @JoinColumn({ name: 'factureId' })
+  @ApiProperty({ type: () => Facture })
+  facture!: Facture;
+
+  @Column({ nullable: false })
+  factureId!: number;
+
+  @Column({ type: 'int' })
+  @ApiProperty({ description: 'Numéro de tranche (1 à 3)' })
+  tranche!: number;
 
   @ManyToOne(() => Etablissement, { nullable: false })
   @JoinColumn({ name: 'etablissementId' })
@@ -63,10 +73,6 @@ export class Paiement {
   })
   @ApiProperty({ enum: PaymentMethod })
   modePaiement!: PaymentMethod;
-
-  @Column({ nullable: true })
-  @ApiProperty({ required: false })
-  recuPath?: string;
 
   @CreateDateColumn()
   createdAt!: Date;

@@ -9,35 +9,19 @@ import {
   Query,
   ParseIntPipe,
   UseGuards,
-  Res,
-  NotFoundException,
-  BadRequestException,
-  UseInterceptors,
-  UploadedFile,
 } from '@nestjs/common';
 import { FinanceService } from './finance.service';
-import { CreateFraisDto } from './dto/create-frais.dto';
-import { CreateFactureDto } from './dto/create-facture.dto';
-import { CreatePaiementDto } from './dto/create-paiement.dto';
-import {
-  ApiTags,
-  ApiOperation,
-  ApiQuery,
-  ApiBearerAuth,
-  ApiConsumes,
-  ApiBody,
-} from '@nestjs/swagger';
-import { PaginationQueryDto } from '../common/dto/pagination-query.dto';
+import { CreateFeeGroupDto } from './dto/create-fee-group.dto';
+import { CreatePaymentDto } from './dto/create-payment.dto';
+import { CreateDepenseDto } from './dto/create-depense.dto';
+import { UpdateDepenseDto } from './dto/update-depense.dto';
+import { DepenseCategory } from './entities/depense.entity';
+import { ApiTags, ApiOperation, ApiQuery, ApiBearerAuth } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { Permissions } from '../auth/decorators/permissions.decorator';
 import { Role } from '../user/entities/user.entity';
-import { Response } from 'express';
-import { join, extname } from 'path';
-import { existsSync } from 'fs';
-import { FileInterceptor } from '@nestjs/platform-express';
-import { diskStorage } from 'multer';
 import { CurrentEtablissement } from '../auth/decorators/current-etablissement.decorator';
 
 @ApiTags('finance')
@@ -51,81 +35,93 @@ export class FinanceController {
   @Post('frais')
   @Roles(Role.COMPTABLE)
   @Permissions('FINANCE_MANAGE')
-  @ApiOperation({ summary: 'Créer un nouveau type de frais' })
-  async createFrais(
-    @Body() dto: CreateFraisDto,
+  @ApiOperation({
+    summary: 'Créer un frais (parcours/niveaux + génération automatique des factures)',
+  })
+  async createFeeGroup(
+    @Body() dto: CreateFeeGroupDto,
     @CurrentEtablissement() tenantId?: number,
   ) {
-    const data = await this.financeService.createFrais(dto, tenantId);
+    const data = await this.financeService.createFeeGroup(dto, tenantId);
     return { message: 'Frais créé avec succès', data };
   }
 
   @Get('frais')
   @Roles(Role.ADMIN, Role.SUPER_ADMIN, Role.COMPTABLE)
   @Permissions('FINANCE_VIEW')
-  @ApiOperation({ summary: 'Récupérer tous les frais configurés' })
-  async findAllFrais(@CurrentEtablissement() tenantId?: number) {
-    const data = await this.financeService.findAllFrais(tenantId);
+  @ApiOperation({ summary: 'Lister les frais (groupés), filtrable par parcours/niveau' })
+  @ApiQuery({ name: 'classeId', required: false, type: Number })
+  @ApiQuery({ name: 'niveauId', required: false, type: Number })
+  async findAllFeeGroups(
+    @Query('classeId') classeId?: string,
+    @Query('niveauId') niveauId?: string,
+    @CurrentEtablissement() tenantId?: number,
+  ) {
+    const data = await this.financeService.findAllFeeGroups(
+      tenantId,
+      classeId ? +classeId : undefined,
+      niveauId ? +niveauId : undefined,
+    );
     return { message: 'Liste des frais récupérée avec succès', data };
   }
 
-  @Patch('frais/:id')
-  @Roles(Role.COMPTABLE)
-  @Permissions('FINANCE_MANAGE')
-  @ApiOperation({ summary: 'Modifier un frais' })
-  async updateFrais(
-    @Param('id', ParseIntPipe) id: number,
-    @Body() dto: CreateFraisDto,
+  @Get('frais/:groupeId')
+  @Roles(Role.ADMIN, Role.SUPER_ADMIN, Role.COMPTABLE)
+  @Permissions('FINANCE_VIEW')
+  @ApiOperation({
+    summary: "Détail d'un frais : parcours/niveaux avec compteurs payé/total",
+  })
+  @ApiQuery({ name: 'classeId', required: false, type: Number })
+  @ApiQuery({ name: 'niveauId', required: false, type: Number })
+  async findFeeGroupDetail(
+    @Param('groupeId') groupeId: string,
+    @Query('classeId') classeId?: string,
+    @Query('niveauId') niveauId?: string,
     @CurrentEtablissement() tenantId?: number,
   ) {
-    const data = await this.financeService.updateFrais(id, dto, tenantId);
-    return { message: 'Frais modifié avec succès', data };
+    const data = await this.financeService.findFeeGroupDetail(
+      groupeId,
+      tenantId,
+      classeId ? +classeId : undefined,
+      niveauId ? +niveauId : undefined,
+    );
+    return { message: 'Détail du frais récupéré avec succès', data };
   }
 
-  @Delete('frais/:id')
+  @Delete('frais/:groupeId')
   @Roles(Role.COMPTABLE)
   @Permissions('FINANCE_MANAGE')
-  @ApiOperation({ summary: 'Supprimer un frais' })
-  async deleteFrais(
-    @Param('id', ParseIntPipe) id: number,
+  @ApiOperation({
+    summary: 'Supprimer un frais (bloqué si des paiements existent déjà)',
+  })
+  async deleteFeeGroup(
+    @Param('groupeId') groupeId: string,
     @CurrentEtablissement() tenantId?: number,
   ) {
-    await this.financeService.deleteFrais(id, tenantId);
+    await this.financeService.deleteFeeGroup(groupeId, tenantId);
     return { message: 'Frais supprimé avec succès' };
   }
 
-  // --- Factures ---
-  @Post('factures')
-  @Roles(Role.COMPTABLE)
-  @Permissions('FINANCE_MANAGE')
-  @ApiOperation({ summary: 'Émettre une nouvelle facture' })
-  async createFacture(
-    @Body() dto: CreateFactureDto,
-    @CurrentEtablissement() tenantId?: number,
-  ) {
-    const data = await this.financeService.createFacture(dto, tenantId);
-    return { message: 'Facture émise avec succès', data };
-  }
-
-  @Get('factures')
+  // --- Étudiants / factures d'un scope (parcours+niveau) ---
+  @Get('frais/:fraisId/factures')
   @Roles(Role.ADMIN, Role.SUPER_ADMIN, Role.COMPTABLE)
   @Permissions('FINANCE_VIEW')
-  @ApiOperation({ summary: 'Récupérer toutes les factures' })
-  async findAllFactures(
-    @Query() paginationQuery: PaginationQueryDto,
+  @ApiOperation({
+    summary: "Lister les étudiants et leur situation financière pour un scope de frais",
+  })
+  async getFacturesByScope(
+    @Param('fraisId', ParseIntPipe) fraisId: number,
     @CurrentEtablissement() tenantId?: number,
   ) {
-    const data = await this.financeService.findAllFactures(
-      paginationQuery,
-      tenantId,
-    );
+    const data = await this.financeService.getFacturesByScope(fraisId, tenantId);
     return { message: 'Liste des factures récupérée avec succès', data };
   }
 
+  // --- Facture individuelle ---
   @Get('factures/:id')
-  @Roles(Role.PARENT, Role.ETUDIANT)
+  @Roles(Role.ADMIN, Role.SUPER_ADMIN, Role.COMPTABLE, Role.PARENT, Role.ETUDIANT)
   @Permissions('FINANCE_VIEW')
-  @ApiOperation({ summary: 'Récupérer une facture par ID' })
+  @ApiOperation({ summary: 'Récupérer une facture avec son historique de paiements' })
   async findOneFacture(
     @Param('id', ParseIntPipe) id: number,
     @CurrentEtablissement() tenantId?: number,
@@ -134,252 +130,91 @@ export class FinanceController {
     return { message: `Facture #${id} récupérée avec succès`, data };
   }
 
-  @Patch('factures/:id')
-  @Roles(Role.COMPTABLE)
-  @Permissions('FINANCE_MANAGE')
-  @ApiOperation({ summary: 'Modifier une facture' })
-  async updateFacture(
-    @Param('id', ParseIntPipe) id: number,
-    @Body() dto: CreateFactureDto,
-    @CurrentEtablissement() tenantId?: number,
-  ) {
-    const data = await this.financeService.updateFacture(id, dto, tenantId);
-    return { message: 'Facture modifiée avec succès', data };
-  }
-
-  @Delete('factures/:id')
-  @Roles(Role.COMPTABLE)
-  @Permissions('FINANCE_MANAGE')
-  @ApiOperation({ summary: 'Supprimer une facture' })
-  async deleteFacture(
-    @Param('id', ParseIntPipe) id: number,
-    @CurrentEtablissement() tenantId?: number,
-  ) {
-    await this.financeService.deleteFacture(id, tenantId);
-    return { message: 'Facture supprimée avec succès' };
-  }
-
-  // --- Paiements ---
-  @Post('paiements')
+  // --- Enregistrer un paiement (tranche) ---
+  @Post('factures/:id/paiements')
   @Roles(Role.COMPTABLE)
   @Permissions('FINANCE_MANAGE')
   @ApiOperation({
-    summary: 'Enregistrer un paiement',
-    description:
-      'Enregistre un règlement pour un étudiant. Cette action génère automatiquement un reçu PDF stocké sur le serveur et met à jour le statut de la facture associée.',
+    summary: 'Enregistrer une tranche de paiement (max 3, historique conservé)',
   })
   async createPaiement(
-    @Body() dto: CreatePaiementDto,
+    @Param('id', ParseIntPipe) id: number,
+    @Body() dto: CreatePaymentDto,
     @CurrentEtablissement() tenantId?: number,
   ) {
-    const data = await this.financeService.createPaiement(dto, tenantId);
+    const data = await this.financeService.createPaiementForFacture(
+      id,
+      dto,
+      tenantId,
+    );
     return { message: 'Paiement enregistré avec succès', data };
   }
 
-  @Get('paiements')
-  @Roles(Role.ADMIN, Role.SUPER_ADMIN, Role.COMPTABLE)
-  @Permissions('FINANCE_VIEW')
-  @ApiOperation({ summary: 'Récupérer tous les paiements' })
-  async findAllPaiements(
-    @Query() paginationQuery: PaginationQueryDto,
+  // --- Dépenses ---
+  @Post('depenses')
+  @Roles(Role.COMPTABLE)
+  @Permissions('FINANCE_MANAGE')
+  @ApiOperation({ summary: "Enregistrer une dépense de l'école" })
+  async createDepense(
+    @Body() dto: CreateDepenseDto,
     @CurrentEtablissement() tenantId?: number,
   ) {
-    const data = await this.financeService.findAllPaiements(
-      paginationQuery,
+    const data = await this.financeService.createDepense(dto, tenantId);
+    return { message: 'Dépense enregistrée avec succès', data };
+  }
+
+  @Get('depenses')
+  @Roles(Role.ADMIN, Role.SUPER_ADMIN, Role.COMPTABLE)
+  @Permissions('FINANCE_VIEW')
+  @ApiOperation({ summary: 'Lister les dépenses, filtrable par période/catégorie' })
+  @ApiQuery({ name: 'start', required: false })
+  @ApiQuery({ name: 'end', required: false })
+  @ApiQuery({ name: 'category', required: false, enum: DepenseCategory })
+  async findAllDepenses(
+    @Query('start') start?: string,
+    @Query('end') end?: string,
+    @Query('category') category?: DepenseCategory,
+    @CurrentEtablissement() tenantId?: number,
+  ) {
+    const data = await this.financeService.findAllDepenses(
       tenantId,
+      start,
+      end,
+      category,
     );
-    return { message: 'Liste des paiements récupérée avec succès', data };
+    return { message: 'Liste des dépenses récupérée avec succès', data };
   }
 
-  @Patch('paiements/:id')
+  @Patch('depenses/:id')
   @Roles(Role.COMPTABLE)
   @Permissions('FINANCE_MANAGE')
-  @ApiOperation({ summary: 'Modifier un paiement' })
-  async updatePaiement(
+  @ApiOperation({ summary: 'Modifier une dépense' })
+  async updateDepense(
     @Param('id', ParseIntPipe) id: number,
-    @Body() dto: CreatePaiementDto,
+    @Body() dto: UpdateDepenseDto,
     @CurrentEtablissement() tenantId?: number,
   ) {
-    const data = await this.financeService.updatePaiement(id, dto, tenantId);
-    return { message: 'Paiement modifié avec succès', data };
+    const data = await this.financeService.updateDepense(id, dto, tenantId);
+    return { message: 'Dépense modifiée avec succès', data };
   }
 
-  @Delete('paiements/:id')
+  @Delete('depenses/:id')
   @Roles(Role.COMPTABLE)
   @Permissions('FINANCE_MANAGE')
-  @ApiOperation({ summary: 'Supprimer un paiement' })
-  async deletePaiement(
-    @Param('id', ParseIntPipe) id: number,
-    @CurrentEtablissement() tenantId?: number,
-  ) {
-    await this.financeService.deletePaiement(id, tenantId);
-    return { message: 'Paiement supprimé avec succès' };
-  }
-
-  @Post('paiements/:id/generate-recu')
-  @Roles(Role.ADMIN, Role.SUPER_ADMIN, Role.COMPTABLE)
-  @Permissions('FINANCE_MANAGE')
-  @ApiOperation({ summary: "Générer manuellement le reçu d'un paiement" })
-  async manualReceipt(
+  @ApiOperation({ summary: 'Supprimer une dépense' })
+  async deleteDepense(
     @Param('id', ParseIntPipe) id: number,
     @CurrentEtablissement() tenantId?: number,
   ) {
-    const data = await this.financeService.generateManualReceipt(id, tenantId);
-    return { message: 'Reçu généré avec succès', data };
+    await this.financeService.deleteDepense(id, tenantId);
+    return { message: 'Dépense supprimée avec succès' };
   }
 
-  @Post('factures/:id/generate-quittance')
-  @Roles(Role.ADMIN, Role.SUPER_ADMIN, Role.COMPTABLE)
-  @Permissions('FINANCE_MANAGE')
-  @ApiOperation({ summary: "Générer manuellement la quittance d'une facture" })
-  async manualQuittance(
-    @Param('id', ParseIntPipe) id: number,
-    @CurrentEtablissement() tenantId?: number,
-  ) {
-    const data = await this.financeService.generateManualQuittance(
-      id,
-      tenantId,
-    );
-    return { message: 'Quittance générée avec succès', data };
-  }
-
-  // --- Documents (Reçus & Quittances) ---
-  @Get('paiements/:id/recu')
-  @Roles(Role.PARENT, Role.ETUDIANT, Role.ADMIN, Role.SUPER_ADMIN, Role.COMPTABLE)
-  @Permissions('FINANCE_VIEW')
-  @ApiOperation({ summary: 'Télécharger le reçu de paiement' })
-  async downloadRecu(
-    @Param('id', ParseIntPipe) id: number,
-    @Res() res: Response,
-  ) {
-    const paiement = await this.financeService.paiementRepository.findOneBy({
-      id,
-    });
-    if (!paiement || !paiement.recuPath)
-      throw new NotFoundException('Reçu introuvable');
-
-    const filePath = join(process.cwd(), paiement.recuPath);
-    if (!existsSync(filePath))
-      throw new NotFoundException('Fichier physique introuvable');
-
-    return res.download(filePath);
-  }
-
-  @Get('factures/:id/quittance')
-  @Roles(Role.PARENT, Role.ETUDIANT, Role.ADMIN, Role.SUPER_ADMIN, Role.COMPTABLE)
-  @Permissions('FINANCE_VIEW')
-  @ApiOperation({ summary: 'Télécharger la quittance de solde' })
-  async downloadQuittance(
-    @Param('id', ParseIntPipe) id: number,
-    @Res() res: Response,
-  ) {
-    const facture = await this.financeService.factureRepository.findOneBy({
-      id,
-    });
-    if (!facture || !facture.quittancePath)
-      throw new NotFoundException('Quittance introuvable');
-
-    const filePath = join(process.cwd(), facture.quittancePath);
-    if (!existsSync(filePath))
-      throw new NotFoundException('Fichier physique introuvable');
-
-    return res.download(filePath);
-  }
-
-  @Post('factures/:id/quittance/upload')
-  @Roles(Role.COMPTABLE)
-  @Permissions('FINANCE_MANAGE')
-  @ApiConsumes('multipart/form-data')
-  @ApiBody({
-    schema: {
-      type: 'object',
-      properties: {
-        file: { type: 'string', format: 'binary' },
-      },
-    },
-  })
-  @UseInterceptors(
-    FileInterceptor('file', {
-      storage: diskStorage({
-        destination: './uploads/receipts',
-        filename: (req, file, cb) => {
-          const uniqueSuffix =
-            Date.now() + '-' + Math.round(Math.random() * 1e9);
-          cb(
-            null,
-            `manual-quittance-${uniqueSuffix}${extname(file.originalname)}`,
-          );
-        },
-      }),
-    }),
-  )
-  @ApiOperation({
-    summary: 'Uploader manuellement une quittance pour une facture',
-  })
-  async uploadQuittance(
-    @Param('id', ParseIntPipe) id: number,
-    @UploadedFile() file: Express.Multer.File,
-  ) {
-    if (!file) throw new BadRequestException('Aucun fichier fourni');
-    const facture = await this.financeService.factureRepository.findOneBy({
-      id,
-    });
-    if (!facture) throw new NotFoundException('Facture introuvable');
-
-    facture.quittancePath = `uploads/receipts/${file.filename}`;
-    const data = await this.financeService.factureRepository.save(facture);
-    return { message: 'Quittance uploadée avec succès', data };
-  }
-
-  @Post('paiements/:id/recu/upload')
-  @Roles(Role.COMPTABLE)
-  @Permissions('FINANCE_MANAGE')
-  @ApiConsumes('multipart/form-data')
-  @ApiBody({
-    schema: {
-      type: 'object',
-      properties: {
-        file: { type: 'string', format: 'binary' },
-      },
-    },
-  })
-  @UseInterceptors(
-    FileInterceptor('file', {
-      storage: diskStorage({
-        destination: './uploads/receipts',
-        filename: (req, file, cb) => {
-          const uniqueSuffix =
-            Date.now() + '-' + Math.round(Math.random() * 1e9);
-          cb(null, `manual-recu-${uniqueSuffix}${extname(file.originalname)}`);
-        },
-      }),
-    }),
-  )
-  @ApiOperation({ summary: 'Uploader manuellement un reçu pour un paiement' })
-  async uploadRecuFile(
-    @Param('id', ParseIntPipe) id: number,
-    @UploadedFile() file: Express.Multer.File,
-  ) {
-    if (!file) throw new BadRequestException('Aucun fichier fourni');
-    const paiement = await this.financeService.paiementRepository.findOneBy({
-      id,
-    });
-    if (!paiement) throw new NotFoundException('Paiement introuvable');
-
-    paiement.recuPath = `uploads/receipts/${file.filename}`;
-    const data = await this.financeService.paiementRepository.save(paiement);
-    return { message: 'Reçu uploadé avec succès', data };
-  }
-
-  // --- Dashboard & Reports ---
+  // --- Dashboard & Rapports ---
   @Get('dashboard')
   @Roles(Role.ADMIN, Role.SUPER_ADMIN, Role.COMPTABLE)
   @Permissions('FINANCE_REPORT')
-  @ApiOperation({
-    summary: 'Statistiques du tableau de bord financier',
-    description:
-      "Récupère les métriques globales (encaissé, facturé, impayés) ainsi qu'une ventilation détaillée par niveau d'étude.",
-  })
+  @ApiOperation({ summary: 'Statistiques du tableau de bord financier' })
   async getDashboard(@CurrentEtablissement() tenantId?: number) {
     const data = await this.financeService.getDashboardStats(tenantId);
     return { message: 'Dashboard récupéré avec succès', data };
@@ -388,54 +223,24 @@ export class FinanceController {
   @Get('report')
   @Roles(Role.ADMIN, Role.SUPER_ADMIN, Role.COMPTABLE)
   @Permissions('FINANCE_REPORT')
-  @ApiOperation({
-    summary: 'Générer un rapport financier',
-    description:
-      'Génère un récapitulatif des paiements sur une période donnée.',
-  })
-  @ApiQuery({
-    name: 'start',
-    required: false,
-    description: 'Date de début (YYYY-MM-DD)',
-  })
-  @ApiQuery({
-    name: 'end',
-    required: false,
-    description: 'Date de fin (YYYY-MM-DD)',
-  })
+  @ApiOperation({ summary: 'Générer un rapport financier sur une période' })
+  @ApiQuery({ name: 'start', required: false })
+  @ApiQuery({ name: 'end', required: false })
   async getReport(
     @Query('start') start?: string,
     @Query('end') end?: string,
     @CurrentEtablissement() tenantId?: number,
   ) {
-    const data = await this.financeService.getFinancialReport(
-      start,
-      end,
-      tenantId,
-    );
+    const data = await this.financeService.getFinancialReport(start, end, tenantId);
     return { message: 'Rapport financier généré avec succès', data };
   }
 
   @Get('unpaid')
   @Roles(Role.ADMIN, Role.SUPER_ADMIN, Role.COMPTABLE)
   @Permissions('FINANCE_VIEW')
-  @ApiOperation({
-    summary: 'Lister les factures impayées ou partiellement payées',
-    description:
-      'Récupère la liste des étudiants ayant des dettes, avec possibilité de filtrer par classe ou par niveau.',
-  })
-  @ApiQuery({
-    name: 'classeId',
-    required: false,
-    type: Number,
-    description: 'ID de la classe',
-  })
-  @ApiQuery({
-    name: 'niveauId',
-    required: false,
-    type: Number,
-    description: 'ID du niveau',
-  })
+  @ApiOperation({ summary: 'Lister les factures impayées ou partiellement payées' })
+  @ApiQuery({ name: 'classeId', required: false, type: Number })
+  @ApiQuery({ name: 'niveauId', required: false, type: Number })
   async getUnpaid(
     @Query('classeId') classeId?: string,
     @Query('niveauId') niveauId?: string,

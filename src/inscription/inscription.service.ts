@@ -76,7 +76,6 @@ export class InscriptionService {
       where: [
         { etudiant: { id: etudiantId }, status: InvoiceStatus.VALIDE },
         { etudiant: { id: etudiantId }, status: InvoiceStatus.PARTIEL },
-        { etudiant: { id: etudiantId }, status: InvoiceStatus.BROUILLON },
       ],
     });
 
