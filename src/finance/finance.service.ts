@@ -489,7 +489,7 @@ export class FinanceService {
 
     const allPaiements = await this.paiementRepository.find({
       where,
-      relations: { etudiant: { niveau: true, classe: true } },
+      relations: { etudiant: { niveau: true, classe: true }, facture: true },
     });
 
     const totalCollected = allPaiements.reduce(
