@@ -44,7 +44,12 @@ export class AllExceptionsFilter implements ExceptionFilter {
       error: exception instanceof HttpException ? exception.name : 'Error',
       // En dehors de la prod, expose le message réel pour faciliter le debug
       ...(process.env.NODE_ENV !== 'production' && status >= 500
-        ? { detail: exception instanceof Error ? exception.message : String(exception) }
+        ? {
+            detail:
+              exception instanceof Error
+                ? exception.message
+                : String(exception),
+          }
         : {}),
     });
   }

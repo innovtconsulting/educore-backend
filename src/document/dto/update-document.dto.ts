@@ -4,10 +4,10 @@ import { IsBoolean, IsOptional } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 
 export class UpdateDocumentDto extends PartialType(CreateDocumentDto) {
-  @ApiProperty({ 
+  @ApiProperty({
     description: 'Si true, supprime le fichier physique associé au document',
     required: false,
-    default: false
+    default: false,
   })
   @IsBoolean()
   @IsOptional()

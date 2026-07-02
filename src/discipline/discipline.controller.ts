@@ -41,7 +41,10 @@ export class DisciplineController {
     description: 'Enregistre une nouvelle règle dans le système.',
   })
   @ApiResponse({ status: 201, type: Discipline })
-  create(@Body() createDisciplineDto: CreateDisciplineDto, @CurrentEtablissement() tenantId?: number) {
+  create(
+    @Body() createDisciplineDto: CreateDisciplineDto,
+    @CurrentEtablissement() tenantId?: number,
+  ) {
     return this.disciplineService.create(createDisciplineDto, tenantId);
   }
 
@@ -54,7 +57,10 @@ export class DisciplineController {
       'Récupère la liste complète des disciplines et règlements intérieurs. Peut être filtré par catégorie.',
   })
   @ApiResponse({ status: 200, type: [Discipline] })
-  findAll(@Query('category') category?: DisciplineCategory, @CurrentEtablissement() tenantId?: number) {
+  findAll(
+    @Query('category') category?: DisciplineCategory,
+    @CurrentEtablissement() tenantId?: number,
+  ) {
     return this.disciplineService.findAll(category, tenantId);
   }
 
@@ -66,7 +72,10 @@ export class DisciplineController {
     description: "Affiche les détails d'une règle spécifique.",
   })
   @ApiResponse({ status: 200, type: Discipline })
-  findOne(@Param('id', ParseIntPipe) id: number, @CurrentEtablissement() tenantId?: number) {
+  findOne(
+    @Param('id', ParseIntPipe) id: number,
+    @CurrentEtablissement() tenantId?: number,
+  ) {
     return this.disciplineService.findOne(id, tenantId);
   }
 
@@ -92,8 +101,10 @@ export class DisciplineController {
     description: 'Supprime définitivement une règle du système.',
   })
   @ApiResponse({ status: 200, description: 'Règle supprimée avec succès' })
-  remove(@Param('id', ParseIntPipe) id: number, @CurrentEtablissement() tenantId?: number) {
+  remove(
+    @Param('id', ParseIntPipe) id: number,
+    @CurrentEtablissement() tenantId?: number,
+  ) {
     return this.disciplineService.remove(id, tenantId);
   }
 }
-

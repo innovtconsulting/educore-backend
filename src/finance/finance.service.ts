@@ -610,7 +610,8 @@ export class FinanceService {
     for (const classe in statsByClasse) {
       statsByClasse[classe].pending =
         statsByClasse[classe].invoiced - statsByClasse[classe].collected;
-      statsByClasse[classe].countStudents = statsByClasse[classe].countStudents.size;
+      statsByClasse[classe].countStudents =
+        statsByClasse[classe].countStudents.size;
     }
 
     const statsByPaymentMode: any = {};
@@ -755,7 +756,10 @@ export class FinanceService {
       where: facturesWhere,
       relations: { etudiant: { niveau: true, classe: true } },
     });
-    const totalInvoiced = factures.reduce((sum, f) => sum + Number(f.montantTotal), 0);
+    const totalInvoiced = factures.reduce(
+      (sum, f) => sum + Number(f.montantTotal),
+      0,
+    );
     const totalPending = totalInvoiced - totalCollected;
 
     // --- Répartition par parcours, détaillée par niveau ---

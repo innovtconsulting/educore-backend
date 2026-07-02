@@ -36,7 +36,12 @@ export class PresenceService {
 
     const emploi = await this.emploiRepo.findOne({
       where: TenantHelper.addTenantFilter({ id: emploiDuTempId }, tenantId),
-      relations: { classe: true, niveau: true, matiere: true, etablissement: true },
+      relations: {
+        classe: true,
+        niveau: true,
+        matiere: true,
+        etablissement: true,
+      },
     });
     if (!emploi)
       throw new NotFoundException(`Créneau #${emploiDuTempId} introuvable`);
@@ -198,7 +203,15 @@ export class PresenceService {
   }
 
   async getSessionsSummary(filterDto: PresenceFilterDto, tenantId?: number) {
-    const { page = 1, limit = 15, classeId, niveauId, matiereId, startDate, endDate } = filterDto;
+    const {
+      page = 1,
+      limit = 15,
+      classeId,
+      niveauId,
+      matiereId,
+      startDate,
+      endDate,
+    } = filterDto;
     const skip = (page - 1) * limit;
 
     const base = (): SelectQueryBuilder<Presence> => {
@@ -212,8 +225,12 @@ export class PresenceService {
       if (classeId) qb.andWhere('c.id = :classeId', { classeId });
       if (niveauId) qb.andWhere('nv.id = :niveauId', { niveauId });
       if (matiereId) qb.andWhere('m.id = :matiereId', { matiereId });
-      if (startDate) qb.andWhere('e.startTime >= :startDate', { startDate: new Date(startDate) });
-      if (endDate) qb.andWhere('e.startTime <= :endDate', { endDate: new Date(endDate) });
+      if (startDate)
+        qb.andWhere('e.startTime >= :startDate', {
+          startDate: new Date(startDate),
+        });
+      if (endDate)
+        qb.andWhere('e.startTime <= :endDate', { endDate: new Date(endDate) });
       return qb;
     };
 

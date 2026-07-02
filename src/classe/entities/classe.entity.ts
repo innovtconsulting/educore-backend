@@ -18,7 +18,9 @@ export class Classe {
   @Column({ nullable: false })
   name!: string;
 
-  @ManyToOne(() => Etablissement, (etablissement) => etablissement.classes, { nullable: false })
+  @ManyToOne(() => Etablissement, (etablissement) => etablissement.classes, {
+    nullable: false,
+  })
   etablissement!: Etablissement;
 
   @OneToMany(() => Niveau, (niveau) => niveau.classe)

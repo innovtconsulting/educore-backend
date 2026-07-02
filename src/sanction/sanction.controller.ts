@@ -33,7 +33,10 @@ export class SanctionController {
   @Roles(Role.ADMIN, Role.SURVEILLANT)
   @Permissions('DISCIPLINE_MANAGE')
   @ApiOperation({ summary: 'Créer une nouvelle sanction' })
-  async create(@Body() createSanctionDto: CreateSanctionDto, @CurrentEtablissement() tenantId?: number) {
+  async create(
+    @Body() createSanctionDto: CreateSanctionDto,
+    @CurrentEtablissement() tenantId?: number,
+  ) {
     const data = await this.sanctionService.create(createSanctionDto, tenantId);
     return {
       message: 'Sanction créée avec succès',
@@ -45,7 +48,10 @@ export class SanctionController {
   @Roles(Role.ADMIN, Role.SURVEILLANT, Role.ENSEIGNANT)
   @Permissions('DISCIPLINE_MANAGE')
   @ApiOperation({ summary: 'Récupérer toutes les sanctions' })
-  async findAll(@Query() paginationQuery: PaginationQueryDto, @CurrentEtablissement() tenantId?: number) {
+  async findAll(
+    @Query() paginationQuery: PaginationQueryDto,
+    @CurrentEtablissement() tenantId?: number,
+  ) {
     const data = await this.sanctionService.findAll(paginationQuery, tenantId);
     return {
       message: 'Liste des sanctions récupérée avec succès',
@@ -54,10 +60,19 @@ export class SanctionController {
   }
 
   @Get(':id')
-  @Roles(Role.ADMIN, Role.SURVEILLANT, Role.ENSEIGNANT, Role.ETUDIANT, Role.PARENT)
+  @Roles(
+    Role.ADMIN,
+    Role.SURVEILLANT,
+    Role.ENSEIGNANT,
+    Role.ETUDIANT,
+    Role.PARENT,
+  )
   @Permissions('DISCIPLINE_MANAGE')
   @ApiOperation({ summary: 'Récupérer une sanction par son ID' })
-  async findOne(@Param('id', ParseIntPipe) id: number, @CurrentEtablissement() tenantId?: number) {
+  async findOne(
+    @Param('id', ParseIntPipe) id: number,
+    @CurrentEtablissement() tenantId?: number,
+  ) {
     const data = await this.sanctionService.findOne(id, tenantId);
     return {
       message: `Sanction #${id} récupérée avec succès`,
@@ -66,11 +81,23 @@ export class SanctionController {
   }
 
   @Get('etudiant/:etudiantId')
-  @Roles(Role.ADMIN, Role.SURVEILLANT, Role.ENSEIGNANT, Role.ETUDIANT, Role.PARENT)
+  @Roles(
+    Role.ADMIN,
+    Role.SURVEILLANT,
+    Role.ENSEIGNANT,
+    Role.ETUDIANT,
+    Role.PARENT,
+  )
   @Permissions('DISCIPLINE_MANAGE')
   @ApiOperation({ summary: "Récupérer toutes les sanctions d'un étudiant" })
-  async findByEtudiant(@Param('etudiantId', ParseIntPipe) etudiantId: number, @CurrentEtablissement() tenantId?: number) {
-    const data = await this.sanctionService.findByEtudiant(etudiantId, tenantId);
+  async findByEtudiant(
+    @Param('etudiantId', ParseIntPipe) etudiantId: number,
+    @CurrentEtablissement() tenantId?: number,
+  ) {
+    const data = await this.sanctionService.findByEtudiant(
+      etudiantId,
+      tenantId,
+    );
     return {
       message: `Sanctions de l'étudiant #${etudiantId} récupérées avec succès`,
       data,
@@ -86,7 +113,11 @@ export class SanctionController {
     @Body() updateSanctionDto: UpdateSanctionDto,
     @CurrentEtablissement() tenantId?: number,
   ) {
-    const data = await this.sanctionService.update(id, updateSanctionDto, tenantId);
+    const data = await this.sanctionService.update(
+      id,
+      updateSanctionDto,
+      tenantId,
+    );
     return {
       message: `Sanction #${id} mise à jour avec succès`,
       data,
@@ -97,7 +128,10 @@ export class SanctionController {
   @Roles(Role.ADMIN, Role.SURVEILLANT)
   @Permissions('DISCIPLINE_MANAGE')
   @ApiOperation({ summary: 'Supprimer une sanction' })
-  async remove(@Param('id', ParseIntPipe) id: number, @CurrentEtablissement() tenantId?: number) {
+  async remove(
+    @Param('id', ParseIntPipe) id: number,
+    @CurrentEtablissement() tenantId?: number,
+  ) {
     await this.sanctionService.remove(id, tenantId);
     return {
       message: `Sanction #${id} supprimée avec succès`,

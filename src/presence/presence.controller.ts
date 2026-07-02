@@ -33,7 +33,10 @@ export class PresenceController {
   @ApiOperation({
     summary: 'Enregistrer les présences pour une session (en masse)',
   })
-  bulkRecord(@Body() bulkRecordPresenceDto: BulkRecordPresenceDto, @CurrentEtablissement() tenantId?: number) {
+  bulkRecord(
+    @Body() bulkRecordPresenceDto: BulkRecordPresenceDto,
+    @CurrentEtablissement() tenantId?: number,
+  ) {
     return this.presenceService.bulkRecord(bulkRecordPresenceDto, tenantId);
   }
 
@@ -41,7 +44,10 @@ export class PresenceController {
   @Roles(Role.ENSEIGNANT, Role.ADMIN, Role.SURVEILLANT)
   @Permissions('ATTENDANCE_MANAGE')
   @ApiOperation({ summary: 'Liste de toutes les présences' })
-  findAll(@Query() filterDto: PresenceFilterDto, @CurrentEtablissement() tenantId?: number) {
+  findAll(
+    @Query() filterDto: PresenceFilterDto,
+    @CurrentEtablissement() tenantId?: number,
+  ) {
     return this.presenceService.findAll(filterDto, tenantId);
   }
 
@@ -49,7 +55,10 @@ export class PresenceController {
   @Roles(Role.ENSEIGNANT, Role.ADMIN, Role.SURVEILLANT)
   @Permissions('ATTENDANCE_MANAGE')
   @ApiOperation({ summary: 'Résumé des présences par créneau (session)' })
-  getSessionsSummary(@Query() filterDto: PresenceFilterDto, @CurrentEtablissement() tenantId?: number) {
+  getSessionsSummary(
+    @Query() filterDto: PresenceFilterDto,
+    @CurrentEtablissement() tenantId?: number,
+  ) {
     return this.presenceService.getSessionsSummary(filterDto, tenantId);
   }
 
@@ -57,16 +66,29 @@ export class PresenceController {
   @Roles(Role.ENSEIGNANT, Role.ADMIN, Role.SURVEILLANT)
   @Permissions('ATTENDANCE_MANAGE')
   @ApiOperation({ summary: "Récupérer les présences d'un créneau spécifique" })
-  findBySession(@Param('id', ParseIntPipe) id: number, @CurrentEtablissement() tenantId?: number) {
+  findBySession(
+    @Param('id', ParseIntPipe) id: number,
+    @CurrentEtablissement() tenantId?: number,
+  ) {
     return this.presenceService.findBySession(id, tenantId);
   }
 
   @Get('etudiant/:id')
-  @Roles(Role.ADMIN, Role.SURVEILLANT, Role.ENSEIGNANT, Role.PARENT, Role.ETUDIANT)
+  @Roles(
+    Role.ADMIN,
+    Role.SURVEILLANT,
+    Role.ENSEIGNANT,
+    Role.PARENT,
+    Role.ETUDIANT,
+  )
   @ApiOperation({
     summary: "Statistiques et historique de présence d'un étudiant",
   })
-  getStudentStats(@Param('id', ParseIntPipe) id: number, @Request() req: any, @CurrentEtablissement() tenantId?: number) {
+  getStudentStats(
+    @Param('id', ParseIntPipe) id: number,
+    @Request() req: any,
+    @CurrentEtablissement() tenantId?: number,
+  ) {
     return this.presenceService.getStudentStats(id, req.user, tenantId);
   }
 }

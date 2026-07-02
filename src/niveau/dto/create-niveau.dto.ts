@@ -11,7 +11,7 @@ export class CreateNiveauDto {
     example: 1,
     description: 'ID du parcours (classe)',
   })
-  @IsNumber({}, { message: 'L\'ID du parcours doit être un nombre' })
-  @IsNotEmpty({ message: 'L\'ID du parcours est obligatoire' })
+  @IsNumber({}, { message: "L'ID du parcours doit être un nombre" })
+  @IsNotEmpty({ message: "L'ID du parcours est obligatoire" })
   parcoursId!: number;
 }

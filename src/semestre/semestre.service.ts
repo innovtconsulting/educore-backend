@@ -46,7 +46,11 @@ export class SemestreService {
     return semestre;
   }
 
-  async update(id: number, updateSemestreDto: UpdateSemestreDto, tenantId?: number) {
+  async update(
+    id: number,
+    updateSemestreDto: UpdateSemestreDto,
+    tenantId?: number,
+  ) {
     const semestre = await this.findOne(id, tenantId);
     Object.assign(semestre, updateSemestreDto);
     return await this.semestreRepository.save(semestre);

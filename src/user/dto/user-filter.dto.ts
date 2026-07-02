@@ -33,7 +33,7 @@ export class UserFilterDto extends PaginationQueryDto {
 
   @ApiPropertyOptional({
     description:
-      "Filtrer par établissement (réservé au SuperAdmin sans tenant actif)",
+      'Filtrer par établissement (réservé au SuperAdmin sans tenant actif)',
   })
   @IsOptional()
   @Type(() => Number)

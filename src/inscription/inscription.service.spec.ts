@@ -30,7 +30,10 @@ describe('InscriptionService', () => {
         InscriptionService,
         { provide: getRepositoryToken(Inscription), useValue: mockRepository },
         { provide: getRepositoryToken(Etudiant), useValue: mockRepository },
-        { provide: getRepositoryToken(AnneeUniversitaire), useValue: mockRepository },
+        {
+          provide: getRepositoryToken(AnneeUniversitaire),
+          useValue: mockRepository,
+        },
         { provide: getRepositoryToken(Classe), useValue: mockRepository },
         { provide: getRepositoryToken(Niveau), useValue: mockRepository },
         { provide: getRepositoryToken(Facture), useValue: mockRepository },

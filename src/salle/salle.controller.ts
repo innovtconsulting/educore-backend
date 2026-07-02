@@ -31,14 +31,20 @@ export class SalleController {
   @Post()
   @Permissions('ACADEMIC_CONFIG')
   @ApiOperation({ summary: 'Créer une nouvelle salle' })
-  create(@Body() createSalleDto: CreateSalleDto, @CurrentEtablissement() tenantId?: number) {
+  create(
+    @Body() createSalleDto: CreateSalleDto,
+    @CurrentEtablissement() tenantId?: number,
+  ) {
     return this.salleService.create(createSalleDto, tenantId);
   }
 
   @Get()
   @Permissions('ACADEMIC_VIEW')
   @ApiOperation({ summary: 'Lister toutes les salles' })
-  findAll(@Query() paginationQuery: PaginationQueryDto, @CurrentEtablissement() tenantId?: number) {
+  findAll(
+    @Query() paginationQuery: PaginationQueryDto,
+    @CurrentEtablissement() tenantId?: number,
+  ) {
     return this.salleService.findAll(paginationQuery, tenantId);
   }
 
@@ -52,7 +58,11 @@ export class SalleController {
   @Patch(':id')
   @Permissions('ACADEMIC_CONFIG')
   @ApiOperation({ summary: 'Modifier une salle' })
-  update(@Param('id') id: string, @Body() updateSalleDto: UpdateSalleDto, @CurrentEtablissement() tenantId?: number) {
+  update(
+    @Param('id') id: string,
+    @Body() updateSalleDto: UpdateSalleDto,
+    @CurrentEtablissement() tenantId?: number,
+  ) {
     return this.salleService.update(+id, updateSalleDto, tenantId);
   }
 

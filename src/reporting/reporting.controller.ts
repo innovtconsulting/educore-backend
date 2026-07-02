@@ -58,10 +58,15 @@ export class ReportingController {
     required: false,
     description: "Format YYYY-MM-DD. Par défaut: aujourd'hui.",
   })
-  async getDailyReportPreview(@Query('date') date?: string, @CurrentEtablissement() tenantId?: number) {
+  async getDailyReportPreview(
+    @Query('date') date?: string,
+    @CurrentEtablissement() tenantId?: number,
+  ) {
     const targetDate = date || new Date().toISOString().split('T')[0];
-    const data =
-      await this.reportingService.getDailySupervisorReport(targetDate, tenantId);
+    const data = await this.reportingService.getDailySupervisorReport(
+      targetDate,
+      tenantId,
+    );
     return {
       message: `Aperçu du rapport pour le ${targetDate} récupéré avec succès`,
       data,
@@ -73,7 +78,10 @@ export class ReportingController {
   @Permissions('REPORT_DAILY_MANAGE')
   @ApiOperation({ summary: 'Soumettre le rapport quotidien du surveillant' })
   @ApiResponse({ status: 201, description: 'Rapport soumis avec succès' })
-  async submitDailyReport(@Body() dto: SubmitDailyReportDto, @CurrentEtablissement() tenantId?: number) {
+  async submitDailyReport(
+    @Body() dto: SubmitDailyReportDto,
+    @CurrentEtablissement() tenantId?: number,
+  ) {
     const report = await this.reportingService.submitDailyReport(dto, tenantId);
     return {
       message: 'Rapport quotidien soumis avec succès',
@@ -87,9 +95,14 @@ export class ReportingController {
   @ApiOperation({
     summary: "Récupérer tous les rapports quotidiens soumis (pour l'admin)",
   })
-  async getAllDailyReports(@Query() paginationQuery: PaginationQueryDto, @CurrentEtablissement() tenantId?: number) {
-    const reports =
-      await this.reportingService.getAllDailyReports(paginationQuery, tenantId);
+  async getAllDailyReports(
+    @Query() paginationQuery: PaginationQueryDto,
+    @CurrentEtablissement() tenantId?: number,
+  ) {
+    const reports = await this.reportingService.getAllDailyReports(
+      paginationQuery,
+      tenantId,
+    );
     return {
       message: 'Liste des rapports quotidiens récupérée avec succès',
       data: reports,
@@ -102,7 +115,10 @@ export class ReportingController {
   @ApiOperation({
     summary: 'Récupérer un rapport quotidien spécifique par son ID',
   })
-  async getDailyReportById(@Param('id', ParseIntPipe) id: number, @CurrentEtablissement() tenantId?: number) {
+  async getDailyReportById(
+    @Param('id', ParseIntPipe) id: number,
+    @CurrentEtablissement() tenantId?: number,
+  ) {
     const report = await this.reportingService.getDailyReportById(id, tenantId);
     return {
       message: 'Rapport quotidien récupéré avec succès',
@@ -114,7 +130,10 @@ export class ReportingController {
   @Roles(Role.SURVEILLANT, Role.ADMIN)
   @Permissions('REPORT_DAILY_MANAGE')
   @ApiOperation({ summary: "Récupérer le PDF d'un rapport quotidien" })
-  async getDailyReportPdf(@Param('id', ParseIntPipe) id: number, @CurrentEtablissement() tenantId?: number) {
+  async getDailyReportPdf(
+    @Param('id', ParseIntPipe) id: number,
+    @CurrentEtablissement() tenantId?: number,
+  ) {
     const report = await this.reportingService.getDailyReportById(id, tenantId);
     if (!report.pdfUrl) {
       throw new NotFoundException(

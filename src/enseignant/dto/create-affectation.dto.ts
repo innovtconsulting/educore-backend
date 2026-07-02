@@ -7,7 +7,11 @@ export class CreateAffectationDto {
   @IsNotEmpty()
   matiereId!: number;
 
-  @ApiProperty({ example: 1, description: "ID de l'établissement (optionnel si extrait du token)", required: false })
+  @ApiProperty({
+    example: 1,
+    description: "ID de l'établissement (optionnel si extrait du token)",
+    required: false,
+  })
   @IsNumber()
   @IsOptional()
   etablissementId?: number;

@@ -13,7 +13,10 @@ export class DisciplineService {
     private readonly disciplineRepository: Repository<Discipline>,
   ) {}
 
-  async create(createDisciplineDto: CreateDisciplineDto, tenantId?: number): Promise<Discipline> {
+  async create(
+    createDisciplineDto: CreateDisciplineDto,
+    tenantId?: number,
+  ): Promise<Discipline> {
     const discipline = this.disciplineRepository.create({
       ...createDisciplineDto,
       etablissement: tenantId ? { id: tenantId } : undefined,
@@ -21,7 +24,10 @@ export class DisciplineService {
     return await this.disciplineRepository.save(discipline);
   }
 
-  async findAll(category?: DisciplineCategory, tenantId?: number): Promise<Discipline[]> {
+  async findAll(
+    category?: DisciplineCategory,
+    tenantId?: number,
+  ): Promise<Discipline[]> {
     let where: any = category ? { category } : {};
     where = TenantHelper.addTenantFilter(where, tenantId);
 

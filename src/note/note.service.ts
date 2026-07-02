@@ -16,7 +16,10 @@ import { Role } from '../user/entities/user.entity';
 import { TenantHelper } from '../common/tenant/tenant.helper';
 import { BulkCreateNoteDto } from './dto/bulk-create-note.dto';
 import { ParentService } from '../parent/parent.service';
-import { Etudiant, EnrollmentStatus } from '../etudiant/entities/etudiant.entity';
+import {
+  Etudiant,
+  EnrollmentStatus,
+} from '../etudiant/entities/etudiant.entity';
 
 @Injectable()
 export class NoteService {
@@ -164,7 +167,9 @@ export class NoteService {
       if (!studentId) return { items: [], total: 0, page, limit };
       where.etudiant = { id: studentId };
     } else if (user && user.role === Role.ENSEIGNANT) {
-      const matiereIds = await this.enseignantService.getMatiereIdsByEnseignant(user.enseignantId);
+      const matiereIds = await this.enseignantService.getMatiereIdsByEnseignant(
+        user.enseignantId,
+      );
       if (matiereIds.length > 0) {
         where.evaluation = { matiere: { id: In(matiereIds) } };
       }
@@ -338,7 +343,9 @@ export class NoteService {
       relations: { etudiant: true },
     });
 
-    const noteByStudentId = new Map(existingNotes.map((n) => [n.etudiant.id, n]));
+    const noteByStudentId = new Map(
+      existingNotes.map((n) => [n.etudiant.id, n]),
+    );
 
     return {
       evaluation: {
@@ -351,13 +358,25 @@ export class NoteService {
         matiere: { id: evaluation.matiere.id, name: evaluation.matiere.name },
         classe: { id: evaluation.classe.id, name: evaluation.classe.name },
         niveau: { id: evaluation.niveau.id, name: evaluation.niveau.name },
-        semestre: evaluation.semestre ? { id: evaluation.semestre.id, name: (evaluation.semestre as any).name } : null,
+        semestre: evaluation.semestre
+          ? {
+              id: evaluation.semestre.id,
+              name: (evaluation.semestre as any).name,
+            }
+          : null,
       },
       rows: students.map((s) => {
         const note = noteByStudentId.get(s.id) ?? null;
         return {
-          student: { id: s.id, firstName: s.firstName, lastName: s.lastName, matricule: s.matricule },
-          existingNote: note ? { id: note.id, value: note.value, remark: note.remark } : null,
+          student: {
+            id: s.id,
+            firstName: s.firstName,
+            lastName: s.lastName,
+            matricule: s.matricule,
+          },
+          existingNote: note
+            ? { id: note.id, value: note.value, remark: note.remark }
+            : null,
         };
       }),
     };

@@ -34,16 +34,23 @@ export class EnseignantController {
   @Post()
   @Permissions('TEACHER_MANAGE')
   @ApiOperation({ summary: 'Créer un nouvel enseignant' })
-  create(@Body() createEnseignantDto: CreateEnseignantDto, @CurrentEtablissement() tenantId?: number) {
+  create(
+    @Body() createEnseignantDto: CreateEnseignantDto,
+    @CurrentEtablissement() tenantId?: number,
+  ) {
     return this.enseignantService.create(createEnseignantDto, tenantId);
   }
 
   @Get('me')
   @Roles(Role.ENSEIGNANT)
-  @ApiOperation({ summary: 'Récupérer le profil de l\'enseignant connecté avec ses affectations' })
+  @ApiOperation({
+    summary:
+      "Récupérer le profil de l'enseignant connecté avec ses affectations",
+  })
   async getMe(@Request() req: any) {
     const enseignantId = req.user?.enseignantId;
-    if (!enseignantId) throw new NotFoundException('Profil enseignant introuvable');
+    if (!enseignantId)
+      throw new NotFoundException('Profil enseignant introuvable');
     return this.enseignantService.findOne(enseignantId);
   }
 
@@ -86,8 +93,14 @@ export class EnseignantController {
 
   @Post(':id/reset-credentials')
   @Permissions('TEACHER_MANAGE')
-  @ApiOperation({ summary: 'Réinitialiser les identifiants de connexion d\'un enseignant (mot de passe → 12345678)' })
-  resetCredentials(@Param('id') id: string, @CurrentEtablissement() tenantId?: number) {
+  @ApiOperation({
+    summary:
+      "Réinitialiser les identifiants de connexion d'un enseignant (mot de passe → 12345678)",
+  })
+  resetCredentials(
+    @Param('id') id: string,
+    @CurrentEtablissement() tenantId?: number,
+  ) {
     return this.enseignantService.resetCredentials(+id, tenantId);
   }
 
@@ -101,7 +114,11 @@ export class EnseignantController {
     @Body() createAffectationDto: CreateAffectationDto,
     @CurrentEtablissement() tenantId?: number,
   ) {
-    return this.enseignantService.addAffectation(+id, createAffectationDto, tenantId);
+    return this.enseignantService.addAffectation(
+      +id,
+      createAffectationDto,
+      tenantId,
+    );
   }
 
   @Delete('affectations/:affectationId')

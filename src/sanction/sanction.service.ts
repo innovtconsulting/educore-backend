@@ -17,7 +17,10 @@ export class SanctionService {
     private readonly etudiantRepository: Repository<Etudiant>,
   ) {}
 
-  async create(createSanctionDto: CreateSanctionDto, tenantId?: number): Promise<Sanction> {
+  async create(
+    createSanctionDto: CreateSanctionDto,
+    tenantId?: number,
+  ): Promise<Sanction> {
     const { etudiantId, ...rest } = createSanctionDto;
 
     const etudiant = await this.etudiantRepository.findOne({
@@ -73,7 +76,10 @@ export class SanctionService {
     };
   }
 
-  async findByEtudiant(etudiantId: number, tenantId?: number): Promise<Sanction[]> {
+  async findByEtudiant(
+    etudiantId: number,
+    tenantId?: number,
+  ): Promise<Sanction[]> {
     const where = TenantHelper.addTenantFilter(
       { etudiant: { id: etudiantId } },
       tenantId,

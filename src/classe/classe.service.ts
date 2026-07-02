@@ -67,7 +67,7 @@ export class ClasseService {
     tenantId?: number,
     etablissementId?: number,
   ): Promise<Classe[]> {
-    let where: any = {};
+    const where: any = {};
     if (tenantId) {
       where.etablissement = { id: tenantId };
     }
@@ -82,7 +82,7 @@ export class ClasseService {
   }
 
   async findOne(id: number, tenantId?: number): Promise<Classe> {
-    let where: any = { id };
+    const where: any = { id };
     if (tenantId) {
       where.etablissement = { id: tenantId };
     }
@@ -141,7 +141,7 @@ export class ClasseService {
   }
 
   async findByName(name: string, tenantId?: number): Promise<Classe | null> {
-    let where: any = { name: ILike(name) };
+    const where: any = { name: ILike(name) };
     if (tenantId) {
       where.etablissement = { id: tenantId };
     }

@@ -67,6 +67,11 @@ import { CertificateModule } from './certificate/certificate.module';
 import { SalleModule } from './salle/salle.module';
 import { InscriptionModule } from './inscription/inscription.module';
 import { AclModule } from './acl/acl.module';
+import { AnnonceModule } from './annonce/annonce.module';
+import { Annonce } from './annonce/entities/annonce.entity';
+import { NotificationTokenModule } from './notification-token/notification-token.module';
+import { NotificationToken } from './notification-token/entities/notification-token.entity';
+import { SharedModule } from './shared/shared.module';
 
 @Module({
   imports: [
@@ -113,6 +118,8 @@ import { AclModule } from './acl/acl.module';
         Salle,
         Inscription,
         GlobalSetting,
+        Annonce,
+        NotificationToken,
       ],
       synchronize: process.env.NODE_ENV !== 'production',
       ssl:
@@ -151,6 +158,9 @@ import { AclModule } from './acl/acl.module';
     SalleModule,
     InscriptionModule,
     AclModule,
+    AnnonceModule,
+    NotificationTokenModule,
+    SharedModule,
   ],
   controllers: [AppController],
   providers: [

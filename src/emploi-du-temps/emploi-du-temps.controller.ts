@@ -83,7 +83,8 @@ export class EmploiDuTempsController {
   @Get('hours')
   @Roles(Role.ETUDIANT, Role.ENSEIGNANT, Role.ADMIN, Role.SURVEILLANT)
   @ApiOperation({
-    summary: 'Calculer le nombre total d heures effectuées pour une matière et un enseignant',
+    summary:
+      'Calculer le nombre total d heures effectuées pour une matière et un enseignant',
   })
   @ApiQuery({ name: 'enseignantId', required: true, type: Number })
   @ApiQuery({ name: 'matiereId', required: true, type: Number })
@@ -130,7 +131,11 @@ export class EmploiDuTempsController {
     @Body() updateEmploiDuTempDto: UpdateEmploiDuTempDto,
     @CurrentEtablissement() tenantId?: number,
   ) {
-    return this.emploiDuTempsService.update(+id, updateEmploiDuTempDto, tenantId);
+    return this.emploiDuTempsService.update(
+      +id,
+      updateEmploiDuTempDto,
+      tenantId,
+    );
   }
 
   @Delete(':id')

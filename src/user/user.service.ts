@@ -34,7 +34,11 @@ export class UserService {
     private readonly aclService: AclService,
   ) {}
 
-  async create(userData: Partial<User>, tenantId?: number, caller?: any): Promise<User> {
+  async create(
+    userData: Partial<User>,
+    tenantId?: number,
+    caller?: any,
+  ): Promise<User> {
     if (userData.email) {
       userData.email = userData.email.toLowerCase().trim();
       const existingUser = await this.userRepository.findOne({
@@ -50,7 +54,8 @@ export class UserService {
 
     // tenantId depuis le JWT, ou etablissementId du caller en fallback,
     // ou lookup DB si les deux sont absents (compte admin sans etablissementId dans le JWT)
-    let resolvedTenantId: number | undefined = tenantId ?? caller?.etablissementId;
+    let resolvedTenantId: number | undefined =
+      tenantId ?? caller?.etablissementId;
     if (!resolvedTenantId && caller?.sub && caller?.role !== Role.SUPER_ADMIN) {
       const callerUser = await this.userRepository.findOne({
         where: { id: caller.sub },
@@ -123,7 +128,11 @@ export class UserService {
       where: { email: normalizedEmail },
       relations: {
         enseignant: {
-          affectations: { etablissement: true, matiere: true, niveau: { classe: true } },
+          affectations: {
+            etablissement: true,
+            matiere: true,
+            niveau: { classe: true },
+          },
         },
         etudiant: { etablissement: true, classe: true, niveau: true },
         parent: { etudiants: { etablissement: true } },
@@ -171,7 +180,8 @@ export class UserService {
       qb.andWhere('u.role != :superAdmin', { superAdmin: Role.SUPER_ADMIN });
     }
 
-    let resolvedTenantId: number | undefined = tenantId ?? caller?.etablissementId;
+    let resolvedTenantId: number | undefined =
+      tenantId ?? caller?.etablissementId;
 
     // Si l'admin n'a pas d'etablissementId dans son JWT, lookup en base
     if (!resolvedTenantId && !isSuperAdmin && caller?.sub) {

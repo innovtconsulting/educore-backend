@@ -86,7 +86,7 @@ describe('Student Import (e2e)', () => {
       .post('/api/niveau')
       .set('Authorization', `Bearer ${authToken}`)
       .send({ name: 'L3' });
-    
+
     await request(app.getHttpServer())
       .post('/api/classe')
       .set('Authorization', `Bearer ${authToken}`)
@@ -131,9 +131,9 @@ describe('Student Import (e2e)', () => {
 
     const students = res.body.data.items;
     expect(students.length).toBeGreaterThan(0);
-    
+
     // Vérifier qu'un étudiant a bien un user lié
-    const studentWithUser = students.find(s => s.user);
+    const studentWithUser = students.find((s) => s.user);
     expect(studentWithUser).toBeDefined();
     expect(studentWithUser.user.isActive).toBe(false);
   });

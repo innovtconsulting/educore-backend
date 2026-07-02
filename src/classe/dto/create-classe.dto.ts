@@ -9,9 +9,9 @@ export class CreateClasseDto {
 
   @ApiProperty({
     example: 1,
-    description: 'ID de l\'établissement',
+    description: "ID de l'établissement",
   })
-  @IsNumber({}, { message: 'L\'ID de l\'établissement doit être un nombre' })
-  @IsNotEmpty({ message: 'L\'ID de l\'établissement est obligatoire' })
+  @IsNumber({}, { message: "L'ID de l'établissement doit être un nombre" })
+  @IsNotEmpty({ message: "L'ID de l'établissement est obligatoire" })
   etablissementId!: number;
 }

@@ -66,7 +66,10 @@ export class EtablissementController {
     description:
       "Affiche les informations détaillées d'un établissement spécifique.",
   })
-  async findOne(@Param('id') id: string, @CurrentEtablissement() tenantId?: number) {
+  async findOne(
+    @Param('id') id: string,
+    @CurrentEtablissement() tenantId?: number,
+  ) {
     const data = await this.etablissementService.findOne(+id, tenantId);
     return {
       message: `Etablissement #${id} récupéré avec succès`,
@@ -102,7 +105,10 @@ export class EtablissementController {
     summary: 'Supprimer un établissement',
     description: 'Supprime un établissement du système.',
   })
-  async remove(@Param('id') id: string, @CurrentEtablissement() tenantId?: number) {
+  async remove(
+    @Param('id') id: string,
+    @CurrentEtablissement() tenantId?: number,
+  ) {
     await this.etablissementService.remove(+id, tenantId);
     return {
       message: `Etablissement #${id} supprimée avec succès`,

@@ -82,15 +82,21 @@ async function seedAdmins() {
         etablissementId: defaultEtab.id,
       });
       await userRepo.save(admin);
-      console.log(`✅ Admin créé : ${adminEmail} / password123 (Lié à ${defaultEtab.name})`);
+      console.log(
+        `✅ Admin créé : ${adminEmail} / password123 (Lié à ${defaultEtab.name})`,
+      );
     } else if (!admin.etablissementId) {
       // Mise à jour si l'admin existe déjà sans établissement
       admin.etablissement = defaultEtab;
       admin.etablissementId = defaultEtab.id;
       await userRepo.save(admin);
-      console.log(`✅ Admin mis à jour : établissement assigné (${defaultEtab.name})`);
+      console.log(
+        `✅ Admin mis à jour : établissement assigné (${defaultEtab.name})`,
+      );
     } else {
-      console.log(`ℹ️ Admin existe déjà (lié à l'établissement ID ${admin.etablissementId}).`);
+      console.log(
+        `ℹ️ Admin existe déjà (lié à l'établissement ID ${admin.etablissementId}).`,
+      );
     }
 
     console.log('🚀 Seeding des administrateurs terminé avec succès !');

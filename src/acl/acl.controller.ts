@@ -37,14 +37,20 @@ export class AclController {
   @Get('permissions/:id')
   @Permissions('CONFIG_MANAGE')
   @ApiOperation({ summary: 'Obtenir une permission par ID' })
-  findOnePermission(@Param('id', ParseIntPipe) id: number, @CurrentEtablissement() tenantId?: number) {
+  findOnePermission(
+    @Param('id', ParseIntPipe) id: number,
+    @CurrentEtablissement() tenantId?: number,
+  ) {
     return this.aclService.findOnePermission(id, tenantId);
   }
 
   @Post('permissions')
   @Permissions('CONFIG_MANAGE')
   @ApiOperation({ summary: 'Créer une nouvelle permission' })
-  createPermission(@Body() data: CreatePermissionDto, @CurrentEtablissement() tenantId?: number) {
+  createPermission(
+    @Body() data: CreatePermissionDto,
+    @CurrentEtablissement() tenantId?: number,
+  ) {
     return this.aclService.createPermission(data, tenantId);
   }
 
@@ -62,7 +68,10 @@ export class AclController {
   @Delete('permissions/:id')
   @Permissions('CONFIG_MANAGE')
   @ApiOperation({ summary: 'Supprimer une permission' })
-  removePermission(@Param('id', ParseIntPipe) id: number, @CurrentEtablissement() tenantId?: number) {
+  removePermission(
+    @Param('id', ParseIntPipe) id: number,
+    @CurrentEtablissement() tenantId?: number,
+  ) {
     return this.aclService.removePermission(id, tenantId);
   }
 
@@ -76,14 +85,20 @@ export class AclController {
   @Post('roles')
   @Permissions('CONFIG_MANAGE')
   @ApiOperation({ summary: 'Créer un nouveau rôle' })
-  createRole(@Body() data: CreateRoleDto, @CurrentEtablissement() tenantId?: number) {
+  createRole(
+    @Body() data: CreateRoleDto,
+    @CurrentEtablissement() tenantId?: number,
+  ) {
     return this.aclService.createRole(data, tenantId);
   }
 
   @Get('roles/:id')
   @Permissions('CONFIG_MANAGE')
   @ApiOperation({ summary: 'Obtenir un rôle par ID' })
-  findOneRole(@Param('id', ParseIntPipe) id: number, @CurrentEtablissement() tenantId?: number) {
+  findOneRole(
+    @Param('id', ParseIntPipe) id: number,
+    @CurrentEtablissement() tenantId?: number,
+  ) {
     return this.aclService.findOneRole(id, tenantId);
   }
 
@@ -101,7 +116,10 @@ export class AclController {
   @Delete('roles/:id')
   @Permissions('CONFIG_MANAGE')
   @ApiOperation({ summary: 'Supprimer un rôle' })
-  removeRole(@Param('id', ParseIntPipe) id: number, @CurrentEtablissement() tenantId?: number) {
+  removeRole(
+    @Param('id', ParseIntPipe) id: number,
+    @CurrentEtablissement() tenantId?: number,
+  ) {
     return this.aclService.removeRole(id, tenantId);
   }
 }
