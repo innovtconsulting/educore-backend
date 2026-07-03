@@ -6,9 +6,11 @@ import {
   IsBoolean,
   IsDateString,
   IsEnum,
+  IsInt,
   IsNumber,
   IsOptional,
   IsString,
+  Max,
   Min,
   ValidateNested,
 } from 'class-validator';
@@ -48,6 +50,19 @@ export class CreateFeeGroupDto {
   @IsDateString()
   @IsOptional()
   dateEcheance?: string;
+
+  @ApiProperty({
+    example: 1,
+    minimum: 1,
+    maximum: 12,
+    required: false,
+    description: 'Mois concerné (1-12), obligatoire pour un frais de type "Écolage"',
+  })
+  @IsInt()
+  @Min(1)
+  @Max(12)
+  @IsOptional()
+  mois?: number;
 
   @ApiProperty({ type: [FeeScopeDto] })
   @IsArray()

@@ -65,6 +65,12 @@ export class FinanceService {
       );
     }
 
+    if (dto.type === FeeType.ECOLAGE && !dto.mois) {
+      throw new BadRequestException(
+        'Le mois est obligatoire pour un frais de type "Écolage"',
+      );
+    }
+
     const anneeActive = await this.anneeUniversitaireService.getActiveYear(
       tenantId,
     );
@@ -106,6 +112,7 @@ export class FinanceService {
             name,
             amount: dto.amount,
             type: dto.type,
+            mois: dto.type === FeeType.ECOLAGE ? dto.mois : undefined,
             groupeId,
             classe,
             niveau,
@@ -167,11 +174,15 @@ export class FinanceService {
     tenantId?: number,
     classeId?: number,
     niveauId?: number,
+    type?: FeeType,
+    anneeUniversitaireId?: number,
   ) {
     const where: any = {};
     if (tenantId) where.etablissementId = tenantId;
     if (classeId) where.classe = { id: classeId };
     if (niveauId) where.niveau = { id: niveauId };
+    if (type) where.type = type;
+    if (anneeUniversitaireId) where.anneeUniversitaireId = anneeUniversitaireId;
 
     const rows = await this.fraisRepository.find({
       where,
@@ -186,6 +197,7 @@ export class FinanceService {
         name: string;
         amount: number;
         type: string;
+        mois?: number;
         anneeUniversitaire: any;
         scopesCount: number;
         createdAt: Date;
@@ -199,6 +211,7 @@ export class FinanceService {
           name: row.name,
           amount: row.amount,
           type: row.type,
+          mois: row.mois,
           anneeUniversitaire: row.anneeUniversitaire,
           scopesCount: 0,
           createdAt: row.createdAt,
@@ -257,6 +270,7 @@ export class FinanceService {
       name: first.name,
       amount: first.amount,
       type: first.type,
+      mois: first.mois,
       anneeUniversitaire: first.anneeUniversitaire,
       scopes,
     };

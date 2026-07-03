@@ -18,6 +18,7 @@ export enum FeeType {
   INSCRIPTION = 'Inscription',
   SCOLARITE = 'Scolarité',
   EXAMEN = 'Examen',
+  ECOLAGE = 'Écolage',
   AUTRE = 'Autre',
 }
 
@@ -41,6 +42,13 @@ export class Frais {
   })
   @ApiProperty({ enum: FeeType })
   type!: FeeType;
+
+  @Column({ type: 'int', nullable: true })
+  @ApiProperty({
+    required: false,
+    description: 'Mois concerné (1-12), obligatoire pour un frais de type "Écolage"',
+  })
+  mois?: number;
 
   @Column({ type: 'uuid' })
   @Index()

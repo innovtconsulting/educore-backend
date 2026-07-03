@@ -16,6 +16,7 @@ import { CreatePaymentDto } from './dto/create-payment.dto';
 import { CreateDepenseDto } from './dto/create-depense.dto';
 import { UpdateDepenseDto } from './dto/update-depense.dto';
 import { DepenseCategory } from './entities/depense.entity';
+import { FeeType } from './entities/frais.entity';
 import { ApiTags, ApiOperation, ApiQuery, ApiBearerAuth } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
@@ -49,18 +50,26 @@ export class FinanceController {
   @Get('frais')
   @Roles(Role.ADMIN, Role.SUPER_ADMIN, Role.COMPTABLE)
   @Permissions('FINANCE_VIEW')
-  @ApiOperation({ summary: 'Lister les frais (groupés), filtrable par parcours/niveau' })
+  @ApiOperation({
+    summary: 'Lister les frais (groupés), filtrable par parcours/niveau/type/année universitaire',
+  })
   @ApiQuery({ name: 'classeId', required: false, type: Number })
   @ApiQuery({ name: 'niveauId', required: false, type: Number })
+  @ApiQuery({ name: 'type', required: false, enum: FeeType })
+  @ApiQuery({ name: 'anneeUniversitaireId', required: false, type: Number })
   async findAllFeeGroups(
     @Query('classeId') classeId?: string,
     @Query('niveauId') niveauId?: string,
+    @Query('type') type?: FeeType,
+    @Query('anneeUniversitaireId') anneeUniversitaireId?: string,
     @CurrentEtablissement() tenantId?: number,
   ) {
     const data = await this.financeService.findAllFeeGroups(
       tenantId,
       classeId ? +classeId : undefined,
       niveauId ? +niveauId : undefined,
+      type,
+      anneeUniversitaireId ? +anneeUniversitaireId : undefined,
     );
     return { message: 'Liste des frais récupérée avec succès', data };
   }
