@@ -372,6 +372,12 @@ export class EtudiantService {
 		const etudiant = await this.findOne(id, tenantId);
 		const { etablissementId, classeId, niveauId, parentsData, ...rest } =
 			updateEtudiantDto;
+		// Le frontend renvoie parfois un instantané figé de l'ancienne liste de
+		// parents sous la clé "parents" (héritée de Student.toProps()), en plus
+		// de "parentsData". Si on ne la retirait pas, le Object.assign(etudiant, rest)
+		// plus bas écraserait après coup le etudiant.parents fraîchement calculé
+		// à partir de parentsData.
+		delete (rest as any).parents;
 
 		if (etablissementId) {
 			const etablissement = await this.etablissementRepository.findOneBy({
