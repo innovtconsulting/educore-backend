@@ -34,6 +34,30 @@ export class NoteService {
     private readonly parentService: ParentService,
   ) {}
 
+  // Vérifie que chaque étudiant appartient bien au parcours/niveau de
+  // l'évaluation : sans ça, une note peut être enregistrée pour un étudiant
+  // qui n'a rien à voir avec l'évaluation (autre parcours ou autre niveau).
+  private async assertStudentsBelongToEvaluationScope(
+    studentIds: number[],
+    evaluation: Evaluation,
+  ): Promise<void> {
+    const uniqueIds = Array.from(new Set(studentIds));
+    const validStudents = await this.etudiantRepository.find({
+      where: {
+        id: In(uniqueIds),
+        classe: { id: evaluation.classe.id },
+        niveau: { id: evaluation.niveau.id },
+      },
+    });
+    const validIds = new Set(validStudents.map((e) => e.id));
+    const invalidIds = uniqueIds.filter((id) => !validIds.has(id));
+    if (invalidIds.length > 0) {
+      throw new BadRequestException(
+        `Les étudiants suivants n'appartiennent pas au parcours/niveau de cette évaluation : ${invalidIds.join(', ')}`,
+      );
+    }
+  }
+
   async create(createNoteDto: CreateNoteDto, user: any, tenantId?: number) {
     const { etudiantId, evaluationId, ...data } = createNoteDto;
 
@@ -61,6 +85,8 @@ export class NoteService {
         );
       }
     }
+
+    await this.assertStudentsBelongToEvaluationScope([etudiantId], evaluation);
 
     // Gérer l'unicité Étudiant/Évaluation
     let note = await this.noteRepository.findOne({
@@ -111,6 +137,11 @@ export class NoteService {
         );
       }
     }
+
+    await this.assertStudentsBelongToEvaluationScope(
+      items.map((item) => item.etudiantId),
+      evaluation,
+    );
 
     const savedNotes: Note[] = [];
     for (const item of items) {
