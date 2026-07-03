@@ -1,5 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsEnum, IsNotEmpty, IsOptional, IsString } from 'class-validator';
+import { Type } from 'class-transformer';
+import { IsEnum, IsInt, IsNotEmpty, IsOptional, IsString } from 'class-validator';
 import { DocumentCategory } from '../entities/document.entity';
 
 export class CreateDocumentDto {
@@ -20,4 +21,16 @@ export class CreateDocumentDto {
   @IsEnum(DocumentCategory)
   @IsOptional()
   category?: DocumentCategory;
+
+  @ApiProperty({ required: false })
+  @Type(() => Number)
+  @IsInt()
+  @IsOptional()
+  classeId?: number;
+
+  @ApiProperty({ required: false })
+  @Type(() => Number)
+  @IsInt()
+  @IsOptional()
+  niveauId?: number;
 }

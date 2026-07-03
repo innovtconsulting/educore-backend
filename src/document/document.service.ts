@@ -25,35 +25,48 @@ export class DocumentService {
     file: Express.Multer.File,
     tenantId?: number,
   ) {
+    const { classeId, niveauId, ...rest } = createDocumentDto;
     const document = this.documentRepository.create({
-      ...createDocumentDto,
+      ...rest,
       filePath: file.path,
       originalName: file.originalname,
       mimeType: file.mimetype,
       fileSize: file.size,
       etablissement: tenantId ? { id: tenantId } : undefined,
-    });
+      classe: classeId ? { id: classeId } : undefined,
+      niveau: niveauId ? { id: niveauId } : undefined,
+    } as any);
     return await this.documentRepository.save(document);
   }
 
-  async findAll(paginationQuery: PaginationQueryDto, tenantId?: number) {
+  async findAll(
+    paginationQuery: PaginationQueryDto,
+    tenantId?: number,
+    classeId?: number,
+    niveauId?: number,
+  ) {
     const { page = 1, limit = 15, search } = paginationQuery;
     const skip = (page - 1) * limit;
+
+    const extraFilter: FindOptionsWhere<Document> = {};
+    if (classeId) extraFilter.classeId = classeId;
+    if (niveauId) extraFilter.niveauId = niveauId;
 
     let where: FindOptionsWhere<Document> | FindOptionsWhere<Document>[] = [];
     if (search) {
       where = [
-        { title: ILike(`%${search}%`) },
-        { description: ILike(`%${search}%`) },
+        { ...extraFilter, title: ILike(`%${search}%`) },
+        { ...extraFilter, description: ILike(`%${search}%`) },
       ];
     } else {
-      where = {};
+      where = { ...extraFilter };
     }
 
     where = TenantHelper.addTenantFilter(where, tenantId);
 
     const [items, total] = await this.documentRepository.findAndCount({
       where,
+      relations: { classe: true, niveau: true },
       skip,
       take: limit,
       order: { createdAt: 'DESC' },
@@ -70,7 +83,10 @@ export class DocumentService {
   async findOne(id: number, tenantId?: number) {
     const where = TenantHelper.addTenantFilter({ id }, tenantId);
 
-    const document = await this.documentRepository.findOne({ where });
+    const document = await this.documentRepository.findOne({
+      where,
+      relations: { classe: true, niveau: true },
+    });
     if (!document) {
       throw new NotFoundException(`Document #${id} non trouvé`);
     }

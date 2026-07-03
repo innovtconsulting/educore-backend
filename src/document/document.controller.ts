@@ -66,6 +66,8 @@ export class DocumentController {
           enum: ['Administratif', 'Pédagogique', 'Règlement', 'Autre'],
           description: 'Catégorie du document',
         },
+        classeId: { type: 'number', description: 'Parcours concerné' },
+        niveauId: { type: 'number', description: 'Niveau concerné' },
       },
     },
   })
@@ -174,9 +176,16 @@ export class DocumentController {
   })
   async findAll(
     @Query() paginationQuery: PaginationQueryDto,
+    @Query('classeId') classeId?: string,
+    @Query('niveauId') niveauId?: string,
     @CurrentEtablissement() tenantId?: number,
   ) {
-    const data = await this.documentService.findAll(paginationQuery, tenantId);
+    const data = await this.documentService.findAll(
+      paginationQuery,
+      tenantId,
+      classeId ? +classeId : undefined,
+      niveauId ? +niveauId : undefined,
+    );
     return {
       message: 'Liste des documents récupérée avec succès',
       data,

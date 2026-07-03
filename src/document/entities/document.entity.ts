@@ -9,6 +9,8 @@ import {
 } from 'typeorm';
 import { ApiProperty } from '@nestjs/swagger';
 import { Etablissement } from '../../etablissement/entities/etablissement.entity';
+import { Classe } from '../../classe/entities/classe.entity';
+import { Niveau } from '../../niveau/entities/niveau.entity';
 
 export enum DocumentCategory {
   ADMINISTRATIF = 'Administratif',
@@ -60,6 +62,20 @@ export class Document {
 
   @Column({ nullable: false })
   etablissementId!: number;
+
+  @ManyToOne(() => Classe, { nullable: true })
+  @JoinColumn({ name: 'classeId' })
+  classe?: Classe;
+
+  @Column({ nullable: true })
+  classeId?: number;
+
+  @ManyToOne(() => Niveau, { nullable: true })
+  @JoinColumn({ name: 'niveauId' })
+  niveau?: Niveau;
+
+  @Column({ nullable: true })
+  niveauId?: number;
 
   @CreateDateColumn()
   @ApiProperty()
