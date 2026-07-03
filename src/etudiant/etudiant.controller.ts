@@ -17,6 +17,7 @@ import { EtudiantService } from './etudiant.service';
 import { CreateEtudiantDto } from './dto/create-etudiant.dto';
 import { UpdateEtudiantDto } from './dto/update-etudiant.dto';
 import { ValidateEtudiantDto } from './dto/validate-etudiant.dto';
+import { BulkDeleteEtudiantDto } from './dto/bulk-delete-etudiant.dto';
 import {
   ApiTags,
   ApiOperation,
@@ -142,6 +143,25 @@ export class EtudiantController {
     await this.etudiantService.remove(+id, tenantId);
     return {
       message: `Étudiant #${id} supprimé avec succès`,
+    };
+  }
+
+  @Post('bulk-delete')
+  @Permissions('STUDENT_DELETE')
+  @ApiOperation({
+    summary:
+      "Supprimer plusieurs étudiants en une fois (cascade sur inscriptions, factures/paiements, notes, sanctions, présences, devoirs, certificats et compte utilisateur)",
+  })
+  async bulkRemove(
+    @Body() dto: BulkDeleteEtudiantDto,
+    @CurrentEtablissement() tenantId?: number,
+  ) {
+    const { deletedCount } = await this.etudiantService.bulkRemove(
+      dto.ids,
+      tenantId,
+    );
+    return {
+      message: `${deletedCount} étudiant${deletedCount > 1 ? 's' : ''} supprimé${deletedCount > 1 ? 's' : ''} avec succès`,
     };
   }
 

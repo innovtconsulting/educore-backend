@@ -460,18 +460,85 @@ export class EtudiantService {
 		return savedEtudiant;
 	}
 
+	// Le compte utilisateur (login) n'est PAS en CASCADE côté base (SET NULL
+	// uniquement, pour ne jamais bloquer la suppression même si la relation
+	// venait à manquer) : on le supprime donc explicitement ici, dans la même
+	// transaction que l'étudiant, pour qu'aucun compte ne reste orphelin.
+	private async deleteLinkedUserAccount(
+		etudiantId: number,
+		manager: QueryRunner['manager'],
+	): Promise<void> {
+		const linkedUser = await manager.findOne(User, {
+			where: { etudiant: { id: etudiantId } },
+		});
+		if (linkedUser) {
+			await manager.remove(User, linkedUser);
+		}
+	}
+
+	private deleteStudentPhoto(etudiant: Etudiant): void {
+		if (!etudiant.photoPath) return;
+		const fullPath = join(process.cwd(), etudiant.photoPath);
+		if (existsSync(fullPath)) {
+			unlink(fullPath).catch(() => {});
+		}
+	}
+
 	async remove(id: number, tenantId?: number): Promise<void> {
 		const etudiant = await this.findOne(id, tenantId);
 
-		// Supprimer la photo si elle existe
-		if (etudiant.photoPath) {
-			const fullPath = join(process.cwd(), etudiant.photoPath);
-			if (existsSync(fullPath)) {
-				await unlink(fullPath);
-			}
+		const queryRunner = this.dataSource.createQueryRunner();
+		await queryRunner.connect();
+		await queryRunner.startTransaction();
+		try {
+			await this.deleteLinkedUserAccount(etudiant.id, queryRunner.manager);
+			await queryRunner.manager.remove(Etudiant, etudiant);
+			await queryRunner.commitTransaction();
+		} catch (error) {
+			await queryRunner.rollbackTransaction();
+			throw error;
+		} finally {
+			await queryRunner.release();
 		}
 
-		await this.etudiantRepository.remove(etudiant);
+		this.deleteStudentPhoto(etudiant);
+	}
+
+	async bulkRemove(
+		ids: number[],
+		tenantId?: number,
+	): Promise<{ deletedCount: number }> {
+		if (!ids || ids.length === 0) {
+			throw new BadRequestException('Aucun étudiant sélectionné');
+		}
+
+		const queryRunner = this.dataSource.createQueryRunner();
+		await queryRunner.connect();
+		await queryRunner.startTransaction();
+
+		const photosToDelete: Etudiant[] = [];
+
+		try {
+			let deletedCount = 0;
+			for (const id of ids) {
+				// Vérifie l'existence et le tenant AVANT de supprimer, pour ne
+				// jamais laisser un admin d'un autre établissement supprimer un
+				// étudiant qui n'est pas le sien.
+				const etudiant = await this.findOne(id, tenantId);
+				await this.deleteLinkedUserAccount(etudiant.id, queryRunner.manager);
+				await queryRunner.manager.remove(Etudiant, etudiant);
+				photosToDelete.push(etudiant);
+				deletedCount++;
+			}
+			await queryRunner.commitTransaction();
+			photosToDelete.forEach((e) => this.deleteStudentPhoto(e));
+			return { deletedCount };
+		} catch (error) {
+			await queryRunner.rollbackTransaction();
+			throw error;
+		} finally {
+			await queryRunner.release();
+		}
 	}
 
 	async updateProfilePicture(
