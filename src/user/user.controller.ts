@@ -28,6 +28,7 @@ import {
   ApiBody,
 } from '@nestjs/swagger';
 import { UpdateProfileDto } from './dto/update-profile.dto';
+import { ChangePasswordDto } from './dto/change-password.dto';
 import { CreateUserDto } from './dto/create-user.dto';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
@@ -70,6 +71,27 @@ export class UserController {
   @ApiOperation({ summary: 'Mettre à jour mon profil' })
   updateMe(@Request() req: any, @Body() updateProfileDto: UpdateProfileDto) {
     return this.userService.updateProfile(req.user.id, updateProfileDto);
+  }
+
+  @Patch('me/change-password')
+  @Roles(
+    Role.SUPER_ADMIN,
+    Role.ADMIN,
+    Role.ENSEIGNANT,
+    Role.ETUDIANT,
+    Role.PARENT,
+    Role.COMPTABLE,
+    Role.SURVEILLANT,
+  )
+  @ApiOperation({
+    summary: 'Changer mon propre mot de passe (nécessite le mot de passe actuel)',
+  })
+  async changePassword(
+    @Request() req: any,
+    @Body() changePasswordDto: ChangePasswordDto,
+  ) {
+    await this.userService.changePassword(req.user.id, changePasswordDto);
+    return { message: 'Mot de passe modifié avec succès' };
   }
 
   @Post('me/profile-picture')

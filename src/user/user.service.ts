@@ -11,6 +11,7 @@ import { Repository, MoreThan, Like, ILike } from 'typeorm';
 import { User, Role } from './entities/user.entity';
 import * as bcrypt from 'bcrypt';
 import { UpdateProfileDto } from './dto/update-profile.dto';
+import { ChangePasswordDto } from './dto/change-password.dto';
 import { EtudiantService } from '../etudiant/etudiant.service';
 import { EnseignantService } from '../enseignant/enseignant.service';
 import { ParentService } from '../parent/parent.service';
@@ -384,6 +385,27 @@ export class UserService {
 
     await this.userRepository.save(user);
     return this.findOne(id);
+  }
+
+  // Toujours appelé avec l'id extrait du JWT (req.user.id), jamais un id fourni
+  // par le client, pour qu'un utilisateur ne puisse changer que son propre mot
+  // de passe. Exige en plus le mot de passe actuel pour confirmer l'identité.
+  async changePassword(id: number, dto: ChangePasswordDto): Promise<void> {
+    const user = await this.findOne(id);
+
+    if (!user.password) {
+      throw new BadRequestException(
+        'Ce compte ne dispose pas de mot de passe à modifier',
+      );
+    }
+
+    const isMatch = await bcrypt.compare(dto.currentPassword, user.password);
+    if (!isMatch) {
+      throw new BadRequestException('Mot de passe actuel incorrect');
+    }
+
+    user.password = await bcrypt.hash(dto.newPassword, 10);
+    await this.userRepository.save(user);
   }
 
   async updateProfilePicture(id: number, filePath: string): Promise<User> {
