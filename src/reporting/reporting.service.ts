@@ -13,10 +13,9 @@ import {
 } from '../etudiant/entities/etudiant.entity';
 import { Enseignant } from '../enseignant/entities/enseignant.entity';
 import { Classe } from '../classe/entities/classe.entity';
-import { Facture } from '../finance/entities/facture.entity';
-import { Paiement } from '../finance/entities/paiement.entity';
 import { TenantHelper } from '../common/tenant/tenant.helper';
 import { User, Role } from '../user/entities/user.entity';
+import { Etablissement } from '../etablissement/entities/etablissement.entity';
 
 @Injectable()
 export class ReportingService {
@@ -33,12 +32,10 @@ export class ReportingService {
     private readonly enseignantRepository: Repository<Enseignant>,
     @InjectRepository(Classe)
     private readonly classeRepository: Repository<Classe>,
-    @InjectRepository(Facture)
-    private readonly factureRepository: Repository<Facture>,
-    @InjectRepository(Paiement)
-    private readonly paiementRepository: Repository<Paiement>,
     @InjectRepository(User)
     private readonly userRepository: Repository<User>,
+    @InjectRepository(Etablissement)
+    private readonly etablissementRepository: Repository<Etablissement>,
   ) {}
 
   private async resolveCallerTenantId(tenantId?: number, caller?: any): Promise<number | undefined> {
@@ -52,7 +49,15 @@ export class ReportingService {
 
   async getGlobalStats(tenantId?: number, caller?: any) {
     const resolvedTenantId = await this.resolveCallerTenantId(tenantId, caller);
-    const [totalEtudiants, totalEnseignants, totalClasses] = await Promise.all([
+    const [
+      totalEtudiants,
+      totalEnseignants,
+      totalClasses,
+      totalComptables,
+      totalSurveillants,
+      totalSanctions,
+      totalEtablissements,
+    ] = await Promise.all([
       this.etudiantRepository.count({
         where: TenantHelper.addTenantFilter(
           { status: EnrollmentStatus.ACTIF },
@@ -65,41 +70,32 @@ export class ReportingService {
       this.classeRepository.count({
         where: TenantHelper.addTenantFilter({}, resolvedTenantId) as any,
       }),
+      this.userRepository.count({
+        where: TenantHelper.addTenantFilter(
+          { role: Role.COMPTABLE },
+          resolvedTenantId,
+        ) as any,
+      }),
+      this.userRepository.count({
+        where: TenantHelper.addTenantFilter(
+          { role: Role.SURVEILLANT },
+          resolvedTenantId,
+        ) as any,
+      }),
+      this.sanctionRepository.count({
+        where: TenantHelper.addTenantFilter({}, resolvedTenantId) as any,
+      }),
+      resolvedTenantId ? 1 : this.etablissementRepository.count(),
     ]);
 
-    const financialQuery = this.factureRepository.createQueryBuilder('f');
-    if (resolvedTenantId) {
-      financialQuery
-        .innerJoin('f.etudiant', 'e')
-        .andWhere('e.etablissementId = :resolvedTenantId', { resolvedTenantId });
-    }
-    const financialStats = await financialQuery
-      .select('SUM(f.montantTotal)', 'totalInvoiced')
-      .getRawOne();
-
-    const paymentQuery = this.paiementRepository.createQueryBuilder('p');
-    if (resolvedTenantId) {
-      paymentQuery
-        .innerJoin('p.etudiant', 'e')
-        .andWhere('e.etablissementId = :resolvedTenantId', { resolvedTenantId });
-    }
-    const paymentStats = await paymentQuery
-      .select('SUM(p.montant)', 'totalCollected')
-      .getRawOne();
-
     return {
-      overview: {
-        students: totalEtudiants,
-        teachers: totalEnseignants,
-        classes: totalClasses,
-      },
-      finance: {
-        totalInvoiced: parseFloat(financialStats.totalInvoiced || 0),
-        totalCollected: parseFloat(paymentStats.totalCollected || 0),
-        pending:
-          parseFloat(financialStats.totalInvoiced || 0) -
-          parseFloat(paymentStats.totalCollected || 0),
-      },
+      teachers: totalEnseignants,
+      students: totalEtudiants,
+      comptables: totalComptables,
+      surveillants: totalSurveillants,
+      classes: totalClasses,
+      sanctions: totalSanctions,
+      etablissements: totalEtablissements,
     };
   }
 

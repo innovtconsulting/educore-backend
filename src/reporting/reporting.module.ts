@@ -8,9 +8,8 @@ import { DailyReport } from './entities/daily-report.entity';
 import { Etudiant } from '../etudiant/entities/etudiant.entity';
 import { Enseignant } from '../enseignant/entities/enseignant.entity';
 import { Classe } from '../classe/entities/classe.entity';
-import { Facture } from '../finance/entities/facture.entity';
-import { Paiement } from '../finance/entities/paiement.entity';
 import { User } from '../user/entities/user.entity';
+import { Etablissement } from '../etablissement/entities/etablissement.entity';
 
 @Module({
   imports: [
@@ -21,9 +20,8 @@ import { User } from '../user/entities/user.entity';
       Etudiant,
       Enseignant,
       Classe,
-      Facture,
-      Paiement,
       User,
+      Etablissement,
     ]),
   ],
   controllers: [ReportingController],
