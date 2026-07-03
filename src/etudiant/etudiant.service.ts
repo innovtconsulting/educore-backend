@@ -94,6 +94,34 @@ export class EtudiantService {
 		}
 	}
 
+	// Crée le compte utilisateur (rôle ETUDIANT) de l'étudiant s'il n'en a pas encore et
+	// qu'un email est renseigné (identifiant de connexion obligatoire pour les étudiants,
+	// contrairement aux parents qui peuvent se rabattre sur le téléphone). Active un compte
+	// existant si demandé. Appelé à la création, à la modification et à la validation
+	// d'inscription pour que le compte soit toujours créé dès qu'un email est disponible.
+	private async createOrActivateStudentAccount(
+		etudiant: Etudiant,
+		etablissementId?: number,
+		isActive = true,
+	): Promise<void> {
+		if (!etudiant.email) return;
+
+		const existingUser = await this.userService.findByEtudiantId(etudiant.id);
+		if (!existingUser) {
+			await this.userService.create({
+				email: etudiant.email,
+				password: '12345678',
+				role: UserRole.ETUDIANT,
+				isActive,
+				username: etudiant.firstName,
+				etablissementId,
+				etudiant,
+			});
+		} else if (isActive && !existingUser.isActive) {
+			await this.userService.update(existingUser.id, { isActive: true });
+		}
+	}
+
 	async preRegister(data: any): Promise<Etudiant> {
 		const { password, ...etudiantData } = data;
 
@@ -220,6 +248,11 @@ export class EtudiantService {
 			const savedEtudiant = await this.etudiantRepository.save(etudiant);
 			await this.createMissingParentAccounts(
 				parents,
+				etablissementId,
+				savedEtudiant.status === EnrollmentStatus.ACTIF,
+			);
+			await this.createOrActivateStudentAccount(
+				savedEtudiant,
 				etablissementId,
 				savedEtudiant.status === EnrollmentStatus.ACTIF,
 			);
@@ -405,6 +438,14 @@ export class EtudiantService {
 			);
 		}
 
+		// Créer (ou activer) le compte utilisateur de l'étudiant, notamment si un email
+		// vient d'être renseigné ou si le statut vient de passer à Actif
+		await this.createOrActivateStudentAccount(
+			savedEtudiant,
+			etablissementId || savedEtudiant.etablissement?.id,
+			savedEtudiant.status === EnrollmentStatus.ACTIF,
+		);
+
 		return savedEtudiant;
 	}
 
@@ -432,21 +473,11 @@ export class EtudiantService {
 		const savedEtudiant = await this.etudiantRepository.save(etudiant);
 
 		// Activer ou créer le compte utilisateur de l'étudiant
-		const studentUser = await this.userService.findByEtudiantId(id);
-		if (studentUser) {
-			await this.userService.update(studentUser.id, { isActive: true });
-		} else if (savedEtudiant.email) {
-			// Création manuelle par admin : aucun compte n'existait — on le crée à la validation
-			await this.userService.create({
-				email: savedEtudiant.email,
-				password: '12345678',
-				role: UserRole.ETUDIANT,
-				isActive: true,
-				username: savedEtudiant.firstName,
-				etablissementId: savedEtudiant.etablissement?.id,
-				etudiant: savedEtudiant,
-			});
-		}
+		await this.createOrActivateStudentAccount(
+			savedEtudiant,
+			savedEtudiant.etablissement?.id,
+			true,
+		);
 
 		// Activer ou créer les comptes utilisateurs des parents
 		if (savedEtudiant.parents) {
