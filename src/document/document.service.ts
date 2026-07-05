@@ -44,6 +44,7 @@ export class DocumentService {
     tenantId?: number,
     classeId?: number,
     niveauId?: number,
+    category?: string,
   ) {
     const { page = 1, limit = 15, search } = paginationQuery;
     const skip = (page - 1) * limit;
@@ -51,6 +52,7 @@ export class DocumentService {
     const extraFilter: FindOptionsWhere<Document> = {};
     if (classeId) extraFilter.classeId = classeId;
     if (niveauId) extraFilter.niveauId = niveauId;
+    if (category) extraFilter.category = category as any;
 
     let where: FindOptionsWhere<Document> | FindOptionsWhere<Document>[] = [];
     if (search) {

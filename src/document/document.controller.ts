@@ -182,6 +182,7 @@ export class DocumentController {
     @Query() paginationQuery: PaginationQueryDto,
     @Query('classeId') classeId?: string,
     @Query('niveauId') niveauId?: string,
+    @Query('category') category?: string,
     @CurrentEtablissement() tenantId?: number,
   ) {
     const data = await this.documentService.findAll(
@@ -189,6 +190,7 @@ export class DocumentController {
       tenantId,
       classeId ? +classeId : undefined,
       niveauId ? +niveauId : undefined,
+      category,
     );
     return {
       message: 'Liste des documents récupérée avec succès',
