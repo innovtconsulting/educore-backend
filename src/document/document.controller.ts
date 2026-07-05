@@ -209,8 +209,8 @@ export class DocumentController {
   @ApiOperation({ summary: 'Télécharger le fichier physique' })
   async download(
     @Param('id') id: string,
-    @CurrentEtablissement() tenantId?: number,
     @Res({ passthrough: true }) res: Response,
+    @CurrentEtablissement() tenantId?: number,
   ) {
     const doc = await this.documentService.findOne(+id, tenantId);
     const filePath = join(process.cwd(), doc.filePath);
