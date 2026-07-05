@@ -153,7 +153,7 @@ export class DocumentController {
       {
         title: title || file.originalname,
         description: description || 'Rendu de devoir',
-        category: DocumentCategory.PEDAGOGIQUE,
+        category: DocumentCategory.AUTRE,
       },
       file,
       tenantId,
