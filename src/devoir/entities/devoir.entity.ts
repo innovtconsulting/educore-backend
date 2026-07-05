@@ -39,9 +39,9 @@ export class Devoir {
   @ApiProperty({ type: () => Matiere })
   matiere!: Matiere;
 
-  @ManyToOne(() => Classe, { nullable: false })
+  @ManyToOne(() => Classe, { nullable: true })
   @ApiProperty({ type: () => Classe })
-  classe!: Classe;
+  classe?: Classe;
 
   @ManyToOne(() => Niveau, { nullable: false })
   @ApiProperty({ type: () => Niveau })

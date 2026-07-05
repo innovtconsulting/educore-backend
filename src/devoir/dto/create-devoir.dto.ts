@@ -28,10 +28,10 @@ export class CreateDevoirDto {
   @IsNotEmpty()
   matiereId!: number;
 
-  @ApiProperty({ example: 1 })
+  @ApiProperty({ example: 1, required: false })
+  @IsOptional()
   @IsNumber()
-  @IsNotEmpty()
-  classeId!: number;
+  classeId?: number;
 
   @ApiProperty({ example: 1 })
   @IsNumber()

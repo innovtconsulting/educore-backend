@@ -67,9 +67,9 @@ export class DevoirService {
     const devoir = this.devoirRepository.create({
       ...data,
       matiere: { id: matiereId },
-      classe: { id: classeId },
+      ...(classeId ? { classe: { id: classeId } } : {}),
       niveau: { id: niveauId },
-      enseignant: { id: user.enseignantId || user.id }, // Fallback for admin
+      enseignant: { id: user.enseignantId || user.id },
       documents,
     });
 
@@ -106,10 +106,14 @@ export class DevoirService {
         })) as any;
 
       if (etudiant) {
-        query.andWhere('classe.id = :classeId AND niveau.id = :niveauId', {
-          classeId: etudiant.classe.id,
+        query.andWhere('niveau.id = :niveauId', {
           niveauId: etudiant.niveau.id,
         });
+        if (etudiant.classe?.id) {
+          query.andWhere('classe.id = :classeId', {
+            classeId: etudiant.classe.id,
+          });
+        }
       }
     }
 
@@ -258,8 +262,10 @@ export class DevoirService {
           relations: { classe: true, niveau: true },
         })) as any;
 
+      const classMatch =
+        !devoir.classe || etudiant.classe?.id === devoir.classe.id;
       if (
-        etudiant.classe.id !== devoir.classe.id ||
+        !classMatch ||
         etudiant.niveau.id !== devoir.niveau.id
       ) {
         throw new ForbiddenException(
