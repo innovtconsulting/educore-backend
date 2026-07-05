@@ -93,7 +93,7 @@ export class DevoirService {
       .createQueryBuilder('d')
       .leftJoinAndSelect('d.matiere', 'matiere')
       .leftJoinAndSelect('d.classe', 'classe')
-      .leftJoinAndSelect('classe.etablissement', 'etablissement')
+      .leftJoinAndSelect('d.etablissement', 'etablissement')
       .leftJoinAndSelect('d.niveau', 'niveau')
       .leftJoinAndSelect('d.enseignant', 'enseignant')
       .leftJoinAndSelect('d.documents', 'documents');
@@ -153,7 +153,7 @@ export class DevoirService {
       .createQueryBuilder('d')
       .leftJoinAndSelect('d.matiere', 'matiere')
       .leftJoinAndSelect('d.classe', 'classe')
-      .leftJoinAndSelect('classe.etablissement', 'etablissement')
+      .leftJoinAndSelect('d.etablissement', 'etablissement')
       .leftJoinAndSelect('d.niveau', 'niveau')
       .leftJoinAndSelect('d.enseignant', 'enseignant')
       .leftJoinAndSelect('d.documents', 'documents')
@@ -173,7 +173,7 @@ export class DevoirService {
     const query = this.devoirRepository
       .createQueryBuilder('d')
       .leftJoinAndSelect('d.classe', 'classe')
-      .leftJoinAndSelect('classe.etablissement', 'etablissement')
+      .leftJoinAndSelect('d.etablissement', 'etablissement')
       .where('classe.id = :classeId', { classeId })
       .andWhere('d.niveau.id = :niveauId', { niveauId });
 
@@ -194,7 +194,7 @@ export class DevoirService {
       .createQueryBuilder('d')
       .leftJoinAndSelect('d.matiere', 'matiere')
       .leftJoinAndSelect('d.classe', 'classe')
-      .leftJoinAndSelect('classe.etablissement', 'etablissement')
+      .leftJoinAndSelect('d.etablissement', 'etablissement')
       .leftJoinAndSelect('d.niveau', 'niveau')
       .leftJoinAndSelect('d.enseignant', 'enseignant')
       .leftJoinAndSelect('d.documents', 'documents')
@@ -300,6 +300,7 @@ export class DevoirService {
         etudiant: { id: user.etudiantId },
         document: { id: documentId },
         comment,
+        etablissement: { id: devoir.etablissement.id },
       });
     }
 
