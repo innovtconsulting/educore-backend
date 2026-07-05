@@ -31,10 +31,26 @@ export class DevoirController {
   constructor(private readonly devoirService: DevoirService) {}
 
   @Post()
+  @Roles(Role.ENSEIGNANT)
   @Permissions('ACADEMIC_MANAGE')
   @ApiOperation({ summary: 'Créer un nouveau devoir' })
   create(@Body() createDevoirDto: CreateDevoirDto, @Request() req: any) {
     return this.devoirService.create(createDevoirDto, req.user);
+  }
+
+  @Get('teacher')
+  @Roles(Role.ENSEIGNANT)
+  @ApiOperation({ summary: "Lister les devoirs de l'enseignant connecté" })
+  findForTeacher(
+    @Query() paginationQuery: PaginationQueryDto,
+    @Request() req: any,
+    @CurrentEtablissement() tenantId?: number,
+  ) {
+    return this.devoirService.findByTeacher(
+      req.user.enseignantId,
+      paginationQuery,
+      tenantId,
+    );
   }
 
   @Get()
@@ -60,7 +76,7 @@ export class DevoirController {
   }
 
   @Get(':id')
-  @Roles(Role.ETUDIANT, Role.PARENT)
+  @Roles(Role.ETUDIANT, Role.PARENT, Role.ENSEIGNANT)
   @ApiOperation({ summary: 'Récupérer un devoir par ID' })
   findOne(@Param('id') id: string, @CurrentEtablissement() tenantId?: number) {
     return this.devoirService.findOne(+id, tenantId);
@@ -111,6 +127,7 @@ export class DevoirController {
   }
 
   @Get(':id/soumissions')
+  @Roles(Role.ENSEIGNANT)
   @Permissions('ACADEMIC_MANAGE')
   @ApiOperation({ summary: 'Lister tous les rendus pour un devoir' })
   async findAllSubmissions(@Param('id') id: string, @Request() req: any) {

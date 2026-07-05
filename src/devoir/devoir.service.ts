@@ -127,6 +127,34 @@ export class DevoirService {
     };
   }
 
+  async findByTeacher(
+    enseignantId: number,
+    paginationQuery: PaginationQueryDto,
+    tenantId?: number,
+  ) {
+    const { page = 1, limit = 15 } = paginationQuery;
+    const skip = (page - 1) * limit;
+
+    const [items, total] = await this.devoirRepository
+      .createQueryBuilder('d')
+      .leftJoinAndSelect('d.matiere', 'matiere')
+      .leftJoinAndSelect('d.classe', 'classe')
+      .leftJoinAndSelect('classe.etablissement', 'etablissement')
+      .leftJoinAndSelect('d.niveau', 'niveau')
+      .leftJoinAndSelect('d.enseignant', 'enseignant')
+      .leftJoinAndSelect('d.documents', 'documents')
+      .where('enseignant.id = :enseignantId', { enseignantId })
+      .andWhere(tenantId ? 'etablissement.id = :tenantId' : '1=1', {
+        tenantId,
+      })
+      .orderBy('d.deadline', 'ASC')
+      .skip(skip)
+      .take(limit)
+      .getManyAndCount();
+
+    return { items, total, page, limit };
+  }
+
   async findByClasse(classeId: number, niveauId: number, tenantId?: number) {
     const query = this.devoirRepository
       .createQueryBuilder('d')
