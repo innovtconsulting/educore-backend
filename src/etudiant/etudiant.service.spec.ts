@@ -6,10 +6,6 @@ import { Etablissement } from '../etablissement/entities/etablissement.entity';
 import { Classe } from '../classe/entities/classe.entity';
 import { Niveau } from '../niveau/entities/niveau.entity';
 import { Parent } from '../parent/entities/parent.entity';
-import { UserService } from '../user/user.service';
-import { ClasseService } from '../classe/classe.service';
-import { NiveauService } from '../niveau/niveau.service';
-import { DataSource } from 'typeorm';
 
 describe('EtudiantService', () => {
   let service: EtudiantService;
@@ -21,21 +17,6 @@ describe('EtudiantService', () => {
     save: jest.fn(),
     find: jest.fn(),
     remove: jest.fn(),
-    findAndCount: jest.fn(),
-    createQueryBuilder: jest.fn(),
-  };
-
-  const mockUserService = {
-    create: jest.fn(),
-    update: jest.fn(),
-    findByEmail: jest.fn(),
-    findOne: jest.fn(),
-    remove: jest.fn(),
-  };
-
-  const mockDataSource = {
-    createQueryRunner: jest.fn(),
-    transaction: jest.fn(),
   };
 
   beforeEach(async () => {
@@ -61,26 +42,6 @@ describe('EtudiantService', () => {
         {
           provide: getRepositoryToken(Parent),
           useValue: mockRepository,
-        },
-        {
-          provide: UserService,
-          useValue: mockUserService,
-        },
-        {
-          provide: ClasseService,
-          useValue: {
-            findOne: jest.fn(),
-          },
-        },
-        {
-          provide: NiveauService,
-          useValue: {
-            findOne: jest.fn(),
-          },
-        },
-        {
-          provide: DataSource,
-          useValue: mockDataSource,
         },
       ],
     }).compile();

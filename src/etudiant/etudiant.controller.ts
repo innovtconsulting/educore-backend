@@ -11,13 +11,11 @@ import {
   BadRequestException,
   Query,
   UseGuards,
-  Request,
 } from '@nestjs/common';
 import { EtudiantService } from './etudiant.service';
 import { CreateEtudiantDto } from './dto/create-etudiant.dto';
 import { UpdateEtudiantDto } from './dto/update-etudiant.dto';
 import { ValidateEtudiantDto } from './dto/validate-etudiant.dto';
-import { BulkDeleteEtudiantDto } from './dto/bulk-delete-etudiant.dto';
 import {
   ApiTags,
   ApiOperation,
@@ -35,7 +33,6 @@ import { Roles } from '../auth/decorators/roles.decorator';
 import { Permissions } from '../auth/decorators/permissions.decorator';
 import { Role } from '../user/entities/user.entity';
 import { Public } from '../auth/decorators/public.decorator';
-import { CurrentEtablissement } from '../auth/decorators/current-etablissement.decorator';
 
 import {
   CheckImportResultDto,
@@ -53,11 +50,8 @@ export class EtudiantController {
   @Post()
   @Permissions('STUDENT_CREATE')
   @ApiOperation({ summary: 'Créer un nouvel étudiant' })
-  async create(
-    @Body() createEtudiantDto: CreateEtudiantDto,
-    @CurrentEtablissement() tenantId?: number,
-  ) {
-    const data = await this.etudiantService.create(createEtudiantDto, tenantId);
+  async create(@Body() createEtudiantDto: CreateEtudiantDto) {
+    const data = await this.etudiantService.create(createEtudiantDto);
     return {
       message: 'Étudiant créé avec succès',
       data,
@@ -67,12 +61,8 @@ export class EtudiantController {
   @Get()
   @Permissions('STUDENT_VIEW')
   @ApiOperation({ summary: 'Récupérer tous les étudiants' })
-  async findAll(
-    @Query() filterDto: EtudiantFilterDto,
-    @Request() req: any,
-    @CurrentEtablissement() tenantId?: number,
-  ) {
-    const data = await this.etudiantService.findAll(filterDto, tenantId, req.user);
+  async findAll(@Query() filterDto: EtudiantFilterDto) {
+    const data = await this.etudiantService.findAll(filterDto);
     return {
       message: 'Liste des étudiants récupérée avec succès',
       data,
@@ -82,11 +72,8 @@ export class EtudiantController {
   @Get(':id')
   @Permissions('STUDENT_VIEW')
   @ApiOperation({ summary: 'Récupérer un étudiant par son ID' })
-  async findOne(
-    @Param('id') id: string,
-    @CurrentEtablissement() tenantId?: number,
-  ) {
-    const data = await this.etudiantService.findOne(+id, tenantId);
+  async findOne(@Param('id') id: string) {
+    const data = await this.etudiantService.findOne(+id);
     return {
       message: `Étudiant #${id} récupéré avec succès`,
       data,
@@ -101,13 +88,8 @@ export class EtudiantController {
   async update(
     @Param('id') id: string,
     @Body() updateEtudiantDto: UpdateEtudiantDto,
-    @CurrentEtablissement() tenantId?: number,
   ) {
-    const data = await this.etudiantService.update(
-      +id,
-      updateEtudiantDto,
-      tenantId,
-    );
+    const data = await this.etudiantService.update(+id, updateEtudiantDto);
     return {
       message: `Étudiant #${id} mis à jour avec succès`,
       data,
@@ -120,12 +102,10 @@ export class EtudiantController {
   async validate(
     @Param('id') id: string,
     @Body() validateDto: ValidateEtudiantDto,
-    @CurrentEtablissement() tenantId?: number,
   ) {
     const data = await this.etudiantService.validateEnrollment(
       +id,
       validateDto,
-      tenantId,
     );
     return {
       message: `L'inscription de l'étudiant #${id} a été validée avec succès`,
@@ -136,32 +116,10 @@ export class EtudiantController {
   @Delete(':id')
   @Permissions('STUDENT_DELETE')
   @ApiOperation({ summary: 'Supprimer un étudiant' })
-  async remove(
-    @Param('id') id: string,
-    @CurrentEtablissement() tenantId?: number,
-  ) {
-    await this.etudiantService.remove(+id, tenantId);
+  async remove(@Param('id') id: string) {
+    await this.etudiantService.remove(+id);
     return {
       message: `Étudiant #${id} supprimé avec succès`,
-    };
-  }
-
-  @Post('bulk-delete')
-  @Permissions('STUDENT_DELETE')
-  @ApiOperation({
-    summary:
-      "Supprimer plusieurs étudiants en une fois (cascade sur inscriptions, factures/paiements, notes, sanctions, présences, devoirs, certificats et compte utilisateur)",
-  })
-  async bulkRemove(
-    @Body() dto: BulkDeleteEtudiantDto,
-    @CurrentEtablissement() tenantId?: number,
-  ) {
-    const { deletedCount } = await this.etudiantService.bulkRemove(
-      dto.ids,
-      tenantId,
-    );
-    return {
-      message: `${deletedCount} étudiant${deletedCount > 1 ? 's' : ''} supprimé${deletedCount > 1 ? 's' : ''} avec succès`,
     };
   }
 
@@ -211,12 +169,10 @@ export class EtudiantController {
   async uploadFile(
     @Param('id') id: string,
     @UploadedFile() file: Express.Multer.File,
-    @CurrentEtablissement() tenantId?: number,
   ) {
     const data = await this.etudiantService.updateProfilePicture(
       +id,
       file.path,
-      tenantId,
     );
     return {
       message: 'Photo de profil mise à jour avec succès',
@@ -243,13 +199,11 @@ export class EtudiantController {
   async validateImport(
     @UploadedFile() file: Express.Multer.File,
     @Query('sheetName') sheetName?: string,
-    @CurrentEtablissement() tenantId?: number,
   ) {
     if (!file) throw new BadRequestException('Fichier Excel manquant');
     const data = await this.etudiantService.validateImport(
       file.buffer,
       sheetName,
-      tenantId,
     );
     return {
       message: 'Validation terminée',
@@ -262,14 +216,8 @@ export class EtudiantController {
   @ApiOperation({
     summary: "Confirmer l'importation des étudiants (ancienne version)",
   })
-  async confirmImport(
-    @Body() confirmDto: any,
-    @CurrentEtablissement() tenantId?: number,
-  ) {
-    const data = await this.etudiantService.confirmImport(
-      confirmDto.students,
-      tenantId,
-    );
+  async confirmImport(@Body() confirmDto: any) {
+    const data = await this.etudiantService.confirmImport(confirmDto.students);
     return {
       message: 'Importation terminée',
       data,
@@ -291,10 +239,9 @@ export class EtudiantController {
   @UseInterceptors(FileInterceptor('file'))
   async checkImportV2(
     @UploadedFile() file: Express.Multer.File,
-    @CurrentEtablissement() tenantId?: number,
   ): Promise<{ message: string; data: CheckImportResultDto }> {
     if (!file) throw new BadRequestException('Fichier Excel manquant');
-    const data = await this.etudiantService.checkImport(file.buffer, tenantId);
+    const data = await this.etudiantService.checkImport(file.buffer);
     return {
       message: 'Vérification terminée',
       data,
@@ -318,7 +265,6 @@ export class EtudiantController {
   async runImportV2(
     @UploadedFile() file: Express.Multer.File,
     @Body('data') dataStr?: string,
-    @CurrentEtablissement() tenantId?: number,
   ): Promise<{ message: string; data: ImportReportDto }> {
     if (!file) throw new BadRequestException('Fichier Excel manquant');
 
@@ -331,11 +277,7 @@ export class EtudiantController {
       }
     }
 
-    const data = await this.etudiantService.runImport(
-      file.buffer,
-      runDto,
-      tenantId,
-    );
+    const data = await this.etudiantService.runImport(file.buffer, runDto);
     return {
       message: 'Importation terminée',
       data,
