@@ -18,6 +18,13 @@ import { Sanction } from '../../sanction/entities/sanction.entity';
 import { User } from '../../user/entities/user.entity';
 import { Inscription } from './inscription.entity';
 
+export enum SerieBac {
+  A = 'A',
+  C = 'C',
+  D = 'D',
+  OSE = 'OSe',
+}
+
 export enum EnrollmentStatus {
   ACTIF = 'Actif',
   INACTIF = 'Inactif',
@@ -80,6 +87,9 @@ export class Etudiant {
 
   @Column({ nullable: true })
   cinDeliveryPlace!: string;
+
+  @Column({ type: 'varchar', nullable: true })
+  serieBac?: SerieBac;
 
   // Documents fournis (Checklist)
   @Column({ default: false })

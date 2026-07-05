@@ -232,24 +232,36 @@ export class InscriptionService {
       etudiant.niveau = niveau;
       await queryRunner.manager.save(etudiant);
 
-      // 5. Automatisation financière : Générer les factures de la nouvelle année
+      // 5. Automatisation financière : Générer les factures des frais de la
+      // nouvelle année universitaire pour ce parcours/niveau (les frais sont
+      // eux-mêmes scopés par année, donc filtrés sur "annee" pour ne pas
+      // reprendre des frais d'années précédentes).
       const frais = await queryRunner.manager.find(Frais, {
         where: {
           classe: { id: classeId },
           niveau: { id: niveauId },
           etablissementId: etudiant.etablissement.id,
+          anneeUniversitaireId: annee.id,
         },
       });
 
       for (const f of frais) {
-        const timestamp = Date.now();
+        // Évite de dupliquer une facture déjà générée pour ce frais/étudiant
+        // (contrainte unique fraisId+etudiantId sur Facture).
+        const existing = await queryRunner.manager.findOne(Facture, {
+          where: { fraisId: f.id, etudiantId: etudiant.id },
+        });
+        if (existing) continue;
+
         const facture = queryRunner.manager.create(Facture, {
-          numero: `FAC-${annee.label}-${etudiant.id}-${f.type.toUpperCase()}-${timestamp}`,
-          etudiant,
+          numero: `FACT-${annee.label}-${f.id}-${etudiant.id}`,
+          frais: f,
+          etudiantId: etudiant.id,
+          etablissementId: etudiant.etablissement.id,
+          anneeUniversitaire: annee,
           dateEmission: new Date(),
-          montantTotal: f.amount, // Utilisation de amount de Frais
-          status: InvoiceStatus.VALIDE, // Facture directement validée
-          notes: `Génération automatique - Réinscription ${annee.label} (${f.name})`,
+          montantTotal: f.amount,
+          status: InvoiceStatus.VALIDE,
         });
         await queryRunner.manager.save(facture);
       }

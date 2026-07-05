@@ -11,7 +11,7 @@ import {
   ValidateNested,
 } from 'class-validator';
 import { Type } from 'class-transformer';
-import { EnrollmentStatus } from '../entities/etudiant.entity';
+import { EnrollmentStatus, SerieBac } from '../entities/etudiant.entity';
 import { CreateParentDto } from '../../parent/dto/create-parent.dto';
 
 export class CreateEtudiantDto {
@@ -79,6 +79,11 @@ export class CreateEtudiantDto {
   @IsString()
   @IsOptional()
   cinDeliveryPlace?: string;
+
+  @ApiProperty({ enum: SerieBac, example: SerieBac.D })
+  @IsEnum(SerieBac)
+  @IsNotEmpty()
+  serieBac!: SerieBac;
 
   // Documents fournis
   @ApiProperty({ default: false, required: false })
