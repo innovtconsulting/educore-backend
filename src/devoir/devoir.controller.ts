@@ -34,8 +34,12 @@ export class DevoirController {
   @Roles(Role.ENSEIGNANT)
   @Permissions('ACADEMIC_MANAGE')
   @ApiOperation({ summary: 'Créer un nouveau devoir' })
-  create(@Body() createDevoirDto: CreateDevoirDto, @Request() req: any) {
-    return this.devoirService.create(createDevoirDto, req.user);
+  create(
+    @Body() createDevoirDto: CreateDevoirDto,
+    @Request() req: any,
+    @CurrentEtablissement() tenantId?: number,
+  ) {
+    return this.devoirService.create(createDevoirDto, req.user, tenantId);
   }
 
   @Get('teacher')

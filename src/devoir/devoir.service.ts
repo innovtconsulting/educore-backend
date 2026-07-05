@@ -29,7 +29,11 @@ export class DevoirService {
     private readonly enseignantService: EnseignantService,
   ) {}
 
-  async create(createDevoirDto: CreateDevoirDto, user: any) {
+  async create(
+    createDevoirDto: CreateDevoirDto,
+    user: any,
+    tenantId?: number,
+  ) {
     const { matiereId, classeId, niveauId, documentIds, ...data } =
       createDevoirDto;
 
@@ -70,6 +74,7 @@ export class DevoirService {
       classe: classeId ? ({ id: classeId } as any) : null,
       niveau: { id: niveauId },
       enseignant: { id: user.enseignantId || user.id },
+      etablissement: { id: tenantId || user.etablissementId },
       documents,
     });
 
