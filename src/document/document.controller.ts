@@ -11,7 +11,12 @@ import {
   BadRequestException,
   Query,
   UseGuards,
+  Res,
+  StreamableFile,
 } from '@nestjs/common';
+import { Response } from 'express';
+import { createReadStream } from 'fs';
+import { join } from 'path';
 import { DocumentService } from './document.service';
 import { CreateDocumentDto } from './dto/create-document.dto';
 import { UpdateDocumentDto } from './dto/update-document.dto';
@@ -190,6 +195,31 @@ export class DocumentController {
       message: 'Liste des documents récupérée avec succès',
       data,
     };
+  }
+
+  @Get(':id/download')
+  @Roles(
+    Role.ETUDIANT,
+    Role.PARENT,
+    Role.ENSEIGNANT,
+    Role.ADMIN,
+    Role.SURVEILLANT,
+    Role.COMPTABLE,
+  )
+  @ApiOperation({ summary: 'Télécharger le fichier physique' })
+  async download(
+    @Param('id') id: string,
+    @CurrentEtablissement() tenantId?: number,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    const doc = await this.documentService.findOne(+id, tenantId);
+    const filePath = join(process.cwd(), doc.filePath);
+    const stream = createReadStream(filePath);
+    res.set({
+      'Content-Disposition': `attachment; filename="${doc.originalName || doc.title}"`,
+      'Content-Type': doc.mimeType || 'application/octet-stream',
+    });
+    return new StreamableFile(stream);
   }
 
   @Get(':id')
