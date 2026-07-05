@@ -33,7 +33,7 @@ export class TransformInterceptor<T> implements NestInterceptor<
   intercept(
     context: ExecutionContext,
     next: CallHandler,
-  ): Observable<Response<T>> {
+  ): Observable<any> {
     return next.handle().pipe(
       map((data) => {
         if (data instanceof StreamableFile) {
