@@ -28,7 +28,7 @@ type PaginatedPayload<T> = {
 @Injectable()
 export class TransformInterceptor<T> implements NestInterceptor<
   T,
-  Response<T>
+  any
 > {
   intercept(
     context: ExecutionContext,
