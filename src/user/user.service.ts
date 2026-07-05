@@ -50,6 +50,15 @@ export class UserService {
       }
     }
 
+    if (userData.phoneNumber) {
+      const existingByPhone = await this.userRepository.findOne({
+        where: { phoneNumber: userData.phoneNumber },
+      });
+      if (existingByPhone) {
+        throw new ConflictException('Numéro de téléphone déjà utilisé');
+      }
+    }
+
     const password = userData.password || '12345678';
     userData.password = await bcrypt.hash(password, 10);
 
@@ -123,23 +132,56 @@ export class UserService {
     return await queryRunner.manager.save(user);
   }
 
+  private readonly fullUserRelations = {
+    enseignant: {
+      affectations: {
+        etablissement: true,
+        matiere: true,
+        niveau: { classe: true },
+      },
+    },
+    etudiant: { etablissement: true, classe: true, niveau: true },
+    parent: { etudiants: { etablissement: true } },
+    etablissement: true,
+    aclRole: { permissions: true },
+  };
+
   async findByEmail(email: string): Promise<User | null> {
     const normalizedEmail = email.toLowerCase().trim();
     return await this.userRepository.findOne({
       where: { email: normalizedEmail },
-      relations: {
-        enseignant: {
-          affectations: {
-            etablissement: true,
-            matiere: true,
-            niveau: { classe: true },
-          },
-        },
-        etudiant: { etablissement: true, classe: true, niveau: true },
-        parent: { etudiants: { etablissement: true } },
-        etablissement: true,
-        aclRole: { permissions: true },
-      },
+      relations: this.fullUserRelations,
+    });
+  }
+
+  // Utilisé uniquement pour la connexion : accepte l'email OU le numéro de
+  // téléphone comme identifiant. Le téléphone peut vivre à deux endroits
+  // selon le rôle : directement sur User.phoneNumber (Admin/SuperAdmin/
+  // Comptable/Surveillant, qui n'ont pas de profil lié), ou sur le profil
+  // lié (enseignant.phone, etudiant.phoneNumber, parent.phoneNumber).
+  async findByLoginIdentifier(identifier: string): Promise<User | null> {
+    const normalized = identifier.toLowerCase().trim();
+
+    const direct = await this.userRepository.findOne({
+      where: [{ email: normalized }, { phoneNumber: normalized }],
+      relations: this.fullUserRelations,
+    });
+    if (direct) return direct;
+
+    const match = await this.userRepository
+      .createQueryBuilder('user')
+      .leftJoin('user.enseignant', 'enseignant')
+      .leftJoin('user.etudiant', 'etudiant')
+      .leftJoin('user.parent', 'parent')
+      .where('enseignant.phone = :identifier', { identifier: normalized })
+      .orWhere('etudiant.phoneNumber = :identifier', { identifier: normalized })
+      .orWhere('parent.phoneNumber = :identifier', { identifier: normalized })
+      .getOne();
+
+    if (!match) return null;
+    return this.userRepository.findOne({
+      where: { id: match.id },
+      relations: this.fullUserRelations,
     });
   }
 
@@ -381,6 +423,21 @@ export class UserService {
         email,
         firstName: username && user.role === Role.PARENT ? username : undefined,
       });
+    } else if (
+      !user.etudiant &&
+      !user.enseignant &&
+      !user.parent &&
+      phoneNumber &&
+      phoneNumber !== user.phoneNumber
+    ) {
+      // Comptes sans profil lié (Admin, SuperAdmin, Comptable, Surveillant) :
+      // le numéro de téléphone est stocké directement sur le User.
+      const existing = await this.userRepository.findOne({
+        where: { phoneNumber },
+      });
+      if (existing)
+        throw new ConflictException('Numéro de téléphone déjà utilisé');
+      user.phoneNumber = phoneNumber;
     }
 
     await this.userRepository.save(user);

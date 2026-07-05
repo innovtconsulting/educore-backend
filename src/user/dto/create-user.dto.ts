@@ -15,6 +15,15 @@ export class CreateUserDto {
   @IsOptional()
   email?: string;
 
+  @ApiProperty({
+    example: '+221 77 000 00 00',
+    required: false,
+    description: 'Identifiant de connexion alternatif (Admin/Comptable/Surveillant)',
+  })
+  @IsString()
+  @IsOptional()
+  phoneNumber?: string;
+
   @ApiProperty({ example: 'adminuser', required: false })
   @IsString()
   @IsOptional()

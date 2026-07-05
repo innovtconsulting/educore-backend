@@ -39,6 +39,14 @@ export class User {
   @ApiProperty()
   email: string | null;
 
+  // Uniquement utilisé comme identifiant de connexion alternatif pour les
+  // comptes sans profil lié (Admin, SuperAdmin, Comptable, Surveillant) —
+  // pour Etudiant/Enseignant/Parent, le numéro de téléphone vit sur leur
+  // profil respectif (etudiant.phoneNumber, enseignant.phone, parent.phoneNumber).
+  @Column({ type: 'varchar', unique: true, nullable: true })
+  @ApiProperty({ required: false })
+  phoneNumber?: string | null;
+
   @Column({ nullable: true })
   @ApiProperty()
   username?: string;
