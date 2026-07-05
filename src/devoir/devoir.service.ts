@@ -67,7 +67,7 @@ export class DevoirService {
     const devoir = this.devoirRepository.create({
       ...data,
       matiere: { id: matiereId },
-      ...(classeId ? { classe: { id: classeId } } : {}),
+      classe: classeId ? ({ id: classeId } as any) : null,
       niveau: { id: niveauId },
       enseignant: { id: user.enseignantId || user.id },
       documents,
@@ -109,10 +109,15 @@ export class DevoirService {
         query.andWhere('niveau.id = :niveauId', {
           niveauId: etudiant.niveau.id,
         });
+        // Si le devoir a une classe, filtrer par classe aussi
+        // Sinon (classe IS NULL), visible par toutes les classes du niveau
         if (etudiant.classe?.id) {
-          query.andWhere('classe.id = :classeId', {
-            classeId: etudiant.classe.id,
-          });
+          query.andWhere(
+            '(classe.id IS NULL OR classe.id = :classeId)',
+            { classeId: etudiant.classe.id },
+          );
+        } else {
+          query.andWhere('classe.id IS NULL');
         }
       }
     }
