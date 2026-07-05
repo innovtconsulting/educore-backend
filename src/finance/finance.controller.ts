@@ -120,9 +120,16 @@ export class FinanceController {
   })
   async getFacturesByScope(
     @Param('fraisId', ParseIntPipe) fraisId: number,
+    @Query('search') search?: string,
+    @Query('status') status?: string,
     @CurrentEtablissement() tenantId?: number,
   ) {
-    const data = await this.financeService.getFacturesByScope(fraisId, tenantId);
+    const data = await this.financeService.getFacturesByScope(
+      fraisId,
+      tenantId,
+      search,
+      status,
+    );
     return { message: 'Liste des factures récupérée avec succès', data };
   }
 

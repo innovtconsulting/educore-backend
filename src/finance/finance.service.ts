@@ -4,7 +4,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Between, Repository } from 'typeorm';
+import { Between, ILike, Not, Repository } from 'typeorm';
 import { randomUUID } from 'crypto';
 import { Frais, FeeType } from './entities/frais.entity';
 import { Facture, InvoiceStatus } from './entities/facture.entity';
@@ -376,7 +376,12 @@ export class FinanceService {
 
   // --- Étudiants + factures d'un scope (classe+niveau) ---
 
-  async getFacturesByScope(fraisId: number, tenantId?: number) {
+  async getFacturesByScope(
+    fraisId: number,
+    tenantId?: number,
+    search?: string,
+    status?: string,
+  ) {
     const where: any = { id: fraisId };
     if (tenantId) where.etablissementId = tenantId;
 
@@ -386,8 +391,24 @@ export class FinanceService {
     });
     if (!frais) throw new NotFoundException('Frais introuvable');
 
+    const baseWhere: any = { fraisId };
+    if (status) {
+      // "Impayée" est volontairement large côté métier : elle regroupe les
+      // factures partiellement payées ET celles qui n'ont encore rien reçu.
+      baseWhere.status =
+        status === 'Impayée' ? Not(InvoiceStatus.PAYE) : status;
+    }
+
+    const factureWhere = search
+      ? [
+          { ...baseWhere, etudiant: { firstName: ILike(`%${search}%`) } },
+          { ...baseWhere, etudiant: { lastName: ILike(`%${search}%`) } },
+          { ...baseWhere, etudiant: { matricule: ILike(`%${search}%`) } },
+        ]
+      : baseWhere;
+
     const factures = await this.factureRepository.find({
-      where: { fraisId },
+      where: factureWhere,
       relations: { etudiant: true, paiements: true },
       order: { id: 'ASC' },
     });
