@@ -11,7 +11,7 @@ import {
   ValidateNested,
 } from 'class-validator';
 import { Type } from 'class-transformer';
-import { EnrollmentStatus } from '../entities/etudiant.entity';
+import { BaccSerie, EnrollmentStatus } from '../entities/etudiant.entity';
 import { CreateParentDto } from '../../parent/dto/create-parent.dto';
 
 export class CreateEtudiantDto {
@@ -86,6 +86,11 @@ export class CreateEtudiantDto {
   @IsOptional()
   baccDiploma?: boolean;
 
+  @ApiProperty({ enum: BaccSerie, required: false })
+  @IsEnum(BaccSerie)
+  @IsOptional()
+  baccSerie?: BaccSerie | null;
+
   @ApiProperty({ default: false, required: false })
   @IsBoolean()
   @IsOptional()
@@ -110,11 +115,6 @@ export class CreateEtudiantDto {
   @IsBoolean()
   @IsOptional()
   transfertFile?: boolean;
-
-  @ApiProperty({ default: false, required: false })
-  @IsBoolean()
-  @IsOptional()
-  releveNotes?: boolean;
 
   @ApiProperty({ default: false, required: false })
   @IsBoolean()
@@ -145,15 +145,10 @@ export class CreateEtudiantDto {
   @IsOptional()
   status?: EnrollmentStatus;
 
-  @ApiProperty({
-    example: 1,
-    description:
-      "ID de l'établissement (optionnel pour admin, déduit du token)",
-    required: false,
-  })
+  @ApiProperty({ example: 1, description: "ID de l'établissement" })
   @IsNumber()
-  @IsOptional()
-  etablissementId?: number;
+  @IsNotEmpty()
+  etablissementId!: number;
 
   @ApiProperty({ example: 1, description: 'ID de la classe' })
   @IsNumber()

@@ -16,7 +16,6 @@ import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { Permissions } from '../auth/decorators/permissions.decorator';
 import { Role } from '../user/entities/user.entity';
-import { CurrentEtablissement } from '../auth/decorators/current-etablissement.decorator';
 
 @ApiTags('inscriptions')
 @ApiBearerAuth()
@@ -28,28 +27,22 @@ export class InscriptionController {
   @Post('reinscrire')
   @Permissions('STUDENT_VALIDATE')
   @ApiOperation({ summary: 'Réinscrire un étudiant pour une nouvelle année' })
-  reinscrire(
-    @Body() createInscriptionDto: CreateInscriptionDto,
-    @CurrentEtablissement() tenantId?: number,
-  ) {
-    return this.inscriptionService.reinscrire(createInscriptionDto, tenantId);
+  reinscrire(@Body() createInscriptionDto: CreateInscriptionDto) {
+    return this.inscriptionService.reinscrire(createInscriptionDto);
   }
 
   @Post('diplomer/:etudiantId')
   @Permissions('STUDENT_VALIDATE')
   @ApiOperation({ summary: 'Marquer un étudiant comme diplômé' })
-  graduate(
-    @Param('etudiantId') etudiantId: string,
-    @CurrentEtablissement() tenantId?: number,
-  ) {
-    return this.inscriptionService.graduate(+etudiantId, tenantId);
+  graduate(@Param('etudiantId') etudiantId: string) {
+    return this.inscriptionService.graduate(+etudiantId);
   }
 
   @Get('rapport-diplomes')
   @Permissions('STUDENT_VIEW')
   @ApiOperation({ summary: 'Obtenir le rapport des diplômés par année' })
-  getGraduatesReport(@CurrentEtablissement() tenantId?: number) {
-    return this.inscriptionService.getGraduatesReport(tenantId);
+  getGraduatesReport() {
+    return this.inscriptionService.getGraduatesReport();
   }
 
   @Get('eligibilite/:etudiantId')
@@ -57,11 +50,8 @@ export class InscriptionController {
   @ApiOperation({
     summary: "Vérifier l'éligibilité d'un étudiant à la réinscription",
   })
-  checkEligibility(
-    @Param('etudiantId') etudiantId: string,
-    @CurrentEtablissement() tenantId?: number,
-  ) {
-    return this.inscriptionService.checkEligibility(+etudiantId, tenantId);
+  checkEligibility(@Param('etudiantId') etudiantId: string) {
+    return this.inscriptionService.checkEligibility(+etudiantId);
   }
 
   @Get('etudiant/:etudiantId')
@@ -70,11 +60,7 @@ export class InscriptionController {
   @ApiOperation({
     summary: "Consulter l'historique des inscriptions d'un étudiant",
   })
-  getHistory(
-    @Param('etudiantId') etudiantId: string,
-    @Request() req: any,
-    @CurrentEtablissement() tenantId?: number,
-  ) {
+  getHistory(@Param('etudiantId') etudiantId: string, @Request() req: any) {
     // Si c'est un étudiant, il ne peut voir que son propre historique
     if (
       req.user.role === Role.ETUDIANT &&
@@ -84,6 +70,6 @@ export class InscriptionController {
         'Vous ne pouvez consulter que votre propre historique',
       );
     }
-    return this.inscriptionService.getHistory(+etudiantId, tenantId);
+    return this.inscriptionService.getHistory(+etudiantId);
   }
 }

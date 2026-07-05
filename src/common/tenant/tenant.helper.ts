@@ -13,7 +13,10 @@ export class TenantHelper {
     if (!this.shouldApplyTenant(user)) {
       return undefined;
     }
-    return tenantId;
+    return (
+      tenantId ??
+      (user as { etablissementId?: number } | undefined)?.etablissementId
+    );
   }
 
   static addTenantFilter<T>(
@@ -37,9 +40,6 @@ export class TenantHelper {
       }
     }
 
-    // Deep merge pour ne pas écraser les filtres imbriqués déjà présents
-    // (ex: where.etudiant = { id: 270 } + filter.etudiant = { etablissement: { id: X } }
-    //  → résultat: { id: 270, etablissement: { id: X } })
     const deepMerge = (target: any, source: any): any => {
       const result = { ...target };
       for (const key of Object.keys(source)) {

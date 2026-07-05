@@ -21,6 +21,7 @@ import { Facture, InvoiceStatus } from '../finance/entities/facture.entity';
 import { Frais } from '../finance/entities/frais.entity';
 import { BulletinService } from '../bulletin/bulletin.service';
 import { GlobalSettingService } from '../global-setting/global-setting.service';
+import { TenantContext } from '../common/tenant/tenant.context';
 
 @Injectable()
 export class InscriptionService {
@@ -44,7 +45,7 @@ export class InscriptionService {
     private readonly dataSource: DataSource,
   ) {}
 
-  async checkEligibility(etudiantId: number, tenantId?: number) {
+  async checkEligibility(etudiantId: number) {
     const etudiant = await this.etudiantRepository.findOne({
       where: { id: etudiantId },
       relations: {
@@ -76,6 +77,7 @@ export class InscriptionService {
       where: [
         { etudiant: { id: etudiantId }, status: InvoiceStatus.VALIDE },
         { etudiant: { id: etudiantId }, status: InvoiceStatus.PARTIEL },
+        { etudiant: { id: etudiantId }, status: InvoiceStatus.PAYE },
       ],
     });
 
@@ -136,17 +138,15 @@ export class InscriptionService {
     // Récupérer les seuils depuis les paramètres globaux (avec valeurs par défaut si non configurés)
     const passingGradeStr = await this.globalSettingService.getValue(
       'ACADEMIC_PASSING_GRADE',
-      '10',
-      tenantId,
     );
     const eliminationThresholdStr = await this.globalSettingService.getValue(
       'ACADEMIC_ELIMINATION_THRESHOLD',
-      '4',
-      tenantId,
     );
 
-    const passingGrade = parseFloat(passingGradeStr ?? '10');
-    const eliminationThreshold = parseFloat(eliminationThresholdStr ?? '4');
+    const passingGrade = passingGradeStr ? parseFloat(passingGradeStr) : 10;
+    const eliminationThreshold = eliminationThresholdStr
+      ? parseFloat(eliminationThresholdStr)
+      : 4;
 
     if (moyenneAnnuelle < passingGrade) {
       return {
@@ -171,11 +171,11 @@ export class InscriptionService {
     };
   }
 
-  async reinscrire(dto: CreateInscriptionDto, tenantId?: number) {
+  async reinscrire(dto: CreateInscriptionDto) {
     const { etudiantId, anneeUniversitaireId, classeId, niveauId } = dto;
 
     // 1. Vérifier l'éligibilité
-    const eligibility = await this.checkEligibility(etudiantId, tenantId);
+    const eligibility = await this.checkEligibility(etudiantId);
     if (!eligibility.eligible) {
       throw new BadRequestException(
         `Réinscription refusée : ${eligibility.reason}`,
@@ -191,14 +191,14 @@ export class InscriptionService {
         where: { id: etudiantId },
         relations: { inscriptions: true, etablissement: true },
       });
-      const annee = await queryRunner.manager.findOne(AnneeUniversitaire, {
-        where: { id: anneeUniversitaireId },
+      const annee = await queryRunner.manager.findOneBy(AnneeUniversitaire, {
+        id: anneeUniversitaireId,
       });
-      const classe = await queryRunner.manager.findOne(Classe, {
-        where: { id: classeId },
+      const classe = await queryRunner.manager.findOneBy(Classe, {
+        id: classeId,
       });
-      const niveau = await queryRunner.manager.findOne(Niveau, {
-        where: { id: niveauId },
+      const niveau = await queryRunner.manager.findOneBy(Niveau, {
+        id: niveauId,
       });
 
       if (!etudiant || !annee || !classe || !niveau)
@@ -268,7 +268,7 @@ export class InscriptionService {
     }
   }
 
-  async getHistory(etudiantId: number, tenantId?: number) {
+  async getHistory(etudiantId: number) {
     return await this.inscriptionRepository.find({
       where: { etudiant: { id: etudiantId } },
       relations: { anneeUniversitaire: true, classe: true, niveau: true },
@@ -276,9 +276,9 @@ export class InscriptionService {
     });
   }
 
-  async graduate(etudiantId: number, tenantId?: number) {
+  async graduate(etudiantId: number) {
     // 1. Vérifier l'éligibilité
-    const eligibility = await this.checkEligibility(etudiantId, tenantId);
+    const eligibility = await this.checkEligibility(etudiantId);
     if (!eligibility.eligible) {
       throw new BadRequestException(
         `Diplomation refusée : ${eligibility.reason}`,
@@ -328,7 +328,9 @@ export class InscriptionService {
     }
   }
 
-  async getGraduatesReport(tenantId?: number) {
+  async getGraduatesReport() {
+    const tenantId = TenantContext.getTenantId();
+
     // Récupérer tous les étudiants diplômés du tenant
     const graduates = await this.etudiantRepository.find({
       where: {

@@ -6,9 +6,10 @@ import { EnrollmentStatus } from '../entities/etudiant.entity';
 
 export class EtudiantFilterDto extends PaginationQueryDto {
   @ApiPropertyOptional({
-    description: 'Filtrer par établissement (réservé au SuperAdmin)',
+    description: "Filtrer par établissement (réservé au SuperAdmin)",
   })
   @IsOptional()
+  @IsInt()
   @Type(() => Number)
   etablissementId?: number;
 
@@ -24,15 +25,15 @@ export class EtudiantFilterDto extends PaginationQueryDto {
     description: 'Filtrer par classe',
   })
   @IsOptional()
-  @Type(() => Number)
   @IsInt()
+  @Type(() => Number)
   classeId?: number;
 
   @ApiPropertyOptional({
     description: 'Filtrer par niveau',
   })
   @IsOptional()
-  @Type(() => Number)
   @IsInt()
+  @Type(() => Number)
   niveauId?: number;
 }

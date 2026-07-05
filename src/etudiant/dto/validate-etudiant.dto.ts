@@ -1,5 +1,12 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsNotEmpty, IsString, IsBoolean, IsOptional } from 'class-validator';
+import {
+  IsBoolean,
+  IsEnum,
+  IsNotEmpty,
+  IsOptional,
+  IsString,
+} from 'class-validator';
+import { BaccSerie } from '../entities/etudiant.entity';
 
 export class ValidateEtudiantDto {
   @ApiProperty({
@@ -18,6 +25,15 @@ export class ValidateEtudiantDto {
   @IsBoolean()
   @IsOptional()
   baccDiploma?: boolean;
+
+  @ApiProperty({
+    enum: BaccSerie,
+    description: 'Série du Bacc',
+    required: false,
+  })
+  @IsEnum(BaccSerie)
+  @IsOptional()
+  baccSerie?: BaccSerie | null;
 
   @ApiProperty({
     example: true,
@@ -63,15 +79,6 @@ export class ValidateEtudiantDto {
   @IsBoolean()
   @IsOptional()
   transfertFile?: boolean;
-
-  @ApiProperty({
-    example: false,
-    description: 'Le relevé de notes est-il fourni ?',
-    required: false,
-  })
-  @IsBoolean()
-  @IsOptional()
-  releveNotes?: boolean;
 
   @ApiProperty({
     example: true,

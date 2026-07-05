@@ -1,4 +1,5 @@
 import {
+  Check,
   Column,
   CreateDateColumn,
   Entity,
@@ -20,7 +21,6 @@ import { Inscription } from './inscription.entity';
 
 export enum EnrollmentStatus {
   ACTIF = 'Actif',
-  INACTIF = 'Inactif',
   REFUSE = 'Refusé',
   EN_ATTENTE = 'En Attente',
   SUSPENDU = 'Suspendu',
@@ -28,7 +28,19 @@ export enum EnrollmentStatus {
   DIPLOME = 'Diplomé',
 }
 
+export enum BaccSerie {
+  A = 'A',
+  C = 'C',
+  D = 'D',
+  S = 'S',
+  OSE = 'OSE',
+}
+
 @Entity()
+@Check(
+  'CHK_etudiant_baccSerie_allowed',
+  `"baccSerie" IS NULL OR "baccSerie" IN ('A', 'C', 'D', 'S', 'OSE')`,
+)
 export class Etudiant {
   @PrimaryGeneratedColumn()
   id!: number;
@@ -85,6 +97,9 @@ export class Etudiant {
   @Column({ default: false })
   baccDiploma!: boolean;
 
+  @Column({ type: 'varchar', nullable: true })
+  baccSerie?: BaccSerie | null;
+
   @Column({ default: false })
   residenceCertificate!: boolean;
 
@@ -99,9 +114,6 @@ export class Etudiant {
 
   @Column({ default: false })
   transfertFile!: boolean;
-
-  @Column({ default: false })
-  releveNotes!: boolean;
 
   @Column({ default: false })
   cartonChemise!: boolean;
