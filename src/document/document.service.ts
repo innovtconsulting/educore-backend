@@ -49,19 +49,36 @@ export class DocumentService {
     const { page = 1, limit = 15, search } = paginationQuery;
     const skip = (page - 1) * limit;
 
-    const extraFilter: FindOptionsWhere<Document> = {};
-    if (classeId) extraFilter.classeId = classeId;
-    if (niveauId) extraFilter.niveauId = niveauId;
-    if (category) extraFilter.category = category as any;
+    const baseFilter: FindOptionsWhere<Document> = {};
+    if (classeId) baseFilter.classeId = classeId;
+    if (niveauId) baseFilter.niveauId = niveauId;
 
     let where: FindOptionsWhere<Document> | FindOptionsWhere<Document>[] = [];
+    const categoryList = category
+      ? category.split(',').map((c) => c.trim())
+      : [];
+
     if (search) {
-      where = [
-        { ...extraFilter, title: ILike(`%${search}%`) },
-        { ...extraFilter, description: ILike(`%${search}%`) },
+      const searchOr: FindOptionsWhere<Document>[] = [
+        { ...baseFilter, title: ILike(`%${search}%`) },
+        { ...baseFilter, description: ILike(`%${search}%`) },
       ];
+      if (categoryList.length > 0) {
+        where = searchOr.flatMap((s) =>
+          categoryList.map((cat) => ({ ...s, category: cat as any })),
+        );
+      } else {
+        where = searchOr;
+      }
     } else {
-      where = { ...extraFilter };
+      if (categoryList.length > 0) {
+        where = categoryList.map((cat) => ({
+          ...baseFilter,
+          category: cat as any,
+        }));
+      } else {
+        where = { ...baseFilter };
+      }
     }
 
     where = TenantHelper.addTenantFilter(where, tenantId);
