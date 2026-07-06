@@ -9,12 +9,13 @@ import {
   UseInterceptors,
   UploadedFile,
   BadRequestException,
+  NotFoundException,
   Query,
   UseGuards,
   Header,
   StreamableFile,
 } from '@nestjs/common';
-import { createReadStream } from 'fs';
+import { createReadStream, existsSync } from 'fs';
 import { join } from 'path';
 import { DocumentService } from './document.service';
 import { CreateDocumentDto } from './dto/create-document.dto';
@@ -221,6 +222,9 @@ export class DocumentController {
   ) {
     const doc = await this.documentService.findOne(+id, tenantId);
     const filePath = join(process.cwd(), doc.filePath);
+    if (!existsSync(filePath)) {
+      throw new NotFoundException('Le fichier n\'existe plus sur le serveur');
+    }
     const stream = createReadStream(filePath);
     return new StreamableFile(stream, {
       disposition: `attachment; filename="${doc.originalName || doc.title}"`,
