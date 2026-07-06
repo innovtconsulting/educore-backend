@@ -56,12 +56,12 @@ export class Document {
   @ApiProperty({ required: false })
   fileSize!: number;
 
-  @ManyToOne(() => Etablissement, { nullable: false })
+  @ManyToOne(() => Etablissement, { nullable: true })
   @JoinColumn({ name: 'etablissementId' })
-  etablissement!: Etablissement;
+  etablissement?: Etablissement;
 
-  @Column({ nullable: false })
-  etablissementId!: number;
+  @Column({ nullable: true })
+  etablissementId?: number;
 
   @ManyToOne(() => Classe, { nullable: true })
   @JoinColumn({ name: 'classeId' })

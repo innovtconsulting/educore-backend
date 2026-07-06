@@ -142,13 +142,13 @@ export class DevoirService {
   }
 
   async findByTeacher(
-    enseignantId: number,
-    paginationQuery: PaginationQueryDto,
+    enseignantId?: number,
+    paginationQuery?: PaginationQueryDto,
     tenantId?: number,
     classeId?: number,
     niveauId?: number,
   ) {
-    const { page = 1, limit = 15, search } = paginationQuery;
+    const { page = 1, limit = 15, search } = paginationQuery ?? {};
     const skip = (page - 1) * limit;
 
     const query = this.devoirRepository
@@ -158,11 +158,15 @@ export class DevoirService {
       .leftJoinAndSelect('d.etablissement', 'etablissement')
       .leftJoinAndSelect('d.niveau', 'niveau')
       .leftJoinAndSelect('d.enseignant', 'enseignant')
-      .leftJoinAndSelect('d.documents', 'documents')
-      .where('enseignant.id = :enseignantId', { enseignantId })
-      .andWhere(tenantId ? 'etablissement.id = :tenantId' : '1=1', {
-        tenantId,
-      });
+      .leftJoinAndSelect('d.documents', 'documents');
+
+    if (enseignantId) {
+      query.andWhere('enseignant.id = :enseignantId', { enseignantId });
+    }
+
+    query.andWhere(tenantId ? 'etablissement.id = :tenantId' : '1=1', {
+      tenantId,
+    });
 
     if (search) {
       query.andWhere('(d.title ILIKE :search OR d.description ILIKE :search)', {

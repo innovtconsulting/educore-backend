@@ -43,7 +43,7 @@ export class DevoirController {
   }
 
   @Get('teacher')
-  @Roles(Role.ENSEIGNANT)
+  @Roles(Role.ENSEIGNANT, Role.ADMIN, Role.SUPER_ADMIN)
   @ApiOperation({ summary: "Lister les devoirs de l'enseignant connecté" })
   findForTeacher(
     @Request() req: any,
