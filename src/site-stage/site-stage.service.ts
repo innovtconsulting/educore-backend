@@ -19,6 +19,7 @@ import { Etudiant } from '../etudiant/entities/etudiant.entity';
 import { Enseignant } from '../enseignant/entities/enseignant.entity';
 import { AnneeUniversitaire } from '../annee-universitaire/entities/annee-universitaire.entity';
 import { TenantHelper } from '../common/tenant/tenant.helper';
+import { FinanceService } from '../finance/finance.service';
 
 @Injectable()
 export class SiteStageService {
@@ -35,6 +36,7 @@ export class SiteStageService {
     private readonly enseignantRepository: Repository<Enseignant>,
     @InjectRepository(AnneeUniversitaire)
     private readonly anneeRepository: Repository<AnneeUniversitaire>,
+    private readonly financeService: FinanceService,
   ) {}
 
   // ===================== SITES DE STAGE (Global) =====================
@@ -430,5 +432,21 @@ export class SiteStageService {
   async removeAffectation(id: number, tenantId?: number): Promise<void> {
     const affectation = await this.findOneAffectation(id, tenantId);
     await this.affectationRepository.remove(affectation);
+  }
+
+  async getMyStageInfo(etudiantId: number) {
+    const ecolagePaid = await this.financeService.hasPaidEcolage(etudiantId);
+
+    const affectations = await this.affectationRepository.find({
+      where: { etudiantId },
+      relations: {
+        siteStage: true,
+        periodeStage: true,
+        enseignant: true,
+      },
+      order: { createdAt: 'DESC' },
+    });
+
+    return { ecolagePaid, affectations };
   }
 }

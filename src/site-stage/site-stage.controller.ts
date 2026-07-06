@@ -8,6 +8,7 @@ import {
   Delete,
   UseGuards,
   Query,
+  Request,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { SiteStageService } from './site-stage.service';
@@ -20,6 +21,8 @@ import { UpdateAffectationStageDto } from './dto/update-affectation-stage.dto';
 import { AffectationStageFilterDto } from './dto/affectation-stage-filter.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
+import { Roles } from '../auth/decorators/roles.decorator';
+import { Role } from '../user/entities/user.entity';
 import { Permissions } from '../auth/decorators/permissions.decorator';
 import { CurrentEtablissement } from '../auth/decorators/current-etablissement.decorator';
 
@@ -248,5 +251,17 @@ export class SiteStageController {
   ) {
     await this.siteStageService.removeAffectation(+id, tenantId);
     return { message: `Affectation #${id} supprimée avec succès` };
+  }
+
+  @Get('stage/etudiant/me')
+  @Roles(Role.ETUDIANT)
+  @ApiOperation({ summary: 'Mon stage (avec vérification du paiement des écolages)' })
+  async getMyStage(@Request() req: any) {
+    const etudiantId = req.user.etudiantId;
+    const data = await this.siteStageService.getMyStageInfo(etudiantId);
+    return {
+      message: 'Informations de stage récupérées avec succès',
+      data,
+    };
   }
 }

@@ -905,4 +905,17 @@ export class FinanceService {
       order: { dateEmission: 'DESC' },
     });
   }
+
+  async hasPaidEcolage(etudiantId: number): Promise<boolean> {
+    const factures = await this.factureRepository
+      .createQueryBuilder('facture')
+      .innerJoin('facture.frais', 'frais')
+      .where('facture.etudiantId = :etudiantId', { etudiantId })
+      .andWhere('frais.type = :type', { type: FeeType.ECOLAGE })
+      .getMany();
+
+    if (factures.length === 0) return false;
+
+    return factures.every((f) => f.status === InvoiceStatus.PAYE);
+  }
 }

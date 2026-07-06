@@ -8,6 +8,7 @@ import { AffectationStage } from './entities/affectation-stage.entity';
 import { Etudiant } from '../etudiant/entities/etudiant.entity';
 import { Enseignant } from '../enseignant/entities/enseignant.entity';
 import { AnneeUniversitaire } from '../annee-universitaire/entities/annee-universitaire.entity';
+import { FinanceModule } from '../finance/finance.module';
 
 @Module({
   imports: [
@@ -19,6 +20,7 @@ import { AnneeUniversitaire } from '../annee-universitaire/entities/annee-univer
       Enseignant,
       AnneeUniversitaire,
     ]),
+    FinanceModule,
   ],
   controllers: [SiteStageController],
   providers: [SiteStageService],
