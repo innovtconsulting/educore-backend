@@ -179,7 +179,7 @@ export class DevoirService {
     }
 
     const [items, total] = await query
-      .orderBy('d.deadline', 'ASC')
+      .orderBy('d.createdAt', 'DESC')
       .skip(skip)
       .take(limit)
       .getManyAndCount();
