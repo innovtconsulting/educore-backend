@@ -58,9 +58,9 @@ async function seedAdmins() {
     if (!defaultEtab) {
       defaultEtab = etablissementRepo.create({
         name: 'ESPM',
-        address: 'Dakar, Sénégal',
+        address: 'Antananarivo, Madagascar',
         email: 'contact@espm.sn',
-        phone: '+221 33 000 00 00',
+        phone: '+261 34 00 000 00',
       });
       await etablissementRepo.save(defaultEtab);
       console.log(`✅ Établissement par défaut créé : ${defaultEtab.name}`);
