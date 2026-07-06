@@ -1138,7 +1138,7 @@ async function seed() {
     const docRendu = documentRepo.create({
       title: 'Rendu TP Liste Chaînée - Ousmane Sow',
       description: 'Mon code source C et le compte-rendu.',
-      category: DocumentCategory.PEDAGOGIQUE,
+      category: DocumentCategory.AUTRE,
       filePath: 'uploads/documents/rendu_tp1_ousmane.pdf',
       originalName: 'rendu_tp1_ousmane.pdf',
       mimeType: 'application/pdf',

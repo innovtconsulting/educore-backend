@@ -145,11 +145,13 @@ export class DevoirService {
     enseignantId: number,
     paginationQuery: PaginationQueryDto,
     tenantId?: number,
+    classeId?: number,
+    niveauId?: number,
   ) {
-    const { page = 1, limit = 15 } = paginationQuery;
+    const { page = 1, limit = 15, search } = paginationQuery;
     const skip = (page - 1) * limit;
 
-    const [items, total] = await this.devoirRepository
+    const query = this.devoirRepository
       .createQueryBuilder('d')
       .leftJoinAndSelect('d.matiere', 'matiere')
       .leftJoinAndSelect('d.classe', 'classe')
@@ -160,7 +162,23 @@ export class DevoirService {
       .where('enseignant.id = :enseignantId', { enseignantId })
       .andWhere(tenantId ? 'etablissement.id = :tenantId' : '1=1', {
         tenantId,
-      })
+      });
+
+    if (search) {
+      query.andWhere('(d.title ILIKE :search OR d.description ILIKE :search)', {
+        search: `%${search}%`,
+      });
+    }
+
+    if (classeId) {
+      query.andWhere('classe.id = :classeId', { classeId });
+    }
+
+    if (niveauId) {
+      query.andWhere('niveau.id = :niveauId', { niveauId });
+    }
+
+    const [items, total] = await query
       .orderBy('d.deadline', 'ASC')
       .skip(skip)
       .take(limit)

@@ -179,12 +179,19 @@ export class DocumentController {
       'Liste tous les documents enregistrés dans la GED (Gestion Électronique de Documents).',
   })
   async findAll(
-    @Query() paginationQuery: PaginationQueryDto,
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
+    @Query('search') search?: string,
     @Query('classeId') classeId?: string,
     @Query('niveauId') niveauId?: string,
     @Query('category') category?: string,
     @CurrentEtablissement() tenantId?: number,
   ) {
+    const paginationQuery: PaginationQueryDto = {
+      page: page ? +page : undefined,
+      limit: limit ? +limit : undefined,
+      search,
+    };
     const data = await this.documentService.findAll(
       paginationQuery,
       tenantId,
