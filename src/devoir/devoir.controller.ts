@@ -46,12 +46,12 @@ export class DevoirController {
   @Roles(Role.ENSEIGNANT)
   @ApiOperation({ summary: "Lister les devoirs de l'enseignant connecté" })
   findForTeacher(
+    @Request() req: any,
     @Query('page') page?: string,
     @Query('limit') limit?: string,
     @Query('search') search?: string,
     @Query('classeId') classeId?: string,
     @Query('niveauId') niveauId?: string,
-    @Request() req: any,
     @CurrentEtablissement() tenantId?: number,
   ) {
     const paginationQuery: PaginationQueryDto = {
