@@ -127,6 +127,7 @@ export class EnseignantService {
       etablissementId,
       matiereId,
       niveauId,
+      classeId,
     } = filter;
     const skip = (page - 1) * limit;
 
@@ -160,6 +161,11 @@ export class EnseignantService {
     // Apply niveauId filter
     if (niveauId) {
       queryBuilder.andWhere('niveau.id = :niveauId', { niveauId });
+    }
+
+    // Apply classeId filter (via niveau -> classe)
+    if (classeId) {
+      queryBuilder.andWhere('niveau.classeId = :classeId', { classeId });
     }
 
     // Apply search
