@@ -35,4 +35,10 @@ export class EtudiantFilterDto extends PaginationQueryDto {
   @Type(() => Number)
   @IsInt()
   niveauId?: number;
+
+  @ApiPropertyOptional({
+    description: "Filtrer par statut du dossier (Complet ou Incomplet)",
+  })
+  @IsOptional()
+  dossierStatus?: string;
 }

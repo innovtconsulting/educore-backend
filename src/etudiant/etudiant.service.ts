@@ -269,6 +269,7 @@ export class EtudiantService {
 			etablissementId?: number;
 			classeId?: number;
 			niveauId?: number;
+			dossierStatus?: string;
 		},
 		tenantId?: number,
 		caller?: any,
@@ -278,7 +279,7 @@ export class EtudiantService {
 		page: number;
 		limit: number;
 	}> {
-		const { page, limit, search, status, etablissementId, classeId, niveauId } =
+		const { page, limit, search, status, etablissementId, classeId, niveauId, dossierStatus } =
 			paginationQuery;
 		const p = page ?? 1;
 		const l = limit ?? 20;
@@ -300,15 +301,42 @@ export class EtudiantService {
 		if (classeId) baseWhere.classe = { id: classeId };
 		if (niveauId) baseWhere.niveau = { id: niveauId };
 
-		if (search) {
-			where.push(
-				{ ...baseWhere, lastName: ILike(`%${search}%`) },
-				{ ...baseWhere, firstName: ILike(`%${search}%`) },
-				{ ...baseWhere, matricule: ILike(`%${search}%`) },
-				{ ...baseWhere, email: ILike(`%${search}%`) },
-			);
+		const DOC_FIELDS = [
+			'baccDiploma', 'residenceCertificate', 'birthCertificate', 'cinCopy',
+			'identityPhoto', 'transfertFile', 'releveNotes', 'cartonChemise',
+			'enveloppe', 'gant', 'alcohol',
+		];
+
+		if (dossierStatus === 'Complet') {
+			for (const field of DOC_FIELDS) {
+				baseWhere[field] = true;
+			}
+		}
+
+		if (dossierStatus === 'Incomplet') {
+			if (search) {
+				for (const field of DOC_FIELDS) {
+					where.push({ ...baseWhere, [field]: false, lastName: ILike(`%${search}%`) });
+					where.push({ ...baseWhere, [field]: false, firstName: ILike(`%${search}%`) });
+					where.push({ ...baseWhere, [field]: false, matricule: ILike(`%${search}%`) });
+					where.push({ ...baseWhere, [field]: false, email: ILike(`%${search}%`) });
+				}
+			} else {
+				for (const field of DOC_FIELDS) {
+					where.push({ ...baseWhere, [field]: false });
+				}
+			}
 		} else {
-			where.push(baseWhere);
+			if (search) {
+				where.push(
+					{ ...baseWhere, lastName: ILike(`%${search}%`) },
+					{ ...baseWhere, firstName: ILike(`%${search}%`) },
+					{ ...baseWhere, matricule: ILike(`%${search}%`) },
+					{ ...baseWhere, email: ILike(`%${search}%`) },
+				);
+			} else {
+				where.push(baseWhere);
+			}
 		}
 
 		const [items, total] = await this.etudiantRepository.findAndCount({
