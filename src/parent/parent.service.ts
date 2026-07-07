@@ -4,7 +4,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { ILike, Repository } from 'typeorm';
 import { CreateParentDto } from './dto/create-parent.dto';
 import { UpdateParentDto } from './dto/update-parent.dto';
 import { Parent } from './entities/parent.entity';
@@ -34,15 +34,24 @@ export class ParentService {
   }
 
   async findAll(paginationQuery: PaginationQueryDto, tenantId?: number) {
-    const { page = 1, limit = 15 } = paginationQuery;
+    const { page = 1, limit = 15, search } = paginationQuery;
     const skip = (page - 1) * limit;
-    const where: any = {};
+    const baseWhere: any = {};
     if (tenantId) {
-      where.etablissement = { id: tenantId };
+      baseWhere.etablissement = { id: tenantId };
     }
 
+    const where = search
+      ? [
+          { ...baseWhere, firstName: ILike(`%${search}%`) },
+          { ...baseWhere, lastName: ILike(`%${search}%`) },
+          { ...baseWhere, phoneNumber: ILike(`%${search}%`) },
+          { ...baseWhere, email: ILike(`%${search}%`) },
+        ]
+      : baseWhere;
+
     const [items, total] = await this.parentRepository.findAndCount({
-      where: where,
+      where,
       relations: { etudiants: true },
       skip,
       take: limit,

@@ -580,7 +580,7 @@ export class FinanceService {
 
     const allFactures = await this.factureRepository.find({
       where,
-      relations: { etudiant: { niveau: true, classe: true } },
+      relations: { etudiant: { niveau: true, classe: true }, frais: true },
     });
 
     const totalInvoiced = allFactures.reduce(
@@ -674,6 +674,10 @@ export class FinanceService {
     });
 
     const studentsWithDebt = new Map<number, any>();
+    // Étudiants en dette, regroupés par type de frais (Écolage, Inscription,
+    // Scolarité, Examen, Autre) — un même étudiant peut apparaître dans
+    // plusieurs types s'il a des dettes sur des frais de types différents.
+    const studentsWithDebtByType = new Map<FeeType, Set<number>>();
     allFactures.forEach((f) => {
       const studentId = f.etudiant.id;
       const totalPaye = allPaiements
@@ -696,8 +700,24 @@ export class FinanceService {
           debt,
           status: f.status,
         });
+
+        const feeType = f.frais?.type;
+        if (feeType) {
+          if (!studentsWithDebtByType.has(feeType)) {
+            studentsWithDebtByType.set(feeType, new Set());
+          }
+          studentsWithDebtByType.get(feeType)!.add(studentId);
+        }
       }
     });
+
+    const countStudentsWithDebtByType = Object.values(FeeType).reduce(
+      (acc, type) => {
+        acc[type] = studentsWithDebtByType.get(type)?.size ?? 0;
+        return acc;
+      },
+      {} as Record<FeeType, number>,
+    );
 
     const topDebtors = Array.from(studentsWithDebt.values())
       .sort((a, b) => b.totalDebt - a.totalDebt)
@@ -733,6 +753,7 @@ export class FinanceService {
       countFactures: allFactures.length,
       countPaiements: allPaiements.length,
       countStudentsWithDebt: studentsWithDebt.size,
+      countStudentsWithDebtByType,
       statsByNiveau,
       statsByClasse,
       statsByPaymentMode,
