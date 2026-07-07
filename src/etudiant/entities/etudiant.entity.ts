@@ -1,4 +1,5 @@
 import {
+  AfterLoad,
   Column,
   CreateDateColumn,
   Entity,
@@ -124,6 +125,26 @@ export class Etudiant {
 
   @Column({ default: false })
   alcohol!: boolean;
+
+  @AfterLoad()
+  computeDossierStatus() {
+    const docs = [
+      this.baccDiploma,
+      this.residenceCertificate,
+      this.birthCertificate,
+      this.cinCopy,
+      this.identityPhoto,
+      this.transfertFile,
+      this.releveNotes,
+      this.cartonChemise,
+      this.enveloppe,
+      this.gant,
+      this.alcohol,
+    ];
+    this.dossierStatus = docs.every(Boolean) ? 'Complet' : 'Incomplet';
+  }
+
+  dossierStatus?: string;
 
   // Statut et Relations
   @Column({
