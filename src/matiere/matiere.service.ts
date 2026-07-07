@@ -1,5 +1,4 @@
 import {
-  BadRequestException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
@@ -26,14 +25,6 @@ export class MatiereService {
     tenantId?: number,
   ): Promise<Matiere> {
     const { code, name, coefficient, hours, niveauId } = createMatiereDto;
-
-    // Vérifier l'unicité du code
-    const existingCode = await this.matiereRepository.findOneBy({ code });
-    if (existingCode) {
-      throw new BadRequestException(
-        `Le code "${code}" existe déjà pour une matière`,
-      );
-    }
 
     // Vérifier l'existence du niveau
     const niveau = await this.niveauRepository.findOne({
@@ -149,13 +140,7 @@ export class MatiereService {
     const { code, name, coefficient, hours, niveauId } = updateMatiereDto;
     const matiere = await this.findOne(id, tenantId);
 
-    if (code && code !== matiere.code) {
-      const existingCode = await this.matiereRepository.findOneBy({ code });
-      if (existingCode) {
-        throw new BadRequestException(
-          `Le code "${code}" existe déjà pour une matière`,
-        );
-      }
+    if (code) {
       matiere.code = code;
     }
 
