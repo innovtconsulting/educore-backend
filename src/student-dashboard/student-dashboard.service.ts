@@ -6,7 +6,6 @@ import { DevoirService } from '../devoir/devoir.service';
 import { EmploiDuTempsService } from '../emploi-du-temps/emploi-du-temps.service';
 import { FinanceService } from '../finance/finance.service';
 import { SanctionService } from '../sanction/sanction.service';
-import { CertificateService } from '../certificate/certificate.service';
 import { Etudiant } from '../etudiant/entities/etudiant.entity';
 import { Repository } from 'typeorm';
 
@@ -21,7 +20,6 @@ export class StudentDashboardService {
     private readonly emploiService: EmploiDuTempsService,
     private readonly financeService: FinanceService,
     private readonly sanctionService: SanctionService,
-    private readonly certificateService: CertificateService,
   ) {}
 
   async getDashboardData(user: any) {
@@ -52,11 +50,6 @@ export class StudentDashboardService {
       this.sanctionService.findByEtudiant(etudiantId),
     ]);
 
-    // Certificat de scolarité
-    const scolarityCertificate = await this.certificateService
-      .getScolarityCertificate(etudiantId)
-      .catch(() => null);
-
     return {
       student: {
         id: etudiant.id,
@@ -78,11 +71,6 @@ export class StudentDashboardService {
         unpaidInvoices: invoices.filter((f) => f.status !== 'Payée'),
       },
       recentSanctions: sanctions.slice(0, 3),
-      documents: {
-        scolarityCertificate: scolarityCertificate
-          ? scolarityCertificate.pdfUrl
-          : null,
-      },
     };
   }
 }

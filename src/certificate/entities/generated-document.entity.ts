@@ -28,9 +28,11 @@ export class GeneratedDocument {
   @ApiProperty({ enum: AdministrativeDocumentType })
   type!: AdministrativeDocumentType;
 
-  @Column()
-  @ApiProperty()
-  filePath!: string;
+  // Génération désormais entièrement côté navigateur (jsPDF) : aucun fichier
+  // n'est plus stocké côté serveur, donc plus nécessairement de chemin.
+  @Column({ nullable: true })
+  @ApiProperty({ required: false })
+  filePath?: string;
 
   @ManyToOne(() => Etudiant, { nullable: false, onDelete: 'CASCADE' })
   @JoinColumn({ name: 'etudiantId' })

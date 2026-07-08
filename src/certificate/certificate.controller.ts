@@ -30,30 +30,41 @@ export class CertificateController {
   constructor(private readonly certificateService: CertificateService) {}
 
   @Get('scolarity/:etudiantId')
-  @Roles(Role.ETUDIANT)
+  @Roles(Role.ETUDIANT, Role.ADMIN, Role.SUPER_ADMIN)
   @Permissions('STUDENT_VIEW')
   @ApiOperation({
-    summary: 'Générer un certificat de scolarité pour un étudiant',
+    summary:
+      "Récupérer les données nécessaires à un certificat de scolarité (la génération du PDF se fait côté navigateur)",
+  })
+  @ApiQuery({
+    name: 'anneeId',
+    required: false,
+    description: "ID de l'année universitaire. Par défaut: année active.",
   })
   async getScolarityCertificate(
     @Param('etudiantId', ParseIntPipe) etudiantId: number,
     @Req() req: any,
+    @Query('anneeId') anneeId?: number,
+    @CurrentEtablissement() tenantId?: number,
   ) {
-    const data = await this.certificateService.getScolarityCertificate(
+    const data = await this.certificateService.getScolarityCertificateData(
       etudiantId,
+      anneeId,
       req.user,
+      tenantId,
     );
     return {
-      message: 'Certificat de scolarité généré avec succès',
+      message: 'Données du certificat de scolarité récupérées avec succès',
       data,
     };
   }
 
   @Get('success/:etudiantId')
-  @Roles(Role.ETUDIANT)
+  @Roles(Role.ETUDIANT, Role.ADMIN, Role.SUPER_ADMIN)
   @Permissions('ACADEMIC_VIEW')
   @ApiOperation({
-    summary: 'Générer une attestation de réussite pour un étudiant',
+    summary:
+      "Récupérer les données nécessaires à une attestation de réussite (la génération du PDF se fait côté navigateur)",
   })
   @ApiQuery({
     name: 'anneeId',
@@ -64,14 +75,16 @@ export class CertificateController {
     @Param('etudiantId', ParseIntPipe) etudiantId: number,
     @Req() req: any,
     @Query('anneeId') anneeId?: number,
+    @CurrentEtablissement() tenantId?: number,
   ) {
-    const data = await this.certificateService.getSuccessAttestation(
+    const data = await this.certificateService.getSuccessAttestationData(
       etudiantId,
       anneeId,
       req.user,
+      tenantId,
     );
     return {
-      message: 'Attestation de réussite générée avec succès',
+      message: "Données de l'attestation de réussite récupérées avec succès",
       data,
     };
   }
