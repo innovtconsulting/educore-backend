@@ -10,6 +10,7 @@ import {
 import { Etudiant } from '../../etudiant/entities/etudiant.entity';
 import { ApiProperty } from '@nestjs/swagger';
 import { Etablissement } from '../../etablissement/entities/etablissement.entity';
+import { AnneeUniversitaire } from '../../annee-universitaire/entities/annee-universitaire.entity';
 
 export enum SanctionType {
   AVERTISSEMENT = 'Avertissement',
@@ -62,6 +63,16 @@ export class Sanction {
 
   @Column({ nullable: false })
   etablissementId!: number;
+
+  // nullable en base pour ne pas casser la synchro TypeORM sur les sanctions déjà existantes ;
+  // toujours renseignée par SanctionService.create() avec l'année universitaire active
+  @ManyToOne(() => AnneeUniversitaire, { nullable: true })
+  @JoinColumn({ name: 'anneeUniversitaireId' })
+  @ApiProperty({ type: () => AnneeUniversitaire, required: false })
+  anneeUniversitaire?: AnneeUniversitaire;
+
+  @Column({ nullable: true })
+  anneeUniversitaireId?: number;
 
   @CreateDateColumn()
   @ApiProperty()

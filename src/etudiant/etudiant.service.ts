@@ -270,6 +270,7 @@ export class EtudiantService {
 			classeId?: number;
 			niveauId?: number;
 			dossierStatus?: string;
+			activeYearOnly?: boolean;
 		},
 		tenantId?: number,
 		caller?: any,
@@ -279,7 +280,7 @@ export class EtudiantService {
 		page: number;
 		limit: number;
 	}> {
-		const { page, limit, search, status, etablissementId, classeId, niveauId, dossierStatus } =
+		const { page, limit, search, status, etablissementId, classeId, niveauId, dossierStatus, activeYearOnly } =
 			paginationQuery;
 		const p = page ?? 1;
 		const l = limit ?? 20;
@@ -300,6 +301,18 @@ export class EtudiantService {
 		else if (etablissementId) baseWhere.etablissement = { id: etablissementId };
 		if (classeId) baseWhere.classe = { id: classeId };
 		if (niveauId) baseWhere.niveau = { id: niveauId };
+
+		if (activeYearOnly) {
+			try {
+				const anneeActive = await this.anneeUniversitaireService.getActiveYear(
+					resolvedTenantId ?? etablissementId,
+				);
+				baseWhere.inscriptions = { anneeUniversitaire: { id: anneeActive.id } };
+			} catch {
+				// Aucune année active : ne retourner aucun étudiant plutôt que planter
+				return { items: [], total: 0, page: p, limit: l };
+			}
+		}
 
 		const DOC_FIELDS = [
 			'baccDiploma', 'residenceCertificate', 'birthCertificate', 'cinCopy',

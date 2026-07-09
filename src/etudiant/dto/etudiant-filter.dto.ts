@@ -1,6 +1,6 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
-import { IsOptional, IsEnum, IsInt } from 'class-validator';
-import { Type } from 'class-transformer';
+import { IsOptional, IsEnum, IsInt, IsBoolean } from 'class-validator';
+import { Type, Transform } from 'class-transformer';
 import { PaginationQueryDto } from '../../common/dto/pagination-query.dto';
 import { EnrollmentStatus } from '../entities/etudiant.entity';
 
@@ -41,4 +41,13 @@ export class EtudiantFilterDto extends PaginationQueryDto {
   })
   @IsOptional()
   dossierStatus?: string;
+
+  @ApiPropertyOptional({
+    description:
+      "Ne retourner que les étudiants inscrits pour l'année universitaire active",
+  })
+  @IsOptional()
+  @Transform(({ value }) => value === true || value === 'true')
+  @IsBoolean()
+  activeYearOnly?: boolean;
 }

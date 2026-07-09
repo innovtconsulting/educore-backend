@@ -13,8 +13,8 @@ import {
 import { SanctionService } from './sanction.service';
 import { CreateSanctionDto } from './dto/create-sanction.dto';
 import { UpdateSanctionDto } from './dto/update-sanction.dto';
+import { SanctionFilterDto } from './dto/sanction-filter.dto';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
-import { PaginationQueryDto } from '../common/dto/pagination-query.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
@@ -49,10 +49,10 @@ export class SanctionController {
   @Permissions('DISCIPLINE_MANAGE')
   @ApiOperation({ summary: 'Récupérer toutes les sanctions' })
   async findAll(
-    @Query() paginationQuery: PaginationQueryDto,
+    @Query() filterDto: SanctionFilterDto,
     @CurrentEtablissement() tenantId?: number,
   ) {
-    const data = await this.sanctionService.findAll(paginationQuery, tenantId);
+    const data = await this.sanctionService.findAll(filterDto, tenantId);
     return {
       message: 'Liste des sanctions récupérée avec succès',
       data,
