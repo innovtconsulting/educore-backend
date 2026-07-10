@@ -256,10 +256,51 @@ export class EtudiantService {
 				etablissementId,
 				savedEtudiant.status === EnrollmentStatus.ACTIF,
 			);
+			if (savedEtudiant.status === EnrollmentStatus.ACTIF) {
+				await this.ensureActiveYearInscription(savedEtudiant, tenantId);
+			}
 			return savedEtudiant;
 		} catch (error) {
 			console.log('DEBUG - Error saving student:', error);
 			throw error;
+		}
+	}
+
+	// Crée la ligne d'historique `Inscription` pour l'année universitaire active,
+	// si elle n'existe pas déjà : sans ça, un étudiant créé/validé "Actif" a un
+	// statut/classe/niveau à jour sur sa fiche mais aucun historique d'inscription
+	// (l'onglet "Inscription" du dossier étudiant reste vide). On échoue
+	// silencieusement si aucune année n'est active pour ne pas bloquer la
+	// création/validation de l'étudiant pour autant.
+	private async ensureActiveYearInscription(
+		etudiant: Etudiant,
+		tenantId?: number,
+	): Promise<void> {
+		try {
+			const anneeActive = await this.anneeUniversitaireService.getActiveYear(
+				tenantId ?? etudiant.etablissement?.id,
+			);
+			const inscriptionRepo = this.dataSource.getRepository(Inscription);
+			const existing = await inscriptionRepo.findOne({
+				where: {
+					etudiant: { id: etudiant.id },
+					anneeUniversitaire: { id: anneeActive.id },
+				},
+			});
+			if (existing) return;
+
+			const inscription = inscriptionRepo.create({
+				etudiant,
+				anneeUniversitaire: anneeActive,
+				classe: etudiant.classe,
+				niveau: etudiant.niveau,
+				etablissement: etudiant.etablissement,
+				status: InscriptionStatus.ACTIF,
+			});
+			await inscriptionRepo.save(inscription);
+		} catch {
+			// Aucune année universitaire active configurée : on ignore, ce n'est
+			// pas bloquant pour la création/validation de l'étudiant.
 		}
 	}
 
@@ -534,6 +575,8 @@ export class EtudiantService {
 				true,
 			);
 		}
+
+		await this.ensureActiveYearInscription(savedEtudiant, tenantId);
 
 		return savedEtudiant;
 	}
