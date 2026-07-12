@@ -30,6 +30,11 @@ import { Paiement } from '../../finance/entities/paiement.entity';
 import { Discipline } from '../../discipline/entities/discipline.entity';
 import { GeneratedDocument } from '../../certificate/entities/generated-document.entity';
 
+export enum CertificateTemplate {
+  DEFAULT = 'DEFAULT',
+  ESPM = 'ESPM',
+}
+
 @Entity()
 export class Etablissement {
   @PrimaryGeneratedColumn()
@@ -52,6 +57,9 @@ export class Etablissement {
 
   @Column({ nullable: true })
   logoPath?: string;
+
+  @Column({ type: 'varchar', default: CertificateTemplate.DEFAULT })
+  certificateTemplate!: CertificateTemplate;
 
   @OneToMany(() => Classe, (classe) => classe.etablissement)
   classes!: Classe[];

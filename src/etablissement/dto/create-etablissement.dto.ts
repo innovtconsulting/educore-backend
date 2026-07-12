@@ -1,5 +1,6 @@
-import { ApiProperty } from '@nestjs/swagger';
-import { IsEmail, IsNotEmpty, IsString } from 'class-validator';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { IsEmail, IsEnum, IsNotEmpty, IsOptional, IsString } from 'class-validator';
+import { CertificateTemplate } from '../entities/etablissement.entity';
 
 export class CreateEtablissementDto {
   @ApiProperty({ example: 'Lycée Excellence' })
@@ -21,4 +22,13 @@ export class CreateEtablissementDto {
   @IsString({ message: 'Le téléphone doit être une chaîne de caractères' })
   @IsNotEmpty({ message: 'Le téléphone est obligatoire' })
   phone!: string;
+
+  @ApiPropertyOptional({
+    enum: CertificateTemplate,
+    default: CertificateTemplate.DEFAULT,
+    description: 'Template utilisé pour la génération des certificats (scolarité, réussite...)',
+  })
+  @IsEnum(CertificateTemplate)
+  @IsOptional()
+  certificateTemplate?: CertificateTemplate;
 }

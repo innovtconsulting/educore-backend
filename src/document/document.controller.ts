@@ -71,8 +71,15 @@ export class DocumentController {
           enum: ['Administratif', 'Pédagogique', 'Règlement', 'Autre'],
           description: 'Catégorie du document',
         },
-        classeId: { type: 'number', description: 'Parcours concerné' },
-        niveauId: { type: 'number', description: 'Niveau concerné' },
+        allEtablissement: {
+          type: 'boolean',
+          description: "Vise tout l'établissement (ignore scopes)",
+        },
+        scopes: {
+          type: 'string',
+          description:
+            'JSON stringifié de [{ classeId, allNiveaux, niveauIds? }] — parcours/niveaux ciblés',
+        },
       },
     },
   })

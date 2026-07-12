@@ -78,6 +78,9 @@ import { AffectationStage } from './site-stage/entities/affectation-stage.entity
 import { SharedModule } from './shared/shared.module';
 import { NotificationsModule } from './notifications/notifications.module';
 import { Notification } from './notifications/entities/notification.entity';
+import { JournalModule } from './journal/journal.module';
+import { Journal } from './journal/entities/journal.entity';
+import { JournalHistory } from './journal/entities/journal-history.entity';
 
 @Module({
   imports: [
@@ -130,6 +133,8 @@ import { Notification } from './notifications/entities/notification.entity';
         SiteStage,
         PeriodeStage,
         AffectationStage,
+        Journal,
+        JournalHistory,
       ],
       synchronize: process.env.NODE_ENV !== 'production',
       ssl:
@@ -173,6 +178,7 @@ import { Notification } from './notifications/entities/notification.entity';
     NotificationsModule,
     SiteStageModule,
     SharedModule,
+    JournalModule,
   ],
   controllers: [AppController],
   providers: [
