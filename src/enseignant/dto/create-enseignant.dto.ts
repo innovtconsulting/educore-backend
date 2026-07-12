@@ -1,5 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
 import {
+  IsBoolean,
   IsDateString,
   IsEmail,
   IsNotEmpty,
@@ -57,4 +58,34 @@ export class CreateEnseignantDto {
   @IsNumber()
   @IsOptional()
   etablissementId?: number;
+
+  @ApiProperty({ default: false, required: false, description: 'Fiche de prof' })
+  @IsBoolean()
+  @IsOptional()
+  ficheProf?: boolean;
+
+  @ApiProperty({ default: false, required: false, description: 'CV' })
+  @IsBoolean()
+  @IsOptional()
+  cv?: boolean;
+
+  @ApiProperty({ default: false, required: false, description: 'Photocopie Diplôme' })
+  @IsBoolean()
+  @IsOptional()
+  photocopieDiplome?: boolean;
+
+  @ApiProperty({ default: false, required: false, description: 'Photocopie CIN' })
+  @IsBoolean()
+  @IsOptional()
+  photocopieCin?: boolean;
+
+  @ApiProperty({ default: false, required: false, description: 'Contrat de consultance' })
+  @IsBoolean()
+  @IsOptional()
+  contratConsultance?: boolean;
+
+  @ApiProperty({ default: false, required: false, description: 'Lettre de motivation' })
+  @IsBoolean()
+  @IsOptional()
+  lettreMotivation?: boolean;
 }
