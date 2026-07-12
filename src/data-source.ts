@@ -31,6 +31,8 @@ import { SiteStage } from './site-stage/entities/site-stage.entity';
 import { PeriodeStage } from './site-stage/entities/periode-stage.entity';
 import { AffectationStage } from './site-stage/entities/affectation-stage.entity';
 import { GlobalSetting } from './global-setting/entities/global-setting.entity';
+import { Personnel } from './personnel/entities/personnel.entity';
+import { PaiePersonnel } from './personnel/entities/paie-personnel.entity';
 import { Role as AclRole } from './acl/entities/role.entity';
 import { Permission } from './acl/entities/permission.entity';
 import { Notification } from './notifications/entities/notification.entity';
@@ -84,6 +86,8 @@ export const AppDataSource = new DataSource({
     SiteStage,
     PeriodeStage,
     AffectationStage,
+    Personnel,
+    PaiePersonnel,
   ],
   ssl:
     process.env.DB_HOST === 'localhost' || !process.env.DATABASE_URL

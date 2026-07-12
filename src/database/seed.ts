@@ -46,6 +46,8 @@ import { Permission } from '../acl/entities/permission.entity';
 import { SiteStage } from '../site-stage/entities/site-stage.entity';
 import { PeriodeStage } from '../site-stage/entities/periode-stage.entity';
 import { AffectationStage, StageStatus } from '../site-stage/entities/affectation-stage.entity';
+import { Personnel } from '../personnel/entities/personnel.entity';
+import { PaiePersonnel } from '../personnel/entities/paie-personnel.entity';
 import * as bcrypt from 'bcrypt';
 import * as dotenv from 'dotenv';
 import * as fs from 'fs';
@@ -97,6 +99,8 @@ async function seed() {
     const siteStageRepo = AppDataSource.getRepository(SiteStage);
     const periodeStageRepo = AppDataSource.getRepository(PeriodeStage);
     const affectationStageRepo = AppDataSource.getRepository(AffectationStage);
+    const personnelRepo = AppDataSource.getRepository(Personnel);
+    const paiePersonnelRepo = AppDataSource.getRepository(PaiePersonnel);
 
     // 0. Configuration Globale
     const defaultSettings = [
@@ -175,7 +179,7 @@ async function seed() {
       // Discipline & Vie Scolaire
       {
         name: 'DISCIPLINE_MANAGE',
-        description: 'Gérer les sanctions et règlements',
+        description: 'Gérer les mesures disciplinaires et règlements',
       },
       {
         name: 'REPORT_DAILY_MANAGE',
@@ -843,19 +847,37 @@ async function seed() {
     });
     await presenceRepo.save(pres1);
 
-    // 11. Sanctions
+    // 11. Sanctions (Mesures disciplinaires)
     const sanc1 = sanctionRepo.create({
       etudiant: etudiant1,
-      type: SanctionType.AVERTISSEMENT,
+      type: SanctionType.AVERTISSEMENT_VERBALE,
       motif: "Retards répétés au cours d'Algorithmique",
       dateDecision: new Date('2026-06-09'),
       isApplied: true,
       etablissement: fst,
       etablissementId: fst.id,
     });
-    await sanctionRepo.save(sanc1);
+    const sanc2 = sanctionRepo.create({
+      etudiant: etudiant1,
+      type: SanctionType.RECUPERATION,
+      motif: 'Absence non justifiée — heures à récupérer en laboratoire',
+      dateDecision: new Date('2026-06-20'),
+      isApplied: true,
+      etablissement: fst,
+      etablissementId: fst.id,
+    });
+    const sanc3 = sanctionRepo.create({
+      etudiant: etudiant1,
+      type: SanctionType.CONVOCATION_PARENT,
+      motif: 'Comportement perturbateur en classe',
+      dateDecision: new Date('2026-07-01'),
+      isApplied: false,
+      etablissement: fst,
+      etablissementId: fst.id,
+    });
+    await sanctionRepo.save([sanc1, sanc2, sanc3]);
 
-    // 12. Finance - le module a été simplifié : les frais/factures/paiements
+    // 13. Finance - le module a été simplifié : les frais/factures/paiements
     // de démonstration sont créés via l'interface comptable, pas par le seed.
     // 13. Rapport Quotidien
     const dailyReport = dailyReportRepo.create({
@@ -865,7 +887,7 @@ async function seed() {
         'Journée calme, quelques retards signalés en début de matinée.',
       totalAbsences: 0,
       totalRetards: 0,
-      totalSanctions: 1,
+      totalSanctions: 3,
       isSubmitted: true,
       etablissement: fst,
       etablissementId: fst.id,
@@ -1099,6 +1121,7 @@ async function seed() {
         enseignant: profDiallo,
         photoPath: 'uploads/profiles/prof-diallo.png',
         aclRole: roleEnseignantAcl,
+        etablissement: fst,
       }),
       userRepo.create({
         email: 'ousmane.sow@espm.sn',
@@ -1107,6 +1130,7 @@ async function seed() {
         role: Role.ETUDIANT,
         etudiant: etudiant1,
         photoPath: 'uploads/profiles/ousmane-sow.png',
+        etablissement: fst,
       }),
       // Parent avec numéro de téléphone comme identifiant
       userRepo.create({
@@ -1115,9 +1139,73 @@ async function seed() {
         password: passwordHash,
         role: Role.PARENT,
         parent: parent1,
+        etablissement: fst,
       }),
     ];
     await userRepo.save(users);
+
+    // 12. Personnel (Gestion des salaires) — lié aux utilisateurs existants
+    const comptableUser = users.find((u) => u.email === 'comptable@espm.sn');
+    const surveillantUser = users.find((u) => u.email === 'surveillant@espm.sn');
+    const profDialloUser = users.find((u) => u.email === 'prof.diallo@espm.sn');
+
+    const pers1 = personnelRepo.create({
+      nom: 'Mamadou Ba',
+      poste: 'Agent d\'entretien',
+      salaireMensuel: 150000,
+      etablissement: fst,
+      etablissementId: fst.id,
+    });
+    const pers2 = personnelRepo.create({
+      nom: 'Fatou Dieng',
+      poste: 'Secrétaire',
+      salaireMensuel: 250000,
+      userId: comptableUser?.id,
+      user: comptableUser,
+      etablissement: fst,
+      etablissementId: fst.id,
+    });
+    const espSurveillantUser = users.find((u) => u.email === 'surveillant.esp@espm.sn');
+    const pers3 = personnelRepo.create({
+      nom: 'Oumar Tall',
+      poste: 'Bibliothécaire',
+      salaireMensuel: 200000,
+      userId: espSurveillantUser?.id,
+      user: espSurveillantUser,
+      etablissement: esp,
+      etablissementId: esp.id,
+    });
+    const savedPersonnel = await personnelRepo.save([pers1, pers2, pers3]);
+
+    await paiePersonnelRepo.save([
+      {
+        personnelId: pers1.id,
+        type: 'Avance' as any,
+        montant: 50000,
+        datePaiement: new Date('2026-06-10'),
+        mois: 6,
+        annee: 2026,
+        description: 'Avance sur salaire juin',
+      },
+      {
+        personnelId: pers1.id,
+        type: 'Solde' as any,
+        montant: 100000,
+        datePaiement: new Date('2026-06-30'),
+        mois: 6,
+        annee: 2026,
+        description: 'Solde salaire juin',
+      },
+      {
+        personnelId: pers2.id,
+        type: 'Solde' as any,
+        montant: 250000,
+        datePaiement: new Date('2026-06-30'),
+        mois: 6,
+        annee: 2026,
+        description: 'Salaire complet juin',
+      },
+    ]);
 
     // 18. Devoirs
     const devoir1 = devoirRepo.create({

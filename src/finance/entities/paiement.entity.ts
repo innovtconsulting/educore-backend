@@ -52,6 +52,14 @@ export class Paiement {
   @ApiProperty({ description: 'Numéro de tranche (1 à 3)' })
   tranche!: number;
 
+  @Column({ type: 'uuid', nullable: true })
+  @ApiProperty({
+    required: false,
+    description:
+      'Référence commune pour les paiements groupés (permet de regrouper plusieurs paiements dans une même transaction)',
+  })
+  groupeReference?: string;
+
   @ManyToOne(() => Etablissement, { nullable: false })
   @JoinColumn({ name: 'etablissementId' })
   etablissement!: Etablissement;

@@ -13,11 +13,13 @@ import { Etablissement } from '../../etablissement/entities/etablissement.entity
 import { AnneeUniversitaire } from '../../annee-universitaire/entities/annee-universitaire.entity';
 
 export enum SanctionType {
+  AVERTISSEMENT_VERBALE = 'Avertissement verbale',
+  RECUPERATION = 'Récupération',
+  CONVOCATION_PARENT = 'Convocation de parent',
   AVERTISSEMENT = 'Avertissement',
-  BLAME = 'Blâme',
-  EXCLUSION_TEMPORAIRE = 'Exclusion Temporaire',
-  EXCLUSION_DEFINITIVE = 'Exclusion Définitive',
-  CONSEIL_DISCIPLINE = 'Conseil de Discipline',
+  CONSEIL_DISCIPLINE = 'Conseil de discipline',
+  EXCLUSION_TEMPORAIRE = 'Exclusion temporaire',
+  EXCLUSION_DEFINITIVE = 'Exclusion definitive',
 }
 
 @Entity()

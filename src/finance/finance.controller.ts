@@ -13,6 +13,7 @@ import {
 import { FinanceService } from './finance.service';
 import { CreateFeeGroupDto } from './dto/create-fee-group.dto';
 import { CreatePaymentDto } from './dto/create-payment.dto';
+import { CreateGlobalPaymentDto } from './dto/create-global-payment.dto';
 import { CreateDepenseDto } from './dto/create-depense.dto';
 import { UpdateDepenseDto } from './dto/update-depense.dto';
 import { DepenseCategory } from './entities/depense.entity';
@@ -164,6 +165,77 @@ export class FinanceController {
       tenantId,
     );
     return { message: 'Paiement enregistré avec succès', data };
+  }
+
+  // --- Paiements de plusieurs frais ---
+  @Post('etudiants/:etudiantId/paiements-global')
+  @Roles(Role.COMPTABLE)
+  @Permissions('FINANCE_MANAGE')
+  @ApiOperation({
+    summary:
+      "Paiements de plusieurs frais : payer plusieurs factures d'un étudiant en une seule transaction",
+  })
+  async createGlobalPayment(
+    @Param('etudiantId', ParseIntPipe) etudiantId: number,
+    @Body() dto: CreateGlobalPaymentDto,
+    @CurrentEtablissement() tenantId?: number,
+  ) {
+    const data = await this.financeService.createGlobalPayment(
+      etudiantId,
+      dto,
+      tenantId,
+    );
+    return { message: 'Paiements de plusieurs frais enregistré avec succès', data };
+  }
+
+  @Get('paiements')
+  @Roles(Role.ADMIN, Role.SUPER_ADMIN, Role.COMPTABLE)
+  @Permissions('FINANCE_VIEW')
+  @ApiOperation({ summary: 'Lister tous les paiements (individuels et groupés)' })
+  @ApiQuery({ name: 'start', required: false })
+  @ApiQuery({ name: 'end', required: false })
+  async findAllPayments(
+    @Query('start') start?: string,
+    @Query('end') end?: string,
+    @CurrentEtablissement() tenantId?: number,
+  ) {
+    const data = await this.financeService.findAllPayments(tenantId, start, end);
+    return { message: 'Liste des paiements récupérée avec succès', data };
+  }
+
+  @Get('paiements-groupe/:groupeReference')
+  @Roles(Role.ADMIN, Role.SUPER_ADMIN, Role.COMPTABLE)
+  @Permissions('FINANCE_VIEW')
+  @ApiOperation({
+    summary: "Récupérer un groupe de paiements par sa référence (pour reçu)",
+  })
+  async getPaymentsByGroupeReference(
+    @Param('groupeReference') groupeReference: string,
+    @CurrentEtablissement() tenantId?: number,
+  ) {
+    const data = await this.financeService.getPaymentsByGroupeReference(
+      groupeReference,
+      tenantId,
+    );
+    return { message: 'Groupe de paiements récupéré avec succès', data };
+  }
+
+  @Get('etudiants/:etudiantId/factures')
+  @Roles(Role.ADMIN, Role.SUPER_ADMIN, Role.COMPTABLE)
+  @Permissions('FINANCE_VIEW')
+  @ApiOperation({
+    summary:
+      "Lister toutes les factures d'un étudiant (tous types de frais confondus)",
+  })
+  async getFacturesByEtudiant(
+    @Param('etudiantId', ParseIntPipe) etudiantId: number,
+    @CurrentEtablissement() tenantId?: number,
+  ) {
+    const data = await this.financeService.getFacturesByEtudiant(
+      etudiantId,
+      tenantId,
+    );
+    return { message: 'Factures récupérées avec succès', data };
   }
 
   // --- Dépenses ---

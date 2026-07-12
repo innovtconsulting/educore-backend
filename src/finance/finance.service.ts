@@ -15,6 +15,7 @@ import { Classe } from '../classe/entities/classe.entity';
 import { Niveau } from '../niveau/entities/niveau.entity';
 import { CreateFeeGroupDto } from './dto/create-fee-group.dto';
 import { CreatePaymentDto } from './dto/create-payment.dto';
+import { CreateGlobalPaymentDto } from './dto/create-global-payment.dto';
 import { CreateDepenseDto } from './dto/create-depense.dto';
 import { UpdateDepenseDto } from './dto/update-depense.dto';
 import { AnneeUniversitaireService } from '../annee-universitaire/annee-universitaire.service';
@@ -102,6 +103,29 @@ export class FinanceService {
         if (niveaux.length !== requestedIds.length) {
           throw new BadRequestException(
             `Un ou plusieurs niveaux sélectionnés n'appartiennent pas au parcours "${classe.name}"`,
+          );
+        }
+      }
+
+      // Règles métier sur les types de frais
+      if (dto.type === FeeType.INSCRIPTION) {
+        const l1niveaux = niveaux.filter((n) =>
+          /^licence\s+1|^dut\s+1/i.test(n.name),
+        );
+        if (l1niveaux.length > 0) {
+          throw new BadRequestException(
+            `Les étudiants de "${l1niveaux[0].name}" ne paient pas de droit d'inscription. Veuillez sélectionner des niveaux supérieurs.`,
+          );
+        }
+      }
+
+      if (dto.type === FeeType.MEMOIRE) {
+        const nonL3 = niveaux.filter(
+          (n) => !/^licence\s+3/i.test(n.name),
+        );
+        if (nonL3.length > 0) {
+          throw new BadRequestException(
+            `Seuls les étudiants de Licence 3 sont concernés par le droit de mémoire. Le niveau "${nonL3[0].name}" n'est pas autorisé.`,
           );
         }
       }
@@ -332,6 +356,32 @@ export class FinanceService {
     return await this.depenseRepository.save(depense);
   }
 
+  async findAllPayments(
+    tenantId?: number,
+    start?: string,
+    end?: string,
+  ) {
+    let where: any = {};
+    if (start && end) where.datePaiement = Between(new Date(start), new Date(end));
+
+    const relations = {
+      etudiant: { classe: true, niveau: true, etablissement: true },
+      facture: { frais: { classe: true, niveau: true, anneeUniversitaire: true } },
+    };
+
+    let payments = await this.paiementRepository.find({
+      where,
+      relations,
+      order: { datePaiement: 'DESC', createdAt: 'DESC' },
+    });
+
+    if (tenantId) {
+      payments = payments.filter((p) => p.etablissementId === tenantId);
+    }
+
+    return payments;
+  }
+
   async findAllDepenses(
     tenantId?: number,
     start?: string,
@@ -488,6 +538,126 @@ export class FinanceService {
     await this.updateFactureStatus(factureId);
 
     return savedPaiement;
+  }
+
+  // --- Paiements de plusieurs frais (multi-factures en une transaction) ---
+
+  async createGlobalPayment(
+    etudiantId: number,
+    dto: CreateGlobalPaymentDto,
+    tenantId?: number,
+  ) {
+    if (!tenantId) {
+      throw new BadRequestException("ID d'établissement manquant");
+    }
+
+    const etudiant = await this.etudiantRepository.findOne({
+      where: { id: etudiantId, etablissement: { id: tenantId } },
+    });
+    if (!etudiant) {
+      throw new NotFoundException(`Étudiant #${etudiantId} introuvable`);
+    }
+
+    const groupeReference = randomUUID();
+    const paiementsCrees: Paiement[] = [];
+
+    for (const alloc of dto.allocations) {
+      const facture = await this.factureRepository.findOne({
+        where: { id: alloc.factureId, etudiantId, etablissementId: tenantId },
+        relations: { paiements: true },
+      });
+      if (!facture) {
+        throw new NotFoundException(
+          `Facture #${alloc.factureId} introuvable pour cet étudiant`,
+        );
+      }
+
+      const paiements = facture.paiements ?? [];
+      if (paiements.length >= 3) {
+        throw new BadRequestException(
+          `La facture #${facture.numero} a déjà atteint le nombre maximum de tranches (3).`,
+        );
+      }
+
+      const totalPaye = paiements.reduce(
+        (sum, p) => sum + Number(p.montant),
+        0,
+      );
+      const montantRestant = Number(facture.montantTotal) - totalPaye;
+      const EPSILON = 0.01;
+      if (alloc.montant > montantRestant + EPSILON) {
+        throw new BadRequestException(
+          `Le montant alloué à la facture #${facture.numero} (${alloc.montant} Ar) dépasse le solde restant (${montantRestant.toLocaleString('fr-FR')} Ar).`,
+        );
+      }
+
+      const tranche = paiements.length + 1;
+      const paiement = this.paiementRepository.create({
+        reference: `PAY-${facture.numero}-T${tranche}`,
+        etudiant,
+        facture,
+        etablissementId: tenantId,
+        montant: alloc.montant,
+        datePaiement: new Date(dto.datePaiement),
+        modePaiement: dto.modePaiement,
+        tranche,
+        groupeReference,
+      });
+
+      const saved = await this.paiementRepository.save(paiement);
+      await this.updateFactureStatus(alloc.factureId);
+      paiementsCrees.push(saved);
+    }
+
+    return {
+      groupeReference,
+      totalPaiements: paiementsCrees.length,
+      montantTotal: paiementsCrees.reduce(
+        (sum, p) => sum + Number(p.montant),
+        0,
+      ),
+      paiements: paiementsCrees,
+    };
+  }
+
+  async getPaymentsByGroupeReference(groupeReference: string, tenantId?: number) {
+    const paiements = await this.paiementRepository.find({
+      where: { groupeReference, etablissementId: tenantId },
+      relations: { facture: { frais: true }, etudiant: true },
+      order: { id: 'ASC' },
+    });
+
+    if (paiements.length === 0) {
+      throw new NotFoundException('Aucun paiement trouvé pour cette référence');
+    }
+
+    return {
+      groupeReference,
+      montantTotal: paiements.reduce((sum, p) => sum + Number(p.montant), 0),
+      datePaiement: paiements[0].datePaiement,
+      modePaiement: paiements[0].modePaiement,
+      paiements,
+    };
+  }
+
+  async getFacturesByEtudiant(etudiantId: number, tenantId?: number) {
+    const etudiant = await this.etudiantRepository.findOne({
+      where: { id: etudiantId, etablissement: { id: tenantId } },
+      relations: { classe: true, niveau: true },
+    });
+    if (!etudiant) {
+      throw new NotFoundException(`Étudiant #${etudiantId} introuvable`);
+    }
+
+    const factures = await this.factureRepository.find({
+      where: { etudiantId, etablissementId: tenantId },
+      relations: { frais: { classe: true, niveau: true }, paiements: true },
+      order: { id: 'ASC' },
+    });
+
+    factures.forEach((f) => this.enrichFactureWithPaymentSummary(f));
+
+    return { etudiant, factures };
   }
 
   async updateFactureStatus(factureId: number) {

@@ -4,50 +4,40 @@ import {
   Entity,
   JoinColumn,
   ManyToOne,
+  OneToMany,
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
 import { ApiProperty } from '@nestjs/swagger';
 import { Etablissement } from '../../etablissement/entities/etablissement.entity';
-
-export enum DepenseCategory {
-  LOYER = 'Loyer',
-  JIRAMA = 'Jirama',
-  INTERNET = 'Internet',
-  PAIEMENT_PROF = 'Paiement prof',
-  SALAIRES = 'Salaires',
-  DROIT_DE_STAGE = 'Droit de stage',
-  FRAIS_DE_DEPLACEMENT = 'Frais de déplacement',
-  ENTRETIEN_PERIODIQUE = 'Entretien périodique',
-  MATERIEL_INFORMATIQUE = 'Matériel Informatique',
-  BANQUE = 'Banque',
-  AUTRE = 'Autre',
-}
+import { PaiePersonnel } from './paie-personnel.entity';
+import { User } from '../../user/entities/user.entity';
 
 @Entity()
-export class Depense {
+export class Personnel {
   @PrimaryGeneratedColumn()
   @ApiProperty()
   id!: number;
 
-  @Column({
-    type: 'varchar',
-    default: DepenseCategory.AUTRE,
-  })
-  @ApiProperty({ enum: DepenseCategory })
-  category!: DepenseCategory;
+  @Column()
+  @ApiProperty()
+  nom!: string;
 
   @Column({ nullable: true })
   @ApiProperty({ required: false })
-  libelle?: string;
+  poste?: string;
 
   @Column({ type: 'decimal', precision: 12, scale: 2 })
   @ApiProperty()
-  amount!: number;
+  salaireMensuel!: number;
 
-  @Column({ type: 'date' })
-  @ApiProperty()
-  date!: Date;
+  @ManyToOne(() => User, { nullable: true, onDelete: 'SET NULL' })
+  @JoinColumn({ name: 'userId' })
+  @ApiProperty({ type: () => User, required: false })
+  user?: User;
+
+  @Column({ nullable: true, unique: true })
+  userId?: number;
 
   @ManyToOne(() => Etablissement, { nullable: false })
   @JoinColumn({ name: 'etablissementId' })
@@ -55,6 +45,9 @@ export class Depense {
 
   @Column({ nullable: false })
   etablissementId!: number;
+
+  @OneToMany(() => PaiePersonnel, (paie) => paie.personnel)
+  paies!: PaiePersonnel[];
 
   @CreateDateColumn()
   createdAt!: Date;

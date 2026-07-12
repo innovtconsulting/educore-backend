@@ -16,7 +16,7 @@ export class CreateSanctionDto {
   @IsNotEmpty()
   etudiantId!: number;
 
-  @ApiProperty({ enum: SanctionType, default: SanctionType.AVERTISSEMENT })
+  @ApiProperty({ enum: SanctionType, default: SanctionType.AVERTISSEMENT_VERBALE })
   @IsEnum(SanctionType)
   @IsNotEmpty()
   type!: SanctionType;

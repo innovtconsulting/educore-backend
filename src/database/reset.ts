@@ -24,6 +24,8 @@ import { Frais } from '../finance/entities/frais.entity';
 import { Facture } from '../finance/entities/facture.entity';
 import { Paiement } from '../finance/entities/paiement.entity';
 import { Depense } from '../finance/entities/depense.entity';
+import { Personnel } from '../personnel/entities/personnel.entity';
+import { PaiePersonnel } from '../personnel/entities/paie-personnel.entity';
 import { Discipline } from '../discipline/entities/discipline.entity';
 import { Inscription } from '../etudiant/entities/inscription.entity'; // Correction du nom si nécessaire, mais glob a dit inscription.entity.ts
 import { GeneratedDocument } from '../certificate/entities/generated-document.entity';
@@ -66,6 +68,8 @@ const dataSource = new DataSource({
     Facture,
     Paiement,
     Depense,
+    Personnel,
+    PaiePersonnel,
     Discipline,
     Devoir,
     Submission,

@@ -19,6 +19,7 @@ export enum FeeType {
   SCOLARITE = 'Scolarité',
   EXAMEN = 'Examen',
   ECOLAGE = 'Écolage',
+  MEMOIRE = 'Mémoire',
   AUTRE = 'Autre',
 }
 
