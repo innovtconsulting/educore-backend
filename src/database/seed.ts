@@ -1,5 +1,10 @@
 import { AppDataSource } from '../data-source';
-import { DeepPartial, FindOptionsWhere, ObjectLiteral, Repository } from 'typeorm';
+import {
+  DeepPartial,
+  FindOptionsWhere,
+  ObjectLiteral,
+  Repository,
+} from 'typeorm';
 import { Etablissement } from '../etablissement/entities/etablissement.entity';
 import { Niveau } from '../niveau/entities/niveau.entity';
 import { Classe } from '../classe/entities/classe.entity';
@@ -40,12 +45,14 @@ import {
 } from '../global-setting/entities/global-setting.entity';
 import { User, Role } from '../user/entities/user.entity';
 import { Inscription } from '../etudiant/entities/inscription.entity';
-import { GeneratedDocument } from '../certificate/entities/generated-document.entity';
 import { Role as AclRole } from '../acl/entities/role.entity';
 import { Permission } from '../acl/entities/permission.entity';
 import { SiteStage } from '../site-stage/entities/site-stage.entity';
 import { PeriodeStage } from '../site-stage/entities/periode-stage.entity';
-import { AffectationStage, StageStatus } from '../site-stage/entities/affectation-stage.entity';
+import {
+  AffectationStage,
+  StageStatus,
+} from '../site-stage/entities/affectation-stage.entity';
 import { Personnel } from '../personnel/entities/personnel.entity';
 import { PaiePersonnel } from '../personnel/entities/paie-personnel.entity';
 import * as bcrypt from 'bcrypt';
@@ -192,8 +199,14 @@ async function seed() {
       { name: 'DOCUMENT_MANAGE', description: 'Gérer la GED' },
 
       // Stages
-      { name: 'STAGE_VIEW', description: 'Voir les sites de stage et affectations' },
-      { name: 'STAGE_MANAGE', description: 'Gérer les sites et affectations de stage' },
+      {
+        name: 'STAGE_VIEW',
+        description: 'Voir les sites de stage et affectations',
+      },
+      {
+        name: 'STAGE_MANAGE',
+        description: 'Gérer les sites et affectations de stage',
+      },
     ];
     const savedPerms = [] as Permission[];
     for (const permissionData of perms) {
@@ -1146,12 +1159,14 @@ async function seed() {
 
     // 12. Personnel (Gestion des salaires) — lié aux utilisateurs existants
     const comptableUser = users.find((u) => u.email === 'comptable@espm.sn');
-    const surveillantUser = users.find((u) => u.email === 'surveillant@espm.sn');
+    const surveillantUser = users.find(
+      (u) => u.email === 'surveillant@espm.sn',
+    );
     const profDialloUser = users.find((u) => u.email === 'prof.diallo@espm.sn');
 
     const pers1 = personnelRepo.create({
       nom: 'Mamadou Ba',
-      poste: 'Agent d\'entretien',
+      poste: "Agent d'entretien",
       salaireMensuel: 150000,
       etablissement: fst,
       etablissementId: fst.id,
@@ -1165,7 +1180,9 @@ async function seed() {
       etablissement: fst,
       etablissementId: fst.id,
     });
-    const espSurveillantUser = users.find((u) => u.email === 'surveillant.esp@espm.sn');
+    const espSurveillantUser = users.find(
+      (u) => u.email === 'surveillant.esp@espm.sn',
+    );
     const pers3 = personnelRepo.create({
       nom: 'Oumar Tall',
       poste: 'Bibliothécaire',
@@ -1279,11 +1296,11 @@ async function seed() {
     });
     const siteBceao = siteStageRepo.create({
       nom: 'BCEAO - Dakar',
-      adresse: 'Place de l\'Indépendance',
+      adresse: "Place de l'Indépendance",
       ville: 'Dakar',
       email: 'stage@bceao.int',
       responsable: 'M. Ndiaye',
-      description: 'Banque Centrale des États de l\'Afrique de l\'Ouest',
+      description: "Banque Centrale des États de l'Afrique de l'Ouest",
       capacite: 5,
     });
     const siteCse = siteStageRepo.create({
