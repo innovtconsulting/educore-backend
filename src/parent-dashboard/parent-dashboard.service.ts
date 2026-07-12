@@ -90,7 +90,7 @@ export class ParentDashboardService {
             absentsTotal: presenceStats.absents,
             retardsTotal: presenceStats.retards,
             absencesToday: absencesToday.map((p) => ({
-              matiere: p.emploiDuTemp.matiere.name,
+              matiere: p.emploiDuTemp.matiere?.name ?? p.emploiDuTemp.title ?? '',
               startTime: p.emploiDuTemp.startTime,
               remark: p.remark,
             })),

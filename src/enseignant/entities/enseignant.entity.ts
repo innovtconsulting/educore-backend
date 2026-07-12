@@ -42,6 +42,25 @@ export class Enseignant {
   @Column({ type: 'date' })
   dateEmbauche!: Date;
 
+  // Documents fournis (Checklist)
+  @Column({ default: false })
+  ficheProf!: boolean;
+
+  @Column({ default: false })
+  cv!: boolean;
+
+  @Column({ default: false })
+  photocopieDiplome!: boolean;
+
+  @Column({ default: false })
+  photocopieCin!: boolean;
+
+  @Column({ default: false })
+  contratConsultance!: boolean;
+
+  @Column({ default: false })
+  lettreMotivation!: boolean;
+
   @ManyToOne(() => Etablissement, { nullable: false })
   @JoinColumn({ name: 'etablissementId' })
   etablissement!: Etablissement;

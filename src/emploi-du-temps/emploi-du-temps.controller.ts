@@ -12,6 +12,7 @@ import {
 import { EmploiDuTempsService } from './emploi-du-temps.service';
 import { CreateEmploiDuTempDto } from './dto/create-emploi-du-temp.dto';
 import { UpdateEmploiDuTempDto } from './dto/update-emploi-du-temp.dto';
+import { CreateEvenementDto } from './dto/create-evenement.dto';
 import {
   ApiTags,
   ApiOperation,
@@ -38,6 +39,22 @@ export class EmploiDuTempsController {
   @ApiOperation({ summary: "Créer un créneau d'emploi du temps" })
   create(@Body() createEmploiDuTempDto: CreateEmploiDuTempDto) {
     return this.emploiDuTempsService.create(createEmploiDuTempDto);
+  }
+
+  @Post('evenement')
+  @Permissions('SCHEDULE_MANAGE')
+  @ApiOperation({
+    summary:
+      "Créer un événement (sans matière) ciblant plusieurs niveaux/parcours, ou tout l'établissement",
+  })
+  createEvenement(
+    @Body() createEvenementDto: CreateEvenementDto,
+    @CurrentEtablissement() tenantId?: number,
+  ) {
+    return this.emploiDuTempsService.createEvenement(
+      createEvenementDto,
+      tenantId,
+    );
   }
 
   @Get()

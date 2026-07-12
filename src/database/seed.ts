@@ -182,6 +182,7 @@ async function seed() {
       { name: 'SCHEDULE_VIEW', description: 'Voir l emploi du temps' },
       { name: 'SCHEDULE_MANAGE', description: 'Gérer l emploi du temps' },
       { name: 'ATTENDANCE_MANAGE', description: 'Gérer les présences' },
+      { name: 'JOURNAL_MANAGE', description: 'Gérer le cahier de journal' },
 
       // Discipline & Vie Scolaire
       {
@@ -261,6 +262,7 @@ async function seed() {
           'REPORT_DAILY_MANAGE',
           'SCHEDULE_VIEW',
           'ACADEMIC_VIEW',
+          'JOURNAL_MANAGE',
         ]),
       },
     );
@@ -277,6 +279,7 @@ async function seed() {
           'SCHEDULE_VIEW',
           'ATTENDANCE_MANAGE',
           'STAGE_VIEW',
+          'JOURNAL_MANAGE',
         ]),
       },
     );

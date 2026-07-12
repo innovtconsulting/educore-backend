@@ -5,7 +5,9 @@ import {
   CreateDateColumn,
   UpdateDateColumn,
   ManyToOne,
+  ManyToMany,
   JoinColumn,
+  JoinTable,
 } from 'typeorm';
 import { ApiProperty } from '@nestjs/swagger';
 import { Etablissement } from '../../etablissement/entities/etablissement.entity';
@@ -63,19 +65,13 @@ export class Document {
   @Column({ nullable: true })
   etablissementId?: number;
 
-  @ManyToOne(() => Classe, { nullable: true })
-  @JoinColumn({ name: 'classeId' })
-  classe?: Classe;
+  @ManyToMany(() => Classe)
+  @JoinTable({ name: 'document_classes' })
+  classes!: Classe[];
 
-  @Column({ nullable: true })
-  classeId?: number;
-
-  @ManyToOne(() => Niveau, { nullable: true })
-  @JoinColumn({ name: 'niveauId' })
-  niveau?: Niveau;
-
-  @Column({ nullable: true })
-  niveauId?: number;
+  @ManyToMany(() => Niveau)
+  @JoinTable({ name: 'document_niveaux' })
+  niveaux!: Niveau[];
 
   @CreateDateColumn()
   @ApiProperty()

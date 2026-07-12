@@ -81,6 +81,9 @@ import { Notification } from './notifications/entities/notification.entity';
 import { PersonnelModule } from './personnel/personnel.module';
 import { Personnel } from './personnel/entities/personnel.entity';
 import { PaiePersonnel } from './personnel/entities/paie-personnel.entity';
+import { JournalModule } from './journal/journal.module';
+import { Journal } from './journal/entities/journal.entity';
+import { JournalHistory } from './journal/entities/journal-history.entity';
 
 @Module({
   imports: [
@@ -135,6 +138,8 @@ import { PaiePersonnel } from './personnel/entities/paie-personnel.entity';
         AffectationStage,
         Personnel,
         PaiePersonnel,
+        Journal,
+        JournalHistory,
       ],
       synchronize: process.env.NODE_ENV !== 'production',
       ssl:
@@ -179,6 +184,7 @@ import { PaiePersonnel } from './personnel/entities/paie-personnel.entity';
     SiteStageModule,
     PersonnelModule,
     SharedModule,
+    JournalModule,
   ],
   controllers: [AppController],
   providers: [

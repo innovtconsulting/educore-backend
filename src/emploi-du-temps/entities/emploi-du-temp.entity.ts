@@ -2,6 +2,7 @@ import {
   Column,
   CreateDateColumn,
   Entity,
+  Index,
   ManyToOne,
   PrimaryGeneratedColumn,
   UpdateDateColumn,
@@ -13,10 +14,25 @@ import { Classe } from '../../classe/entities/classe.entity';
 import { Niveau } from '../../niveau/entities/niveau.entity';
 import { Salle } from '../../salle/entities/salle.entity';
 
+export enum EmploiDuTempType {
+  COURS = 'Cours',
+  EVENEMENT = 'Evenement',
+}
+
 @Entity()
 export class EmploiDuTemp {
   @PrimaryGeneratedColumn()
   id!: number;
+
+  @Column({ type: 'varchar', default: EmploiDuTempType.COURS })
+  type!: EmploiDuTempType;
+
+  @Column({ nullable: true })
+  title?: string;
+
+  @Column({ type: 'uuid', nullable: true })
+  @Index()
+  groupeId?: string;
 
   @Column({ type: 'timestamp' })
   startTime!: Date;
@@ -24,11 +40,11 @@ export class EmploiDuTemp {
   @Column({ type: 'timestamp' })
   endTime!: Date;
 
-  @ManyToOne(() => Matiere, { onDelete: 'CASCADE' })
-  matiere!: Matiere;
+  @ManyToOne(() => Matiere, { onDelete: 'CASCADE', nullable: true })
+  matiere?: Matiere;
 
-  @ManyToOne(() => Enseignant, { onDelete: 'CASCADE' })
-  enseignant!: Enseignant;
+  @ManyToOne(() => Enseignant, { onDelete: 'CASCADE', nullable: true })
+  enseignant?: Enseignant;
 
   @ManyToOne(() => Etablissement, { onDelete: 'CASCADE' })
   etablissement!: Etablissement;
