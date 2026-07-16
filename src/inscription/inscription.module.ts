@@ -11,6 +11,7 @@ import { Facture } from '../finance/entities/facture.entity';
 import { Frais } from '../finance/entities/frais.entity';
 import { BulletinModule } from '../bulletin/bulletin.module';
 import { GlobalSettingModule } from '../global-setting/global-setting.module';
+import { SiteStageModule } from '../site-stage/site-stage.module';
 
 @Module({
   imports: [
@@ -25,6 +26,7 @@ import { GlobalSettingModule } from '../global-setting/global-setting.module';
     ]),
     BulletinModule,
     GlobalSettingModule,
+    SiteStageModule,
   ],
   providers: [InscriptionService],
   controllers: [InscriptionController],

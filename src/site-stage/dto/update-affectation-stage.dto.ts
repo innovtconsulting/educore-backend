@@ -1,5 +1,5 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
-import { IsEnum, IsNumber, IsOptional } from 'class-validator';
+import { IsEnum, IsNumber, IsOptional, IsString } from 'class-validator';
 import { StageStatus } from '../entities/affectation-stage.entity';
 
 export class UpdateAffectationStageDto {
@@ -7,6 +7,16 @@ export class UpdateAffectationStageDto {
   @IsOptional()
   @IsNumber({}, { message: 'L\'ID du site de stage doit être un nombre' })
   siteStageId?: number;
+
+  @ApiPropertyOptional({ example: 'Maternité', description: 'Service au sein du site' })
+  @IsOptional()
+  @IsString({ message: 'Le service doit être une chaîne' })
+  service?: string;
+
+  @ApiPropertyOptional({ example: 1, description: 'ID de la nature de stage' })
+  @IsOptional()
+  @IsNumber({}, { message: 'L\'ID de la nature de stage doit être un nombre' })
+  natureStageId?: number;
 
   @ApiPropertyOptional({ example: 1, description: 'ID de l\'enseignant tuteur' })
   @IsOptional()

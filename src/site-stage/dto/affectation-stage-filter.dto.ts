@@ -23,6 +23,12 @@ export class AffectationStageFilterDto extends PaginationQueryDto {
   @IsPositive()
   etudiantId?: number;
 
+  @ApiPropertyOptional({ description: 'ID de la nature de stage' })
+  @IsOptional()
+  @Type(() => Number)
+  @IsPositive()
+  natureStageId?: number;
+
   @ApiPropertyOptional({ enum: StageStatus })
   @IsOptional()
   @IsEnum(StageStatus)

@@ -8,6 +8,7 @@ import { Repository, ILike, MoreThanOrEqual, LessThanOrEqual } from 'typeorm';
 import { SiteStage } from './entities/site-stage.entity';
 import { PeriodeStage } from './entities/periode-stage.entity';
 import { AffectationStage, StageStatus } from './entities/affectation-stage.entity';
+import { NatureStage } from './entities/nature-stage.entity';
 import { CreateSiteStageDto } from './dto/create-site-stage.dto';
 import { UpdateSiteStageDto } from './dto/update-site-stage.dto';
 import { CreatePeriodeStageDto } from './dto/create-periode-stage.dto';
@@ -32,6 +33,8 @@ export class SiteStageService {
     private readonly affectationRepository: Repository<AffectationStage>,
     @InjectRepository(Etudiant)
     private readonly etudiantRepository: Repository<Etudiant>,
+    @InjectRepository(NatureStage)
+    private readonly natureStageRepository: Repository<NatureStage>,
     @InjectRepository(Enseignant)
     private readonly enseignantRepository: Repository<Enseignant>,
     @InjectRepository(AnneeUniversitaire)
@@ -41,28 +44,66 @@ export class SiteStageService {
 
   // ===================== SITES DE STAGE (Global) =====================
 
-  async createSite(dto: CreateSiteStageDto): Promise<SiteStage> {
-    const site = this.siteStageRepository.create(dto);
-    return await this.siteStageRepository.save(site);
+  async createSite(dto: CreateSiteStageDto, natureNames?: string[]): Promise<SiteStage> {
+    const site = this.siteStageRepository.create({
+      nom: dto.nom,
+      adresse: dto.adresse,
+      telephone: dto.telephone,
+      email: dto.email,
+      responsable: dto.responsable,
+      description: dto.description,
+      capacite: dto.capacite,
+    });
+    const savedSite = await this.siteStageRepository.save(site);
+
+    if (natureNames && natureNames.length > 0) {
+      const natures: NatureStage[] = [];
+      for (const nom of natureNames) {
+        const nature = await this.findOrCreateNature(nom);
+        natures.push(nature);
+      }
+      savedSite.natures = natures;
+      await this.siteStageRepository.save(savedSite);
+    }
+
+    return savedSite;
   }
 
-  async findAllSites(search?: string): Promise<SiteStage[]> {
-    if (search) {
-      return await this.siteStageRepository.find({
-        where: [
-          { nom: ILike(`%${search}%`) },
-          { ville: ILike(`%${search}%`) },
-        ],
-        order: { nom: 'ASC' },
-      });
-    }
-    return await this.siteStageRepository.find({
+  async findOrCreateNature(nom: string, description?: string): Promise<NatureStage> {
+    const existing = await this.natureStageRepository.findOne({ where: { nom } });
+    if (existing) return existing;
+    const nature = this.natureStageRepository.create({ nom, description });
+    return await this.natureStageRepository.save(nature);
+  }
+
+  async findAllSites(search?: string, natureStageId?: number, capaciteMin?: number): Promise<SiteStage[]> {
+    const findOptions: any = {
+      relations: { natures: true },
       order: { nom: 'ASC' },
-    });
+    };
+    if (search) {
+      findOptions.where = [
+        { nom: ILike(`%${search}%`) },
+        { adresse: ILike(`%${search}%`) },
+      ];
+    }
+    const sites = await this.siteStageRepository.find(findOptions);
+
+    let filtered = sites;
+    if (natureStageId) {
+      filtered = filtered.filter(site => site.natures?.some(n => n.id === natureStageId));
+    }
+    if (capaciteMin) {
+      filtered = filtered.filter(site => site.capacite != null && site.capacite >= capaciteMin);
+    }
+    return filtered;
   }
 
   async findOneSite(id: number): Promise<SiteStage> {
-    const site = await this.siteStageRepository.findOne({ where: { id } });
+    const site = await this.siteStageRepository.findOne({
+      where: { id },
+      relations: { natures: true },
+    });
     if (!site) {
       throw new NotFoundException(`Le site de stage #${id} n'a pas été trouvé`);
     }
@@ -228,6 +269,15 @@ export class SiteStageService {
       throw new NotFoundException('Période de stage non trouvée');
     }
 
+    if (dto.natureStageId) {
+      const natureStage = await this.natureStageRepository.findOne({
+        where: { id: dto.natureStageId },
+      });
+      if (!natureStage) {
+        throw new NotFoundException('Nature de stage non trouvée');
+      }
+    }
+
     if (dto.enseignantId) {
       const enseignant = await this.enseignantRepository.findOne({
         where: { id: dto.enseignantId },
@@ -253,6 +303,8 @@ export class SiteStageService {
       etudiantId: dto.etudiantId,
       siteStageId: dto.siteStageId,
       periodeStageId: dto.periodeStageId,
+      service: dto.service,
+      natureStageId: dto.natureStageId,
       enseignantId: dto.enseignantId,
       statut: StageStatus.EN_ATTENTE,
       etablissementId,
@@ -278,6 +330,7 @@ export class SiteStageService {
       .leftJoinAndSelect('affectation.etudiant', 'etudiant')
       .leftJoinAndSelect('affectation.siteStage', 'siteStage')
       .leftJoinAndSelect('affectation.periodeStage', 'periodeStage')
+      .leftJoinAndSelect('affectation.natureStage', 'natureStage')
       .leftJoinAndSelect('affectation.enseignant', 'enseignant')
       .leftJoinAndSelect('affectation.etablissement', 'etablissement');
 
@@ -300,6 +353,11 @@ export class SiteStageService {
     if (filters.etudiantId) {
       queryBuilder.andWhere('affectation.etudiantId = :etudiantId', {
         etudiantId: filters.etudiantId,
+      });
+    }
+    if (filters.natureStageId) {
+      queryBuilder.andWhere('affectation.natureStageId = :natureStageId', {
+        natureStageId: filters.natureStageId,
       });
     }
     if (filters.statut) {
@@ -342,6 +400,7 @@ export class SiteStageService {
         etudiant: true,
         siteStage: true,
         periodeStage: true,
+        natureStage: true,
         enseignant: true,
       },
     });
@@ -366,6 +425,7 @@ export class SiteStageService {
       relations: {
         siteStage: true,
         periodeStage: true,
+        natureStage: true,
         enseignant: true,
       },
       order: { createdAt: 'DESC' },
@@ -385,6 +445,7 @@ export class SiteStageService {
       relations: {
         etudiant: true,
         periodeStage: true,
+        natureStage: true,
         enseignant: true,
       },
       order: { createdAt: 'DESC' },
@@ -406,6 +467,20 @@ export class SiteStageService {
         throw new NotFoundException('Site de stage non trouvé');
       }
       affectation.siteStageId = dto.siteStageId;
+    }
+
+    if (dto.service !== undefined) {
+      affectation.service = dto.service;
+    }
+
+    if (dto.natureStageId !== undefined) {
+      const natureStage = await this.natureStageRepository.findOne({
+        where: { id: dto.natureStageId },
+      });
+      if (!natureStage) {
+        throw new NotFoundException('Nature de stage non trouvée');
+      }
+      affectation.natureStageId = dto.natureStageId;
     }
 
     if (dto.enseignantId !== undefined) {
@@ -434,6 +509,473 @@ export class SiteStageService {
     await this.affectationRepository.remove(affectation);
   }
 
+  // ===================== NATURES DE STAGE =====================
+
+  async createNatureStage(dto: { nom: string; description?: string }): Promise<NatureStage> {
+    const existing = await this.natureStageRepository.findOne({ where: { nom: dto.nom } });
+    if (existing) return existing;
+    const nature = this.natureStageRepository.create({ nom: dto.nom, description: dto.description });
+    return await this.natureStageRepository.save(nature);
+  }
+
+  async findAllNaturesStage(): Promise<NatureStage[]> {
+    return await this.natureStageRepository.find({ order: { nom: 'ASC' } });
+  }
+
+  async findOneNatureStage(id: number): Promise<NatureStage> {
+    const nature = await this.natureStageRepository.findOne({ where: { id } });
+    if (!nature) {
+      throw new NotFoundException(`La nature de stage #${id} n'a pas été trouvée`);
+    }
+    return nature;
+  }
+
+  async updateNatureStage(id: number, dto: { nom?: string; description?: string }): Promise<NatureStage> {
+    const nature = await this.findOneNatureStage(id);
+    if (dto.nom !== undefined) nature.nom = dto.nom;
+    if (dto.description !== undefined) nature.description = dto.description;
+    return await this.natureStageRepository.save(nature);
+  }
+
+  async removeNatureStage(id: number): Promise<void> {
+    const nature = await this.findOneNatureStage(id);
+    await this.natureStageRepository.remove(nature);
+  }
+
+  // ===================== AUTO-ASSIGN =====================
+
+  async autoAssignStage(
+    etudiantId: number,
+    classeId: number,
+    niveauId: number,
+    etablissementId: number,
+    siteStageId?: number,
+  ): Promise<AffectationStage | null> {
+    const anneeActive = await this.anneeRepository.findOne({
+      where: { etablissementId, isActive: true },
+    });
+    if (!anneeActive) return null;
+
+    const periodes = await this.periodeStageRepository.find({
+      where: { anneeUniversitaireId: anneeActive.id, etablissementId },
+      order: { dateDebut: 'ASC' },
+    });
+    if (periodes.length === 0) return null;
+
+    let site: SiteStage | null = null;
+    if (siteStageId) {
+      site = await this.siteStageRepository.findOne({ where: { id: siteStageId } });
+    }
+    if (!site) {
+      const sites = await this.siteStageRepository.find({
+        order: { nom: 'ASC' },
+      });
+      if (sites.length === 0) return null;
+      site = sites[0];
+    }
+    const periode = periodes[0];
+
+    const count = await this.affectationRepository.count({
+      where: { siteStageId: site.id, periodeStageId: periode.id },
+    });
+
+    if (site.capacite && count >= site.capacite) return null;
+
+    const affectation = this.affectationRepository.create({
+      etudiantId,
+      siteStageId: site.id,
+      periodeStageId: periode.id,
+      statut: StageStatus.ACTIF,
+      etablissementId,
+    });
+    return await this.affectationRepository.save(affectation);
+  }
+
+  // ===================== IMPORT RÉPARTITION XLSX =====================
+
+  async importRepartitionSheet(
+    worksheet: any,
+    headers: string[],
+    sheetName: string,
+    tenantId?: number,
+    _batchSize = 500,
+  ): Promise<{ sheetName: string; affectationsCreated: number; studentsCreated: number; erreurs: string[] }> {
+    const erreurs: string[] = [];
+
+    // 1) Détecter le format de la feuille
+    const hasNumCol = headers.some(h => /^n[°°]?\s*$|^num(e(ro)?)?$/i.test((h || '').trim()));
+    const nameCol = hasNumCol ? 2 : 1;
+    const progCol = hasNumCol ? 3 : 2;
+    const typeCol = hasNumCol ? 4 : 3;
+    const stageStartCol = hasNumCol ? 5 : 4;
+
+    const getCellText = (row: any, col: number): string => {
+      try {
+        const cell = row.getCell(col);
+        if (cell.text !== undefined && cell.text !== null) {
+          return cell.text.toString().trim();
+        }
+        if (cell.value !== null && cell.value !== undefined) {
+          return String(cell.value).trim();
+        }
+      } catch {
+        // gestion des cellules fusionnées
+      }
+      return '';
+    };
+
+    // 2) Parcourir les lignes pour construire des groupes d'étudiants
+    // Chaque groupe = { name, prog, date:{col->val}, lieu:{}, service:{}, nature:{} }
+    interface StageGroup {
+      name: string;
+      prog: string;
+      date: Map<number, string>;
+      lieu: Map<number, string>;
+      service: Map<number, string>;
+      nature: Map<number, string>;
+    }
+
+    const groups: StageGroup[] = [];
+    let current: StageGroup | null = null;
+
+    for (let r = 2; r <= worksheet.rowCount; r++) {
+      const row = worksheet.getRow(r);
+      const nameVal = getCellText(row, nameCol);
+      const progVal = getCellText(row, progCol);
+      const typeRaw = getCellText(row, typeCol);
+      const type = typeRaw.toLowerCase().replace(/[^a-z]/g, '');
+
+      if (!nameVal || !['date', 'lieu', 'service', 'nature'].includes(type)) continue;
+
+      if (!current || nameVal !== current.name) {
+        current = { name: nameVal, prog: progVal, date: new Map(), lieu: new Map(), service: new Map(), nature: new Map() };
+        groups.push(current);
+      }
+
+      // Lire les colonnes de stage
+      const target = type === 'date' ? current.date : type === 'lieu' ? current.lieu : type === 'service' ? current.service : current.nature;
+      for (let c = stageStartCol; c <= Math.min(row.cellCount || 20, 20); c++) {
+        const val = getCellText(row, c);
+        if (val) {
+          target.set(c - stageStartCol + 1, val);
+        }
+      }
+    }
+
+    if (groups.length === 0) {
+      return { sheetName, affectationsCreated: 0, studentsCreated: 0, erreurs: ['Aucune donnée trouvée dans cette feuille'] };
+    }
+
+    // 3) Charger les références
+    const allStudents = await this.etudiantRepository.find({
+      relations: { etablissement: true },
+    });
+    const allSites = await this.siteStageRepository.find({ select: { id: true, nom: true } });
+    const allNatures = await this.natureStageRepository.find({ select: { id: true, nom: true } });
+    const allPeriodes = tenantId
+      ? await this.periodeStageRepository.find({ where: { etablissementId: tenantId }, select: { id: true, libelle: true } })
+      : await this.periodeStageRepository.find({ select: { id: true, libelle: true } });
+    const existingAffectations = tenantId
+      ? await this.affectationRepository.find({ where: { etablissementId: tenantId }, select: { id: true, etudiantId: true, periodeStageId: true } })
+      : [];
+    const anneeActive = await this.anneeRepository.findOne({
+      where: { etablissementId: tenantId || 1, isActive: true },
+      select: { id: true },
+    });
+
+    // Indexer les étudiants par nom normalisé
+    const normalizeName = (s: string) => s.toLowerCase().replace(/[^a-z]/g, '');
+    const studentMap = new Map<string, Etudiant>();
+    for (const s of allStudents) {
+      const full = normalizeName(`${s.firstName} ${s.lastName}`);
+      studentMap.set(full, s);
+    }
+
+    const siteMap = new Map<string, SiteStage>();
+    for (const s of allSites) siteMap.set(s.nom.toLowerCase().trim(), s);
+
+    const natureMap = new Map<string, NatureStage>();
+    for (const n of allNatures) natureMap.set(n.nom.toLowerCase().trim(), n);
+
+    const periodeMap = new Map<string, PeriodeStage>();
+    for (const p of allPeriodes) periodeMap.set(p.libelle, p);
+
+    const affectationKey = (eid: number, pid: number) => `${eid}::${pid}`;
+    const existingAffectationSet = new Set<string>();
+    for (const a of existingAffectations) {
+      existingAffectationSet.add(affectationKey(a.etudiantId, a.periodeStageId));
+    }
+
+    // 4) Traiter chaque groupe
+    const affectationsToCreate: AffectationStage[] = [];
+    const siteNaturesMap = new Map<number, Set<number>>();
+    const studentsCreated: Etudiant[] = [];
+
+    const splitName = (full: string): { firstName: string; lastName: string } => {
+      const parts = full.trim().split(/\s+/);
+      if (parts.length <= 1) return { firstName: parts[0] || full, lastName: '' };
+      // Dernier mot = lastName, le reste = firstName
+      const lastName = parts.pop()!;
+      return { firstName: parts.join(' '), lastName };
+    };
+
+    // Vérifie si les caractères du code apparaissent en ordre dans le nom (ex: "IG" → "Imagerie")
+    const matchesSeq = (code: string, name: string): boolean => {
+      const c = code.toLowerCase();
+      const n = name.toLowerCase();
+      let ci = 0;
+      for (const nc of n) {
+        if (nc === c[ci] && ++ci >= c.length) return true;
+      }
+      return false;
+    };
+
+    // Résoudre (et créer si besoin) la classe et le niveau depuis le nom de la feuille
+    // Formats supportés : "IG L1", "IG_L3", "IG-L1", "IG L1 (2)"
+    const classeRepo = this.etudiantRepository.manager.getRepository('Classe') as any;
+    const niveauRepo = this.etudiantRepository.manager.getRepository('Niveau') as any;
+
+    const findOrCreateClasseNiveau = async (classeCode: string, niveauCode: string, etablissementId: number): Promise<{ classe: any; niveau: any } | null> => {
+      const cc = classeCode.toLowerCase();
+      const nc = niveauCode.toLowerCase();
+
+      // Chercher dans la DB
+      const allClasses = await classeRepo.find({ where: { etablissement: { id: etablissementId } } });
+      const allNiveaux = await niveauRepo.find({ where: { etablissement: { id: etablissementId } } });
+
+      let classe = allClasses.find((c: any) => c.name.toLowerCase() === cc)
+        || allClasses.find((c: any) => c.name.toLowerCase().includes(cc))
+        || allClasses.find((c: any) => matchesSeq(cc, c.name));
+
+      let niveau = allNiveaux.find((n: any) => n.name.toLowerCase() === nc)
+        || allNiveaux.find((n: any) => n.name.toLowerCase().includes(nc))
+        || allNiveaux.find((n: any) => matchesSeq(nc, n.name));
+
+      // Créer la classe si introuvable
+      if (!classe) {
+        classe = classeRepo.create({ name: classeCode.toUpperCase(), etablissement: { id: etablissementId } });
+        classe = await classeRepo.save(classe);
+      }
+      // Créer le niveau si introuvable
+      if (!niveau) {
+        niveau = niveauRepo.create({ name: niveauCode.toUpperCase(), classe: classe.id, etablissement: { id: etablissementId }, etablissementId });
+        niveau = await niveauRepo.save(niveau);
+      }
+
+      return { classe, niveau };
+    };
+
+    const classeNiveauFromSheet = async (sn: string, etablissementId: number): Promise<{ classe: any; niveau: any } | null> => {
+      let clean = sn.trim();
+      clean = clean.replace(/\s*\(.*\)\s*$/, '').trim();
+      const match = clean.match(/^(.+?)[\s_-]*([LMD]\d+)$/i);
+      if (!match) return null;
+      return findOrCreateClasseNiveau(match[1].trim(), match[2].toUpperCase(), etablissementId);
+    };
+
+    const findOrCreateStudent = async (name: string, etablissementId: number, sheetName?: string): Promise<Etudiant | null> => {
+      const key = normalizeName(name);
+      // essai exact
+      let s = studentMap.get(key);
+      if (s) return s;
+      // essai par sous-chaîne
+      for (const [k, v] of studentMap) {
+        if (k.includes(key) || key.includes(k)) {
+          studentMap.set(key, v);
+          return v;
+        }
+      }
+      // création automatique
+      const cn = sheetName ? await classeNiveauFromSheet(sheetName, etablissementId) : null;
+      if (!cn) return null;
+      const { firstName, lastName } = splitName(name);
+      const newStudent = this.etudiantRepository.create({
+        firstName,
+        lastName,
+        etablissement: { id: etablissementId } as any,
+        classe: cn.classe,
+        niveau: cn.niveau,
+      });
+      const saved = await this.etudiantRepository.save(newStudent);
+      studentMap.set(key, saved);
+      studentsCreated.push(saved);
+      return saved;
+    };
+
+    const findOrCreateSite = async (nom: string): Promise<SiteStage> => {
+      const key = nom.toLowerCase().trim();
+      let s = siteMap.get(key);
+      if (!s) {
+        s = this.siteStageRepository.create({ nom: nom.trim() });
+        s = await this.siteStageRepository.save(s);
+        siteMap.set(key, s);
+      }
+      return s;
+    };
+
+    const findOrCreateNature = async (nom: string): Promise<NatureStage> => {
+      const key = nom.toLowerCase().trim();
+      let n = natureMap.get(key);
+      if (!n) {
+        n = this.natureStageRepository.create({ nom: nom.trim() });
+        n = await this.natureStageRepository.save(n);
+        natureMap.set(key, n);
+      }
+      return n;
+    };
+
+    const parseDateRange = (text: string): { debut: Date; fin: Date } | null => {
+      // Formats: "03 Nov au 29 Nov", "05 - 31 janv 2026", "06 oct au 30 oct"
+      const mois: Record<string, number> = {
+        janv: 1, janvier: 1, fev: 2, février: 2, mars: 3, avril: 4, mai: 5,
+        juin: 6, juil: 7, juillet: 7, aout: 8, août: 8, sept: 9, septembre: 9,
+        oct: 10, octobre: 10, nov: 11, novembre: 11, dec: 12, décembre: 12,
+      };
+      // Normalize: remove extra spaces, replace au/-
+      const clean = text.replace(/\s+/g, ' ').replace(/\s*au\s*/g, ' au ').replace(/\s*-\s*/g, ' au ').trim();
+      const parts = clean.split(' au ');
+      if (parts.length < 2) return null;
+
+      const guessYear = (month: number): number => {
+        const now = new Date();
+        const currentYear = now.getFullYear();
+        // Si le mois est passé par rapport au mois courant, l'année est probablement l'année prochaine
+        return month < now.getMonth() + 1 ? currentYear + 1 : currentYear;
+      };
+
+      const parsePart = (s: string): { day: number; month: number; year?: number } | null => {
+        const parts2 = s.trim().split(/\s+/);
+        let day: number = 0, month: number = 0, year: number | undefined;
+        for (const p of parts2) {
+          const n = parseInt(p);
+          if (!isNaN(n)) {
+            if (n > 31) year = n;
+            else if (day === 0) day = n;
+          } else {
+            for (const [k, v] of Object.entries(mois)) {
+              if (p.toLowerCase().startsWith(k)) { month = v; break; }
+            }
+          }
+        }
+        if (day === 0 || month === 0) return null;
+        return { day, month, year };
+      };
+
+      const debut = parsePart(parts[0]);
+      const fin = parsePart(parts[1]);
+      if (!debut || !fin) return null;
+      const y1 = debut.year || guessYear(debut.month);
+      const y2 = fin.year || guessYear(fin.month);
+      return { debut: new Date(y1, debut.month - 1, debut.day), fin: new Date(y2, fin.month - 1, fin.day) };
+    };
+
+    for (const group of groups) {
+      if (group.lieu.size === 0) continue;
+
+      const getEtablissementId = (): number | undefined => {
+        if (tenantId) return tenantId;
+        const existing = studentMap.get(normalizeName(group.name));
+        return existing?.etablissement?.id;
+      };
+
+      const rowEtablissementId = getEtablissementId();
+      if (!rowEtablissementId) {
+        erreurs.push(`${group.name}: impossible de déterminer l'établissement`);
+        continue;
+      }
+
+      const etudiant = await findOrCreateStudent(group.name, rowEtablissementId, sheetName);
+      if (!etudiant) {
+        erreurs.push(`${group.name}: étudiant introuvable et création impossible (nom de feuille non conforme: "${sheetName}")`);
+        continue;
+      }
+
+      for (const [stageIdx, lieuName] of group.lieu.entries()) {
+        if (!lieuName) continue;
+
+        const siteStage = await findOrCreateSite(lieuName);
+        const service = group.service.get(stageIdx) || undefined;
+        const natureName = group.nature.get(stageIdx);
+        const dateText = group.date.get(stageIdx);
+
+        // Créer une période par feuille + stage index
+        const periodeLibelle = `${sheetName} - Stage ${stageIdx}`;
+        let periode = periodeMap.get(periodeLibelle);
+        if (!periode) {
+          if (!anneeActive) {
+            erreurs.push(`${group.name} stage ${stageIdx}: Aucune année active`);
+            continue;
+          }
+          const dateRange = dateText ? parseDateRange(dateText) : null;
+          periode = this.periodeStageRepository.create({
+            libelle: periodeLibelle,
+            dateDebut: dateRange?.debut || new Date(),
+            dateFin: dateRange?.fin || new Date(),
+            anneeUniversitaireId: anneeActive.id,
+            etablissementId: rowEtablissementId,
+          });
+          periode = await this.periodeStageRepository.save(periode);
+          periodeMap.set(periodeLibelle, periode);
+        }
+
+        const ak = affectationKey(etudiant.id, periode.id);
+        if (existingAffectationSet.has(ak)) {
+          erreurs.push(`${group.name}: déjà affecté à ${periodeLibelle}`);
+          continue;
+        }
+
+        const affectation = this.affectationRepository.create({
+          etudiantId: etudiant.id,
+          siteStageId: siteStage.id,
+          periodeStageId: periode.id,
+          service,
+          statut: StageStatus.ACTIF,
+          etablissementId: rowEtablissementId,
+        });
+        affectationsToCreate.push(affectation);
+        existingAffectationSet.add(ak);
+
+        // Lier la nature au site (Many-to-Many)
+        if (natureName) {
+          const nature = await findOrCreateNature(natureName);
+          if (!siteNaturesMap.has(siteStage.id)) siteNaturesMap.set(siteStage.id, new Set());
+          siteNaturesMap.get(siteStage.id)!.add(nature.id);
+          affectation.natureStageId = nature.id;
+        }
+      }
+    }
+
+    // 5) Batch insert affectations
+    const CHUNK = _batchSize;
+
+    if (affectationsToCreate.length > 0) {
+      for (let start = 0; start < affectationsToCreate.length; start += CHUNK) {
+        const chunk = affectationsToCreate.slice(start, start + CHUNK);
+        await this.affectationRepository.save(chunk);
+      }
+    }
+
+    // Mettre à jour la relation Many-to-Many SiteStage ↔ NatureStage
+    for (const [siteId, natureIds] of siteNaturesMap.entries()) {
+      const site = await this.siteStageRepository.findOne({
+        where: { id: siteId },
+        relations: { natures: true },
+      });
+      if (site) {
+        const existingIds = new Set((site.natures || []).map(n => n.id));
+        for (const nid of natureIds) {
+          if (!existingIds.has(nid)) {
+            const nature = await this.natureStageRepository.findOne({ where: { id: nid } });
+            if (nature) site.natures.push(nature);
+          }
+        }
+        await this.siteStageRepository.save(site);
+      }
+    }
+
+    return { sheetName, affectationsCreated: affectationsToCreate.length, studentsCreated: studentsCreated.length, erreurs };
+  }
+
   async getMyStageInfo(etudiantId: number) {
     const ecolagePaid = await this.financeService.hasPaidEcolage(etudiantId);
 
@@ -442,6 +984,7 @@ export class SiteStageService {
       relations: {
         siteStage: true,
         periodeStage: true,
+        natureStage: true,
         enseignant: true,
       },
       order: { createdAt: 'DESC' },
@@ -450,3 +993,4 @@ export class SiteStageService {
     return { ecolagePaid, affectations };
   }
 }
+

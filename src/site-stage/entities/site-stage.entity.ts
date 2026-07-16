@@ -2,9 +2,12 @@ import {
   Column,
   CreateDateColumn,
   Entity,
+  JoinTable,
+  ManyToMany,
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
+import { NatureStage } from './nature-stage.entity';
 
 @Entity()
 export class SiteStage {
@@ -16,9 +19,6 @@ export class SiteStage {
 
   @Column({ nullable: true })
   adresse!: string;
-
-  @Column({ nullable: true })
-  ville!: string;
 
   @Column({ nullable: true })
   telephone!: string;
@@ -34,6 +34,10 @@ export class SiteStage {
 
   @Column({ nullable: true })
   capacite!: number;
+
+  @ManyToMany(() => NatureStage, { eager: true })
+  @JoinTable()
+  natures!: NatureStage[];
 
   @CreateDateColumn()
   createdAt!: Date;

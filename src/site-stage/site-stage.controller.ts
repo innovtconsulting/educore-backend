@@ -9,7 +9,13 @@ import {
   UseGuards,
   Query,
   Request,
+  UploadedFile,
+  UseInterceptors,
+  BadRequestException,
 } from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
+import * as mammoth from 'mammoth';
+import * as ExcelJS from 'exceljs';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { SiteStageService } from './site-stage.service';
 import { CreateSiteStageDto } from './dto/create-site-stage.dto';
@@ -46,8 +52,16 @@ export class SiteStageController {
   @Get('sites-stage')
   @Permissions('STAGE_VIEW')
   @ApiOperation({ summary: 'Lister tous les sites de stage' })
-  async findAllSites(@Query('search') search?: string) {
-    const data = await this.siteStageService.findAllSites(search);
+  async findAllSites(
+    @Query('search') search?: string,
+    @Query('natureStageId') natureStageId?: string,
+    @Query('capaciteMin') capaciteMin?: string,
+  ) {
+    const data = await this.siteStageService.findAllSites(
+      search,
+      natureStageId ? +natureStageId : undefined,
+      capaciteMin ? +capaciteMin : undefined,
+    );
     return { message: 'Liste des sites de stage récupérée avec succès', data };
   }
 
@@ -253,6 +267,48 @@ export class SiteStageController {
     return { message: `Affectation #${id} supprimée avec succès` };
   }
 
+  // ===================== NATURES DE STAGE =====================
+
+  @Post('natures-stage')
+  @Permissions('STAGE_MANAGE')
+  @ApiOperation({ summary: 'Créer une nature de stage' })
+  async createNatureStage(@Body() dto: any) {
+    const data = await this.siteStageService.createNatureStage(dto);
+    return { message: 'Nature de stage créée avec succès', data };
+  }
+
+  @Get('natures-stage')
+  @Permissions('STAGE_VIEW')
+  @ApiOperation({ summary: 'Lister toutes les natures de stage' })
+  async findAllNaturesStage() {
+    const data = await this.siteStageService.findAllNaturesStage();
+    return { message: 'Liste des natures de stage récupérée avec succès', data };
+  }
+
+  @Get('natures-stage/:id')
+  @Permissions('STAGE_VIEW')
+  @ApiOperation({ summary: 'Détail d\'une nature de stage' })
+  async findOneNatureStage(@Param('id') id: string) {
+    const data = await this.siteStageService.findOneNatureStage(+id);
+    return { message: `Nature de stage #${id} récupérée avec succès`, data };
+  }
+
+  @Patch('natures-stage/:id')
+  @Permissions('STAGE_MANAGE')
+  @ApiOperation({ summary: 'Modifier une nature de stage' })
+  async updateNatureStage(@Param('id') id: string, @Body() dto: any) {
+    const data = await this.siteStageService.updateNatureStage(+id, dto);
+    return { message: `Nature de stage #${id} mise à jour avec succès`, data };
+  }
+
+  @Delete('natures-stage/:id')
+  @Permissions('STAGE_MANAGE')
+  @ApiOperation({ summary: 'Supprimer une nature de stage' })
+  async removeNatureStage(@Param('id') id: string) {
+    await this.siteStageService.removeNatureStage(+id);
+    return { message: `Nature de stage #${id} supprimée avec succès` };
+  }
+
   @Get('stage/etudiant/me')
   @Roles(Role.ETUDIANT)
   @ApiOperation({ summary: 'Mon stage (avec vérification du paiement des écolages)' })
@@ -262,6 +318,190 @@ export class SiteStageController {
     return {
       message: 'Informations de stage récupérées avec succès',
       data,
+    };
+  }
+
+  // ===================== IMPORT =====================
+
+  @Post('import/sites')
+  @Permissions('STAGE_MANAGE')
+  @UseInterceptors(FileInterceptor('file'))
+  @ApiOperation({ summary: 'Importer les sites de stage depuis un fichier DOCX' })
+  async importSitesFromDocx(@UploadedFile() file: Express.Multer.File) {
+    if (!file) throw new BadRequestException('Fichier requis');
+
+    const htmlResult = await mammoth.convertToHtml({ buffer: file.buffer as any });
+    const html = htmlResult.value;
+
+    const cellText = (cell: string): string =>
+      cell.replace(/<[^>]+>/g, '').replace(/&[a-z]+;/g, m => {
+        const map: Record<string, string> = { '&amp;': '&', '&agrave;': 'à', '&egrave;': 'è', '&eacute;': 'é', '&icirc;': 'î', '&ocirc;': 'ô', '&ucirc;': 'û', '&ecirc;': 'ê', '&ccedil;': 'ç', '&rsquo;': "'", '&nbsp;': ' ' };
+        return map[m] || m;
+      }).replace(/\s+/g, ' ').trim();
+
+    const tableRegex = /<table[^>]*>([\s\S]*?)<\/table>/gi;
+    const rowRegex = /<tr[^>]*>([\s\S]*?)<\/tr>/gi;
+    const cellRegex = /<t[dh][^>]*>([\s\S]*?)<\/t[dh]>/gi;
+
+    const knownNatures = [
+      'Santé publique', 'Santé Publique', 'Maladie Infectieuse et parasitaire',
+      'Chirurgie pediatrique', 'Chirurgie thoracique', 'Oncologie pediatrique', 'Oncologie adulte',
+      'Médecine generale', 'Medecine generale', 'medecine specifique', 'Médecine spécifique',
+      'Traumato A', 'Traumato B', 'Traumato D', 'Viscerale A', 'Viscerale B', 'URO A', 'URO B',
+      'Reanimation medicales', 'Réanimation médicales',
+      'Maternité', 'Maternite', 'Médecine', 'Medecine', 'Chirurgie',
+      'Pédiatrie', 'Pediatrie', 'Laboratoire', 'Vaccination', 'PF',
+      'Neuro', 'Réanimation', 'Reanimation', 'Oncologie',
+      'Neurologie', 'Psychologie', 'A.T.U', 'Néphrologie', 'Nephrologie',
+      'Dermatologie', 'Rhumatologie', 'Endocrinologie', 'PSA', 'PSB',
+      'Cardiologie', 'USIC', 'Pneumologie', 'Santé',
+    ].sort((a, b) => b.length - a.length);
+
+    const splitNatures = (text: string): string[] => {
+      if (!text) return [];
+      if (text.startsWith('-')) {
+        return text.split('-').filter(Boolean).map(s => s.replace(/=\d+$/, '').trim());
+      }
+      const result: string[] = [];
+      let remaining = text;
+      while (remaining.length > 0) {
+        remaining = remaining.trim();
+        if (!remaining) break;
+        let matched = false;
+        for (const kn of knownNatures) {
+          if (remaining.toUpperCase().startsWith(kn.toUpperCase())) {
+            result.push(kn);
+            remaining = remaining.slice(kn.length);
+            matched = true;
+            break;
+          }
+        }
+        if (!matched) {
+          const next = remaining.search(/[a-zéèêëàâùûüôöîïç][A-ZÉÈÊËÀÂÙÛÜÔÖÎÏÇ]/);
+          if (next > 0) {
+            result.push(remaining.slice(0, next + 1));
+            remaining = remaining.slice(next + 1);
+          } else {
+            result.push(remaining);
+            break;
+          }
+        }
+      }
+      return result.map(s => s.trim()).filter(Boolean);
+    };
+
+    const isHeaderRow = (cells: string[]): boolean =>
+      cells.some(c => /^(site\s+de\s+stage|nature\s+de\s+stage|responsable|capacité|service)/i.test(c))
+      || cells.some(c => /^liste\s+des\s+sites/i.test(c));
+
+    const isCapacityRow = (cells: string[]): boolean =>
+      cells.length <= 2 && cells.every(c => /^\d+$/.test(c.trim()));
+
+    let sitesCreated = 0;
+    let naturesCreated = 0;
+
+    const allTables: string[] = [];
+    let tm: RegExpExecArray | null;
+    while ((tm = tableRegex.exec(html)) !== null) allTables.push(tm[1]);
+
+    for (const tableBody of allTables) {
+      const rows: string[] = [];
+      let rm: RegExpExecArray | null;
+      while ((rm = rowRegex.exec(tableBody)) !== null) rows.push(rm[1]);
+
+      if (rows.length < 2) continue;
+
+      for (let r = 0; r < rows.length; r++) {
+        const cells = [...rows[r].matchAll(cellRegex)].map(m => cellText(m[1]));
+        if (cells.length < 2 || isHeaderRow(cells) || isCapacityRow(cells)) continue;
+
+        let siteName: string;
+        let natureText: string;
+        let responsable = '';
+        let capacite: number | undefined;
+
+        if (cells.length >= 5) {
+          // Tableau CHU : [prefix, location/natures, natures, resp, cap]
+          if (!cells[0] && cells[1]) {
+            siteName = cells[1];
+            natureText = cells[2];
+          } else {
+            const second = cells[1] || '';
+            const isLocLike = second.length < 30 && !knownNatures.some(k => second.toUpperCase().startsWith(k.toUpperCase()));
+            siteName = isLocLike ? `${cells[0]} ${second}`.trim() : cells[0];
+            natureText = isLocLike ? cells[2] : second;
+          }
+          responsable = cells[3] || '';
+          capacite = parseInt(cells[4]) || undefined;
+        } else {
+          // Tableau standard 4 colonnes : [site, natures, resp, cap]
+          siteName = cells[0];
+          natureText = cells[1];
+          responsable = cells[2] || '';
+          capacite = parseInt(cells[3]) || undefined;
+        }
+
+        // Nettoie le nom du site
+        const sdspIdx = siteName.search(/\bSDSP\b/i);
+        if (sdspIdx >= 0) siteName = siteName.slice(0, sdspIdx).trim();
+        siteName = siteName.replace(/\s*\([^)]+\)/, '').trim();
+        if (!siteName || siteName.length < 3) continue;
+
+        const natures = [...new Set(splitNatures(natureText))];
+
+        const site = await this.siteStageService.createSite({
+          nom: siteName,
+          responsable,
+          capacite,
+          description: natures.join(', '),
+        }, natures);
+        sitesCreated++;
+
+        naturesCreated += natures.length;
+      }
+    }
+
+    return {
+      message: 'Import terminé',
+      data: { sitesCreated, naturesCreated },
+    };
+  }
+
+  @Post('import/repartition')
+  @Permissions('STAGE_MANAGE')
+  @UseInterceptors(FileInterceptor('file'))
+  @ApiOperation({ summary: 'Importer la répartition des stages depuis un fichier XLSX' })
+  async importRepartition(
+    @UploadedFile() file: Express.Multer.File,
+    @CurrentEtablissement() tenantId?: number,
+  ) {
+    if (!file) throw new BadRequestException('Fichier requis');
+
+    const workbook = new ExcelJS.Workbook();
+    await workbook.xlsx.load(file.buffer as any);
+
+    const results: any[] = [];
+    let totalAffectations = 0;
+
+    for (const worksheet of workbook.worksheets) {
+      const sheetName = worksheet.name;
+      const headers: string[] = [];
+      const headerRow = worksheet.getRow(1);
+      headerRow.eachCell((cell) => headers.push(cell.text?.trim() || ''));
+
+      const sheetResult = await this.siteStageService.importRepartitionSheet(
+        worksheet,
+        headers,
+        sheetName,
+        tenantId,
+      );
+      results.push(sheetResult);
+      totalAffectations += sheetResult.affectationsCreated;
+    }
+
+    return {
+      message: 'Import de la répartition terminé',
+      data: { feuilles: results, totalAffectations },
     };
   }
 }

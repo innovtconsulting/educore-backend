@@ -75,6 +75,7 @@ import { SiteStageModule } from './site-stage/site-stage.module';
 import { SiteStage } from './site-stage/entities/site-stage.entity';
 import { PeriodeStage } from './site-stage/entities/periode-stage.entity';
 import { AffectationStage } from './site-stage/entities/affectation-stage.entity';
+import { NatureStage } from './site-stage/entities/nature-stage.entity';
 import { SharedModule } from './shared/shared.module';
 import { NotificationsModule } from './notifications/notifications.module';
 import { Notification } from './notifications/entities/notification.entity';
@@ -136,6 +137,7 @@ import { JournalHistory } from './journal/entities/journal-history.entity';
         SiteStage,
         PeriodeStage,
         AffectationStage,
+        NatureStage,
         Personnel,
         PaiePersonnel,
         Journal,

@@ -13,6 +13,7 @@ import { SiteStage } from './site-stage.entity';
 import { PeriodeStage } from './periode-stage.entity';
 import { Enseignant } from '../../enseignant/entities/enseignant.entity';
 import { Etablissement } from '../../etablissement/entities/etablissement.entity';
+import { NatureStage } from './nature-stage.entity';
 
 export enum StageStatus {
   EN_ATTENTE = 'EN_ATTENTE',
@@ -47,6 +48,16 @@ export class AffectationStage {
 
   @Column({ nullable: false })
   periodeStageId!: number;
+
+  @Column({ nullable: true })
+  service!: string;
+
+  @ManyToOne(() => NatureStage, { nullable: true })
+  @JoinColumn({ name: 'natureStageId' })
+  natureStage?: NatureStage;
+
+  @Column({ nullable: true })
+  natureStageId?: number;
 
   @ManyToOne(() => Enseignant, { nullable: true })
   @JoinColumn({ name: 'enseignantId' })

@@ -21,6 +21,7 @@ import { Facture, InvoiceStatus } from '../finance/entities/facture.entity';
 import { Frais } from '../finance/entities/frais.entity';
 import { BulletinService } from '../bulletin/bulletin.service';
 import { GlobalSettingService } from '../global-setting/global-setting.service';
+import { SiteStageService } from '../site-stage/site-stage.service';
 
 @Injectable()
 export class InscriptionService {
@@ -42,6 +43,7 @@ export class InscriptionService {
     private readonly bulletinService: BulletinService,
     private readonly globalSettingService: GlobalSettingService,
     private readonly dataSource: DataSource,
+    private readonly siteStageService: SiteStageService,
   ) {}
 
   async checkEligibility(etudiantId: number, tenantId?: number) {
@@ -172,7 +174,7 @@ export class InscriptionService {
   }
 
   async reinscrire(dto: CreateInscriptionDto, tenantId?: number) {
-    const { etudiantId, anneeUniversitaireId, classeId, niveauId } = dto;
+    const { etudiantId, anneeUniversitaireId, classeId, niveauId, siteStageId } = dto;
 
     // 1. Vérifier l'éligibilité
     const eligibility = await this.checkEligibility(etudiantId, tenantId);
@@ -232,7 +234,20 @@ export class InscriptionService {
       etudiant.niveau = niveau;
       await queryRunner.manager.save(etudiant);
 
-      // 5. Automatisation financière : Générer les factures des frais de la
+      // 5. Auto-assignation (ou assignation manuelle) du stage
+      try {
+        await this.siteStageService.autoAssignStage(
+          etudiant.id,
+          classe.id,
+          niveau.id,
+          etudiant.etablissement.id,
+          siteStageId,
+        );
+      } catch {
+        // Échec silencieux — l'assignation du stage est optionnelle
+      }
+
+      // 6. Automatisation financière : Générer les factures des frais de la
       // nouvelle année universitaire pour ce parcours/niveau (les frais sont
       // eux-mêmes scopés par année, donc filtrés sur "annee" pour ne pas
       // reprendre des frais d'années précédentes).

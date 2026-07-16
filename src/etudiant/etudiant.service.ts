@@ -44,6 +44,7 @@ import {
   StudentImportRowDto,
   ConfirmImportDto,
 } from './dto/import-student.dto';
+import { SiteStageService } from '../site-stage/site-stage.service';
 
 @Injectable()
 export class EtudiantService {
@@ -64,6 +65,7 @@ export class EtudiantService {
 		private readonly niveauService: NiveauService,
 		private readonly anneeUniversitaireService: AnneeUniversitaireService,
 		private readonly dataSource: DataSource,
+		private readonly siteStageService?: SiteStageService,
 	) {}
 
 	// Crée un compte utilisateur (rôle PARENT) pour chaque parent qui n'en a pas encore,
@@ -542,6 +544,7 @@ export class EtudiantService {
 		validateDto: ValidateEtudiantDto,
 		tenantId?: number,
 	): Promise<Etudiant> {
+		const { siteStageId, ...validateData } = validateDto;
 		const etudiant = await this.findOne(id, tenantId);
 
 		// Vérifier si le matricule est déjà pris
@@ -555,7 +558,7 @@ export class EtudiantService {
 		}
 
 		// Mettre à jour les informations et le statut
-		Object.assign(etudiant, validateDto);
+		Object.assign(etudiant, validateData);
 		etudiant.status = EnrollmentStatus.ACTIF;
 
 		const savedEtudiant = await this.etudiantRepository.save(etudiant);
@@ -577,6 +580,21 @@ export class EtudiantService {
 		}
 
 		await this.ensureActiveYearInscription(savedEtudiant, tenantId);
+
+		// Assignation du stage si un site est sélectionné
+		if (siteStageId && savedEtudiant.classe && savedEtudiant.niveau) {
+			try {
+				await this.siteStageService?.autoAssignStage(
+					savedEtudiant.id,
+					savedEtudiant.classe.id,
+					savedEtudiant.niveau.id,
+					savedEtudiant.etablissement?.id ?? tenantId,
+					siteStageId,
+				);
+			} catch {
+				// Échec silencieux — l'assignation du stage est optionnelle
+			}
+		}
 
 		return savedEtudiant;
 	}
@@ -1477,6 +1495,18 @@ export class EtudiantService {
 									status: InscriptionStatus.ACTIF,
 								});
 							await queryRunner.manager.save(inscription);
+
+							// Auto-assignation du stage
+							try {
+								await this.siteStageService?.autoAssignStage(
+									savedEtudiantRun.id,
+									classe.id,
+									niveau.id,
+									etablissement.id,
+								);
+							} catch {
+								// Échec silencieux — l'assignation du stage est optionnelle
+							}
 						}
 
 						sheetReport.nombreEtudiantsImportes++;

@@ -3,7 +3,7 @@ import { Type } from 'class-transformer';
 import { IsNotEmpty, IsNumber, IsString } from 'class-validator';
 
 export class CreateMatiereDto {
-  @ApiProperty({ example: 'INF101', description: 'Code de la matière' })
+  @ApiProperty({ example: 'SI101', description: 'Code de la matière' })
   @IsString({ message: 'Le code doit être une chaîne de caractères' })
   @IsNotEmpty({ message: 'Le code est obligatoire' })
   code!: string;

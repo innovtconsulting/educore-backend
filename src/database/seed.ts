@@ -53,6 +53,7 @@ import {
   AffectationStage,
   StageStatus,
 } from '../site-stage/entities/affectation-stage.entity';
+import { NatureStage } from '../site-stage/entities/nature-stage.entity';
 import { Personnel } from '../personnel/entities/personnel.entity';
 import { PaiePersonnel } from '../personnel/entities/paie-personnel.entity';
 import * as bcrypt from 'bcrypt';
@@ -75,8 +76,15 @@ async function findOrCreate<T extends ObjectLiteral>(
 
 async function seed() {
   try {
+    // Désactive la synchronisation auto sur init (on le fait manuellement après le DROP)
+    (AppDataSource as any).options.synchronize = false;
     await AppDataSource.initialize();
     console.log('Connexion établie pour le seeding...');
+    console.log('Nettoyage de la base...');
+    await AppDataSource.query('DROP SCHEMA public CASCADE');
+    await AppDataSource.query('CREATE SCHEMA public');
+    await AppDataSource.synchronize();
+    console.log('Base nettoyée, tables recréées.');
 
     const etablissementRepo = AppDataSource.getRepository(Etablissement);
     const niveauRepo = AppDataSource.getRepository(Niveau);
@@ -106,6 +114,7 @@ async function seed() {
     const siteStageRepo = AppDataSource.getRepository(SiteStage);
     const periodeStageRepo = AppDataSource.getRepository(PeriodeStage);
     const affectationStageRepo = AppDataSource.getRepository(AffectationStage);
+    const natureStageRepo = AppDataSource.getRepository(NatureStage);
     const personnelRepo = AppDataSource.getRepository(Personnel);
     const paiePersonnelRepo = AppDataSource.getRepository(PaiePersonnel);
 
@@ -335,110 +344,110 @@ async function seed() {
       },
     );
 
-    // 3. Classes (Parcours)
-    const informatiqueFst = await findOrCreate(
+    // 3. Classes (Parcours) — codes courts compatibles avec les noms de feuilles XLSX
+    const siFst = await findOrCreate(
       classeRepo,
-      { name: 'Informatique', etablissement: { id: fst.id } as any },
+      { name: 'SI', etablissement: { id: fst.id } as any },
       {
-        name: 'Informatique',
+        name: 'SI',
         etablissement: fst,
       },
     );
-    const informatiqueEsp = await findOrCreate(
+    const sfEsp = await findOrCreate(
       classeRepo,
-      { name: 'Informatique', etablissement: { id: esp.id } as any },
+      { name: 'SF', etablissement: { id: esp.id } as any },
       {
-        name: 'Informatique',
+        name: 'SF',
         etablissement: esp,
       },
     );
-    const mathematiquesFst = await findOrCreate(
+    const tlFst = await findOrCreate(
       classeRepo,
-      { name: 'Mathématiques', etablissement: { id: fst.id } as any },
+      { name: 'TL', etablissement: { id: fst.id } as any },
       {
-        name: 'Mathématiques',
+        name: 'TL',
         etablissement: fst,
       },
     );
-    const genieElectriqueIut = await findOrCreate(
+    const igIut = await findOrCreate(
       classeRepo,
-      { name: 'Génie Électrique', etablissement: { id: iut.id } as any },
+      { name: 'IG', etablissement: { id: iut.id } as any },
       {
-        name: 'Génie Électrique',
+        name: 'IG',
         etablissement: iut,
       },
     );
 
-    // 2. Niveaux (now after Classes)
+    // 2. Niveaux — codes courts compatibles XLSX (L1, L2, L3, M1, M2)
     const l1Fst = niveauRepo.create({
-      name: 'Licence 1',
-      classe: informatiqueFst,
+      name: 'L1',
+      classe: siFst,
       etablissement: fst,
       etablissementId: fst.id,
     });
     const l2Fst = niveauRepo.create({
-      name: 'Licence 2',
-      classe: informatiqueFst,
+      name: 'L2',
+      classe: siFst,
       etablissement: fst,
       etablissementId: fst.id,
     });
     const l3Fst = niveauRepo.create({
-      name: 'Licence 3',
-      classe: informatiqueFst,
+      name: 'L3',
+      classe: siFst,
       etablissement: fst,
       etablissementId: fst.id,
     });
     const m1Fst = niveauRepo.create({
-      name: 'Master 1',
-      classe: informatiqueFst,
+      name: 'M1',
+      classe: siFst,
       etablissement: fst,
       etablissementId: fst.id,
     });
     const m2Fst = niveauRepo.create({
-      name: 'Master 2',
-      classe: informatiqueFst,
+      name: 'M2',
+      classe: siFst,
       etablissement: fst,
       etablissementId: fst.id,
     });
     const l1Esp = niveauRepo.create({
-      name: 'Licence 1',
-      classe: informatiqueEsp,
+      name: 'L1',
+      classe: sfEsp,
       etablissement: esp,
       etablissementId: esp.id,
     });
     const l2Esp = niveauRepo.create({
-      name: 'Licence 2',
-      classe: informatiqueEsp,
+      name: 'L2',
+      classe: sfEsp,
       etablissement: esp,
       etablissementId: esp.id,
     });
-    const l1Math = niveauRepo.create({
-      name: 'Licence 1',
-      classe: mathematiquesFst,
+    const l1Tl = niveauRepo.create({
+      name: 'L1',
+      classe: tlFst,
       etablissement: fst,
       etablissementId: fst.id,
     });
-    const l2Math = niveauRepo.create({
-      name: 'Licence 2',
-      classe: mathematiquesFst,
+    const l2Tl = niveauRepo.create({
+      name: 'L2',
+      classe: tlFst,
       etablissement: fst,
       etablissementId: fst.id,
     });
-    const l3Math = niveauRepo.create({
-      name: 'Licence 3',
-      classe: mathematiquesFst,
+    const l3Tl = niveauRepo.create({
+      name: 'L3',
+      classe: tlFst,
       etablissement: fst,
       etablissementId: fst.id,
     });
-    const dut1Iut = niveauRepo.create({
-      name: 'DUT 1',
-      classe: genieElectriqueIut,
+    const l1Ig = niveauRepo.create({
+      name: 'L1',
+      classe: igIut,
       etablissement: iut,
       etablissementId: iut.id,
     });
-    const dut2Iut = niveauRepo.create({
-      name: 'DUT 2',
-      classe: genieElectriqueIut,
+    const l2Ig = niveauRepo.create({
+      name: 'L2',
+      classe: igIut,
       etablissement: iut,
       etablissementId: iut.id,
     });
@@ -450,43 +459,43 @@ async function seed() {
       m2Fst,
       l1Esp,
       l2Esp,
-      l1Math,
-      l2Math,
-      l3Math,
-      dut1Iut,
-      dut2Iut,
+      l1Tl,
+      l2Tl,
+      l3Tl,
+      l1Ig,
+      l2Ig,
     ]);
 
     // 4. Matières
     const algoFst = matiereRepo.create({
-      code: 'INF101',
-      name: 'Algorithmique 1',
+      code: 'SI101',
+      name: 'Anatomie-Physiologie',
       coefficient: 4,
       niveau: l1Fst,
       etablissement: fst,
       etablissementId: fst.id,
     });
     const baseDonneesFst = matiereRepo.create({
-      code: 'INF201',
-      name: 'Bases de Données',
+      code: 'SI201',
+      name: 'Pharmacologie',
       coefficient: 3,
       niveau: l2Fst,
       etablissement: fst,
       etablissementId: fst.id,
     });
     const reseauxFst = matiereRepo.create({
-      code: 'INF301',
-      name: 'Réseaux Informatiques',
+      code: 'SI301',
+      name: 'Soins Infirmiers Cliniques',
       coefficient: 3,
       niveau: l3Fst,
       etablissement: fst,
       etablissementId: fst.id,
     });
     const electroniqueIut = matiereRepo.create({
-      code: 'GE101',
-      name: 'Électronique Fondamentale',
+      code: 'IG101',
+      name: 'Techniques d\'Imagerie',
       coefficient: 3,
-      niveau: dut1Iut,
+      niveau: l1Ig,
       etablissement: iut,
       etablissementId: iut.id,
     });
@@ -502,7 +511,7 @@ async function seed() {
       firstName: 'Moussa',
       lastName: 'Diallo',
       email: 'moussa.diallo@ucad.edu.sn',
-      matricule: 'FST-INF-001',
+      matricule: 'FST-SI-001',
       dateEmbauche: new Date('2020-01-01'),
       phone: '+221 77 123 45 67',
       etablissement: fst,
@@ -553,7 +562,7 @@ async function seed() {
       enseignant: profNdiaye,
       matiere: electroniqueIut,
       etablissement: iut,
-      niveau: dut1Iut,
+      niveau: l1Ig,
     });
     await affectationRepo.save([aff1, aff2, aff3, aff4]);
 
@@ -592,7 +601,7 @@ async function seed() {
       email: 'ousmane.sow@email.sn',
       matricule: 'ETU-2026-001',
       etablissement: fst,
-      classe: informatiqueFst,
+      classe: siFst,
       niveau: l1Fst,
       parents: [parent1, parent2],
     });
@@ -602,7 +611,7 @@ async function seed() {
       email: 'fatou.sow@email.sn',
       matricule: 'ETU-2026-002',
       etablissement: esp,
-      classe: informatiqueEsp,
+      classe: sfEsp,
       niveau: l2Esp,
       parents: [parent1],
     });
@@ -612,8 +621,8 @@ async function seed() {
       email: 'amadou.ndiaye@email.sn',
       matricule: 'ETU-2026-003',
       etablissement: iut,
-      classe: genieElectriqueIut,
-      niveau: dut1Iut,
+      classe: igIut,
+      niveau: l1Ig,
       parents: [parent3],
     });
     const etudiantWait = etudiantRepo.create({
@@ -622,7 +631,7 @@ async function seed() {
       email: 'jean.dupont@email.sn',
       status: EnrollmentStatus.EN_ATTENTE,
       etablissement: fst,
-      classe: informatiqueFst,
+      classe: siFst,
       niveau: l1Fst,
     });
 
@@ -636,7 +645,7 @@ async function seed() {
         matricule: 'ETU-FST-001',
         status: EnrollmentStatus.ACTIF,
         etablissement: fst,
-        classe: informatiqueFst,
+        classe: siFst,
         niveau: l1Fst,
       }),
       etudiantRepo.create({
@@ -646,7 +655,7 @@ async function seed() {
         matricule: 'ETU-FST-002',
         status: EnrollmentStatus.ACTIF,
         etablissement: fst,
-        classe: informatiqueFst,
+        classe: siFst,
         niveau: l1Fst,
       }),
       etudiantRepo.create({
@@ -656,7 +665,7 @@ async function seed() {
         matricule: 'ETU-FST-003',
         status: EnrollmentStatus.ACTIF,
         etablissement: fst,
-        classe: informatiqueFst,
+        classe: siFst,
         niveau: l1Fst,
       }),
       etudiantRepo.create({
@@ -666,7 +675,7 @@ async function seed() {
         matricule: 'ETU-FST-004',
         status: EnrollmentStatus.ACTIF,
         etablissement: fst,
-        classe: informatiqueFst,
+        classe: siFst,
         niveau: l1Fst,
       }),
       etudiantRepo.create({
@@ -676,7 +685,7 @@ async function seed() {
         matricule: 'ETU-FST-005',
         status: EnrollmentStatus.ACTIF,
         etablissement: fst,
-        classe: informatiqueFst,
+        classe: siFst,
         niveau: l1Fst,
       }),
       etudiantRepo.create({
@@ -686,7 +695,7 @@ async function seed() {
         matricule: 'ETU-FST-006',
         status: EnrollmentStatus.ACTIF,
         etablissement: fst,
-        classe: informatiqueFst,
+        classe: siFst,
         niveau: l1Fst,
       }),
       etudiantRepo.create({
@@ -695,7 +704,7 @@ async function seed() {
         email: 'bocar.kane@email.sn',
         status: EnrollmentStatus.EN_ATTENTE,
         etablissement: fst,
-        classe: informatiqueFst,
+        classe: siFst,
         niveau: l1Fst,
       }),
       etudiantRepo.create({
@@ -704,7 +713,7 @@ async function seed() {
         email: 'coumba.ly@email.sn',
         status: EnrollmentStatus.EN_ATTENTE,
         etablissement: fst,
-        classe: informatiqueFst,
+        classe: siFst,
         niveau: l1Fst,
       }),
     ];
@@ -718,7 +727,7 @@ async function seed() {
         matricule: 'ETU-ESP-001',
         status: EnrollmentStatus.ACTIF,
         etablissement: esp,
-        classe: informatiqueEsp,
+        classe: sfEsp,
         niveau: l2Esp,
       }),
       etudiantRepo.create({
@@ -728,7 +737,7 @@ async function seed() {
         matricule: 'ETU-ESP-002',
         status: EnrollmentStatus.ACTIF,
         etablissement: esp,
-        classe: informatiqueEsp,
+        classe: sfEsp,
         niveau: l2Esp,
       }),
       etudiantRepo.create({
@@ -738,7 +747,7 @@ async function seed() {
         matricule: 'ETU-ESP-003',
         status: EnrollmentStatus.ACTIF,
         etablissement: esp,
-        classe: informatiqueEsp,
+        classe: sfEsp,
         niveau: l2Esp,
       }),
       etudiantRepo.create({
@@ -748,7 +757,7 @@ async function seed() {
         matricule: 'ETU-ESP-004',
         status: EnrollmentStatus.ACTIF,
         etablissement: esp,
-        classe: informatiqueEsp,
+        classe: sfEsp,
         niveau: l2Esp,
       }),
       etudiantRepo.create({
@@ -757,7 +766,7 @@ async function seed() {
         email: 'lamine.seck@email.sn',
         status: EnrollmentStatus.EN_ATTENTE,
         etablissement: esp,
-        classe: informatiqueEsp,
+        classe: sfEsp,
         niveau: l2Esp,
       }),
       etudiantRepo.create({
@@ -766,7 +775,7 @@ async function seed() {
         email: 'marieme.g@email.sn',
         status: EnrollmentStatus.EN_ATTENTE,
         etablissement: esp,
-        classe: informatiqueEsp,
+        classe: sfEsp,
         niveau: l2Esp,
       }),
     ];
@@ -780,8 +789,8 @@ async function seed() {
         matricule: 'ETU-IUT-001',
         status: EnrollmentStatus.ACTIF,
         etablissement: iut,
-        classe: genieElectriqueIut,
-        niveau: dut1Iut,
+        classe: igIut,
+        niveau: l1Ig,
       }),
       etudiantRepo.create({
         firstName: 'Ndeye',
@@ -790,8 +799,8 @@ async function seed() {
         matricule: 'ETU-IUT-002',
         status: EnrollmentStatus.ACTIF,
         etablissement: iut,
-        classe: genieElectriqueIut,
-        niveau: dut1Iut,
+        classe: igIut,
+        niveau: l1Ig,
       }),
       etudiantRepo.create({
         firstName: 'Oumar',
@@ -800,8 +809,8 @@ async function seed() {
         matricule: 'ETU-IUT-003',
         status: EnrollmentStatus.ACTIF,
         etablissement: iut,
-        classe: genieElectriqueIut,
-        niveau: dut1Iut,
+        classe: igIut,
+        niveau: l1Ig,
       }),
       etudiantRepo.create({
         firstName: 'Penda',
@@ -809,8 +818,8 @@ async function seed() {
         email: 'penda.wade@email.sn',
         status: EnrollmentStatus.EN_ATTENTE,
         etablissement: iut,
-        classe: genieElectriqueIut,
-        niveau: dut1Iut,
+        classe: igIut,
+        niveau: l1Ig,
       }),
     ];
 
@@ -833,7 +842,7 @@ async function seed() {
       etablissement: esp,
     });
     const laboInfo = salleRepo.create({
-      name: 'Laboratoire Info',
+      name: 'Laboratoire de Soins',
       capacity: 25,
       etablissement: fst,
     });
@@ -846,7 +855,7 @@ async function seed() {
       matiere: algoFst,
       enseignant: profDiallo,
       etablissement: fst,
-      classe: informatiqueFst,
+      classe: siFst,
       niveau: l1Fst,
       salle: salle101,
     });
@@ -867,7 +876,7 @@ async function seed() {
     const sanc1 = sanctionRepo.create({
       etudiant: etudiant1,
       type: SanctionType.AVERTISSEMENT_VERBALE,
-      motif: "Retards répétés au cours d'Algorithmique",
+      motif: "Retards répétés au cours d'Anatomie-Physiologie",
       dateDecision: new Date('2026-06-09'),
       isApplied: true,
       etablissement: fst,
@@ -948,7 +957,7 @@ async function seed() {
       weight: 0.4,
       date: new Date('2026-11-15'),
       matiere: algoFst,
-      classe: informatiqueFst,
+      classe: siFst,
       niveau: l1Fst,
       semestre: semestre1,
       etablissement: fst,
@@ -961,7 +970,7 @@ async function seed() {
       weight: 0.6,
       date: new Date('2027-01-20'),
       matiere: algoFst,
-      classe: informatiqueFst,
+      classe: siFst,
       niveau: l1Fst,
       semestre: semestre1,
       etablissement: fst,
@@ -993,7 +1002,7 @@ async function seed() {
       weight: 0.6,
       date: new Date('2027-02-15'),
       matiere: algoFst,
-      classe: informatiqueFst,
+      classe: siFst,
       niveau: l1Fst,
       semestre: semestre1,
       etablissement: fst,
@@ -1233,7 +1242,7 @@ async function seed() {
       description: 'Implémenter une liste simplement chaînée en C.',
       deadline: new Date('2026-06-25T23:59:59Z'),
       matiere: algoFst,
-      classe: informatiqueFst,
+      classe: siFst,
       niveau: l1Fst,
       enseignant: profDiallo,
       etablissement: fst,
@@ -1244,7 +1253,7 @@ async function seed() {
       description: "Concevoir le schéma MCD/MLD d'une gestion de stock.",
       deadline: new Date('2026-06-30T23:59:59Z'),
       matiere: baseDonneesFst,
-      classe: informatiqueFst,
+      classe: siFst,
       niveau: l2Fst,
       enseignant: profDiallo,
       etablissement: fst,
@@ -1280,7 +1289,6 @@ async function seed() {
     const siteOrange = siteStageRepo.create({
       nom: 'Orange Sénégal',
       adresse: 'Route de Ouakam, Dakar',
-      ville: 'Dakar',
       telephone: '+221 33 839 39 39',
       email: 'stage@orange.sn',
       responsable: 'M. Diallo',
@@ -1290,7 +1298,6 @@ async function seed() {
     const siteSonatel = siteStageRepo.create({
       nom: 'Sonatel',
       adresse: 'VDN, Route de Ouakam',
-      ville: 'Dakar',
       telephone: '+221 33 839 49 49',
       email: 'recrutement@sonatel.sn',
       responsable: 'Mme. Faye',
@@ -1300,7 +1307,6 @@ async function seed() {
     const siteBceao = siteStageRepo.create({
       nom: 'BCEAO - Dakar',
       adresse: "Place de l'Indépendance",
-      ville: 'Dakar',
       email: 'stage@bceao.int',
       responsable: 'M. Ndiaye',
       description: "Banque Centrale des États de l'Afrique de l'Ouest",
@@ -1309,7 +1315,6 @@ async function seed() {
     const siteCse = siteStageRepo.create({
       nom: 'CSE - Dakar',
       adresse: 'Route de Ouakam, Fann',
-      ville: 'Dakar',
       telephone: '+221 33 864 67 67',
       email: 'contact@cse.sn',
       responsable: 'M. Thiam',
@@ -1322,6 +1327,20 @@ async function seed() {
       siteBceao,
       siteCse,
     ]);
+
+    // 20.1 Natures de Stage (globales)
+    const natureSoinsInfirmiers = await findOrCreate(natureStageRepo, { nom: 'Soins Infirmiers' }, { nom: 'Soins Infirmiers', description: 'Stage en soins infirmiers et services paramédicaux' });
+    const natureComptabilite = await findOrCreate(natureStageRepo, { nom: 'Comptabilité' }, { nom: 'Comptabilité', description: 'Stage en gestion comptable et financière' });
+    const natureMarketing = await findOrCreate(natureStageRepo, { nom: 'Marketing' }, { nom: 'Marketing', description: 'Stage en communication et marketing digital' });
+    const natureBanque = await findOrCreate(natureStageRepo, { nom: 'Banque' }, { nom: 'Banque', description: 'Stage en opérations bancaires' });
+    const natureImagerie = await findOrCreate(natureStageRepo, { nom: 'Imagerie Médicale' }, { nom: 'Imagerie Médicale', description: 'Stage en techniques d\'imagerie et radiologie' });
+
+    // 20.2 Lier les natures aux sites
+    siteOrange.natures = [natureSoinsInfirmiers, natureImagerie];
+    siteSonatel.natures = [natureSoinsInfirmiers, natureImagerie, natureMarketing];
+    siteBceao.natures = [natureComptabilite, natureBanque];
+    siteCse.natures = [natureSoinsInfirmiers, natureComptabilite];
+    await siteStageRepo.save([siteOrange, siteSonatel, siteBceao, siteCse]);
 
     // 21. Périodes de Stage (Multi-tenant)
     const periodeFst1 = periodeStageRepo.create({

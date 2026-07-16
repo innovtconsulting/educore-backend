@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsNotEmpty, IsString, IsBoolean, IsOptional } from 'class-validator';
+import { IsNotEmpty, IsString, IsBoolean, IsNumber, IsOptional } from 'class-validator';
 
 export class ValidateEtudiantDto {
   @ApiProperty({
@@ -108,4 +108,13 @@ export class ValidateEtudiantDto {
   @IsBoolean()
   @IsOptional()
   alcohol?: boolean;
+
+  @ApiProperty({
+    example: 5,
+    description: 'ID du site de stage (optionnel)',
+    required: false,
+  })
+  @IsNumber()
+  @IsOptional()
+  siteStageId?: number;
 }

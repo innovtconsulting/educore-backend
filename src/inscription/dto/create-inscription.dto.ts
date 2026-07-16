@@ -24,4 +24,12 @@ export class CreateInscriptionDto {
   @IsNumber()
   @IsNotEmpty()
   niveauId!: number;
+
+  @ApiProperty({
+    example: 5,
+    description: 'ID du site de stage (optionnel)',
+    required: false,
+  })
+  @IsNumber()
+  siteStageId?: number;
 }

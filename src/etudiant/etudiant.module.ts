@@ -11,6 +11,7 @@ import { UserModule } from '../user/user.module';
 import { ClasseModule } from '../classe/classe.module';
 import { NiveauModule } from '../niveau/niveau.module';
 import { AnneeUniversitaireModule } from '../annee-universitaire/annee-universitaire.module';
+import { SiteStageModule } from '../site-stage/site-stage.module';
 
 @Module({
   imports: [
@@ -20,6 +21,7 @@ import { AnneeUniversitaireModule } from '../annee-universitaire/annee-universit
     ClasseModule,
     NiveauModule,
     AnneeUniversitaireModule,
+    SiteStageModule,
   ],
   controllers: [EtudiantController],
   providers: [EtudiantService],

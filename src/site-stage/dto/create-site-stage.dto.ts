@@ -20,11 +20,6 @@ export class CreateSiteStageDto {
   @IsString()
   adresse?: string;
 
-  @ApiPropertyOptional({ example: 'Dakar' })
-  @IsOptional()
-  @IsString()
-  ville?: string;
-
   @ApiPropertyOptional({ example: '+221 33 839 39 39' })
   @IsOptional()
   @IsString()
