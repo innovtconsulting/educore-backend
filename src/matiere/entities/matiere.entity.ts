@@ -28,6 +28,24 @@ export class Matiere {
   @Column({ type: 'int', nullable: false, default: 0 })
   hours!: number;
 
+  @Column({ type: 'varchar', nullable: true })
+  numeroUe?: string;
+
+  @Column({ type: 'text', nullable: true })
+  elementsConstitutifs?: string;
+
+  @Column({ type: 'int', nullable: true })
+  tpTd?: number;
+
+  @Column({ type: 'int', nullable: true })
+  tpe?: number;
+
+  @Column({ type: 'int', nullable: true })
+  vht?: number;
+
+  @Column({ type: 'decimal', precision: 5, scale: 2, nullable: true })
+  credits?: number;
+
   @ManyToOne(() => Niveau, (niveau) => niveau.matieres, { nullable: false })
   niveau!: Niveau;
 

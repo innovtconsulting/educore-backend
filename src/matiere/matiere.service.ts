@@ -24,7 +24,19 @@ export class MatiereService {
     createMatiereDto: CreateMatiereDto,
     tenantId?: number,
   ): Promise<Matiere> {
-    const { code, name, coefficient, hours, niveauId } = createMatiereDto;
+    const {
+      code,
+      name,
+      coefficient,
+      hours,
+      niveauId,
+      numeroUe,
+      elementsConstitutifs,
+      tpTd,
+      tpe,
+      vht,
+      credits,
+    } = createMatiereDto;
 
     // Vérifier l'existence du niveau
     const niveau = await this.niveauRepository.findOne({
@@ -46,6 +58,12 @@ export class MatiereService {
       hours,
       niveau,
       etablissementId: tenantId,
+      numeroUe,
+      elementsConstitutifs,
+      tpTd,
+      tpe,
+      vht,
+      credits,
     });
 
     return await this.matiereRepository.save(matiere);
@@ -137,7 +155,19 @@ export class MatiereService {
     updateMatiereDto: UpdateMatiereDto,
     tenantId?: number,
   ): Promise<Matiere> {
-    const { code, name, coefficient, hours, niveauId } = updateMatiereDto;
+    const {
+      code,
+      name,
+      coefficient,
+      hours,
+      niveauId,
+      numeroUe,
+      elementsConstitutifs,
+      tpTd,
+      tpe,
+      vht,
+      credits,
+    } = updateMatiereDto;
     const matiere = await this.findOne(id, tenantId);
 
     if (code) {
@@ -154,6 +184,30 @@ export class MatiereService {
 
     if (hours !== undefined) {
       matiere.hours = hours;
+    }
+
+    if (numeroUe !== undefined) {
+      matiere.numeroUe = numeroUe;
+    }
+
+    if (elementsConstitutifs !== undefined) {
+      matiere.elementsConstitutifs = elementsConstitutifs;
+    }
+
+    if (tpTd !== undefined) {
+      matiere.tpTd = tpTd;
+    }
+
+    if (tpe !== undefined) {
+      matiere.tpe = tpe;
+    }
+
+    if (vht !== undefined) {
+      matiere.vht = vht;
+    }
+
+    if (credits !== undefined) {
+      matiere.credits = credits;
     }
 
     if (niveauId) {
