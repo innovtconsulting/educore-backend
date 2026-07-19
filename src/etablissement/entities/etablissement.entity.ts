@@ -35,6 +35,14 @@ export enum CertificateTemplate {
   ESPM = 'ESPM',
 }
 
+// Libellé d'affichage utilisé pour désigner le rôle Surveillant, propre à
+// chaque établissement (ex: certains l'appellent "Monitrice"). Purement
+// cosmétique : le rôle métier reste `Role.SURVEILLANT` partout ailleurs.
+export enum SupervisorLabel {
+  SURVEILLANT = 'Surveillant',
+  MONITRICE = 'Monitrice',
+}
+
 @Entity()
 export class Etablissement {
   @PrimaryGeneratedColumn()
@@ -60,6 +68,9 @@ export class Etablissement {
 
   @Column({ type: 'varchar', default: CertificateTemplate.DEFAULT })
   certificateTemplate!: CertificateTemplate;
+
+  @Column({ type: 'varchar', default: SupervisorLabel.SURVEILLANT })
+  supervisorLabel!: SupervisorLabel;
 
   @OneToMany(() => Classe, (classe) => classe.etablissement)
   classes!: Classe[];

@@ -73,6 +73,7 @@ export class AuthService {
               name: user.etablissement.name,
               acronyme: user.etablissement.acronyme,
               logoPath: user.etablissement.logoPath,
+              supervisorLabel: user.etablissement.supervisorLabel,
             }
           : null,
         enseignant: user.enseignant || null,

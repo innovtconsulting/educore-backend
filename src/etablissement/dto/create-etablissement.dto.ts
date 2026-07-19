@@ -1,6 +1,6 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { IsEmail, IsEnum, IsNotEmpty, IsOptional, IsString } from 'class-validator';
-import { CertificateTemplate } from '../entities/etablissement.entity';
+import { CertificateTemplate, SupervisorLabel } from '../entities/etablissement.entity';
 
 export class CreateEtablissementDto {
   @ApiProperty({ example: 'Lycée Excellence' })
@@ -31,4 +31,14 @@ export class CreateEtablissementDto {
   @IsEnum(CertificateTemplate)
   @IsOptional()
   certificateTemplate?: CertificateTemplate;
+
+  @ApiPropertyOptional({
+    enum: SupervisorLabel,
+    default: SupervisorLabel.SURVEILLANT,
+    description:
+      "Libellé d'affichage du rôle Surveillant (ex: \"Surveillant\" ou \"Monitrice\"), purement cosmétique",
+  })
+  @IsEnum(SupervisorLabel)
+  @IsOptional()
+  supervisorLabel?: SupervisorLabel;
 }
