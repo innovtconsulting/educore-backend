@@ -35,6 +35,9 @@ export class AllExceptionsFilter implements ExceptionFilter {
       );
     }
 
+    response.setHeader('Access-Control-Allow-Origin', '*');
+    response.setHeader('Access-Control-Allow-Methods', 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS');
+    response.setHeader('Access-Control-Allow-Headers', 'Content-Type,Authorization');
     response.status(status).json({
       success: false,
       statusCode: status,
