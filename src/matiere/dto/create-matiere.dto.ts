@@ -1,12 +1,14 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import {
+  IsArray,
   IsNotEmpty,
   IsNumber,
   IsOptional,
   IsString,
   MaxLength,
   Min,
+  ArrayNotEmpty,
 } from 'class-validator';
 
 export class CreateMatiereDto {
@@ -33,13 +35,15 @@ export class CreateMatiereDto {
   hours!: number;
 
   @ApiProperty({
-    example: 1,
-    description: 'ID du niveau',
+    example: [1, 2],
+    description: 'IDs des niveaux',
+    type: [Number],
   })
+  @IsArray({ message: 'Les IDs des niveaux doivent être un tableau' })
+  @ArrayNotEmpty({ message: 'Au moins un niveau est requis' })
   @Type(() => Number)
-  @IsNumber({}, { message: "L'ID du niveau doit être un nombre" })
-  @IsNotEmpty({ message: "L'ID du niveau est obligatoire" })
-  niveauId!: number;
+  @IsNumber({}, { each: true, message: 'Chaque ID de niveau doit être un nombre' })
+  niveauIds!: number[];
 
   @ApiProperty({
     example: 'UE2.3',

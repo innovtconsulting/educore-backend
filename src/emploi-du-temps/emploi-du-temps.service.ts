@@ -66,14 +66,14 @@ export class EmploiDuTempsService {
     // 1. Vérifier l'existence des entités
     const matiere = await this.matiereRepository.findOne({
       where: { id: matiereId },
-      relations: { niveau: { classe: true } },
+      relations: { niveaux: { classe: true } },
     });
     if (!matiere)
       throw new NotFoundException(`Matière ${matiereId} introuvable`);
 
     // Vérification de la cohérence académique : La matière doit être liée à la classe et au niveau
-    const hasClasse = matiere.niveau?.classe.id === classeId;
-    const hasNiveau = matiere.niveau?.id === niveauId;
+    const hasClasse = matiere.niveaux?.some((n) => n.classe.id === classeId);
+    const hasNiveau = matiere.niveaux?.some((n) => n.id === niveauId);
 
     if (!hasClasse || !hasNiveau) {
       throw new BadRequestException(
@@ -510,12 +510,12 @@ export class EmploiDuTempsService {
 
       const matiere = await this.matiereRepository.findOne({
         where: { id: mId },
-        relations: { niveau: { classe: true } },
+        relations: { niveaux: { classe: true } },
       });
 
       if (matiere) {
-        const hasClasse = matiere.niveau?.classe.id === clId;
-        const hasNiveau = matiere.niveau?.id === nId;
+        const hasClasse = matiere.niveaux?.some((n) => n.classe.id === clId);
+        const hasNiveau = matiere.niveaux?.some((n) => n.id === nId);
         if (!hasClasse || !hasNiveau) {
           throw new BadRequestException(
             "Cette matière n'est pas prévue pour cette classe ou ce niveau",

@@ -2,8 +2,8 @@ import {
   Column,
   CreateDateColumn,
   Entity,
+  ManyToMany,
   ManyToOne,
-  OneToMany,
   PrimaryGeneratedColumn,
   UpdateDateColumn,
   JoinColumn,
@@ -30,7 +30,7 @@ export class Niveau {
   @Column({ nullable: false })
   etablissementId!: number;
 
-  @OneToMany(() => Matiere, (matiere) => matiere.niveau)
+  @ManyToMany(() => Matiere, (matiere) => matiere.niveaux)
   matieres!: Matiere[];
 
   @CreateDateColumn()

@@ -471,7 +471,7 @@ async function seed() {
       code: 'SI101',
       name: 'Anatomie-Physiologie',
       coefficient: 4,
-      niveau: l1Fst,
+      niveaux: [l1Fst],
       etablissement: fst,
       etablissementId: fst.id,
     });
@@ -479,7 +479,7 @@ async function seed() {
       code: 'SI201',
       name: 'Pharmacologie',
       coefficient: 3,
-      niveau: l2Fst,
+      niveaux: [l2Fst],
       etablissement: fst,
       etablissementId: fst.id,
     });
@@ -487,7 +487,7 @@ async function seed() {
       code: 'SI301',
       name: 'Soins Infirmiers Cliniques',
       coefficient: 3,
-      niveau: l3Fst,
+      niveaux: [l3Fst],
       etablissement: fst,
       etablissementId: fst.id,
     });
@@ -495,7 +495,7 @@ async function seed() {
       code: 'IG101',
       name: 'Techniques d\'Imagerie',
       coefficient: 3,
-      niveau: l1Ig,
+      niveaux: [l1Ig],
       etablissement: iut,
       etablissementId: iut.id,
     });

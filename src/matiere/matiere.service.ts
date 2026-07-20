@@ -3,7 +3,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, ILike } from 'typeorm';
+import { Repository, In } from 'typeorm';
 import { CreateMatiereDto } from './dto/create-matiere.dto';
 import { UpdateMatiereDto } from './dto/update-matiere.dto';
 import { MatiereFilterDto } from './dto/matiere-filter.dto';
@@ -29,7 +29,7 @@ export class MatiereService {
       name,
       coefficient,
       hours,
-      niveauId,
+      niveauIds,
       numeroUe,
       elementsConstitutifs,
       tpTd,
@@ -38,17 +38,16 @@ export class MatiereService {
       credits,
     } = createMatiereDto;
 
-    // Vérifier l'existence du niveau
-    const niveau = await this.niveauRepository.findOne({
+    const niveaux = await this.niveauRepository.find({
       where: TenantHelper.addTenantFilter(
-        { id: niveauId },
+        { id: In(niveauIds) },
         tenantId,
         'classe.etablissement',
       ),
     });
 
-    if (!niveau) {
-      throw new NotFoundException('Niveau introuvable');
+    if (niveaux.length !== niveauIds.length) {
+      throw new NotFoundException('Un ou plusieurs niveaux introuvables');
     }
 
     const matiere = this.matiereRepository.create({
@@ -56,7 +55,7 @@ export class MatiereService {
       name,
       coefficient,
       hours,
-      niveau,
+      niveaux,
       etablissementId: tenantId,
       numeroUe,
       elementsConstitutifs,
@@ -78,8 +77,8 @@ export class MatiereService {
 
     const queryBuilder = this.matiereRepository
       .createQueryBuilder('matiere')
-      .leftJoinAndSelect('matiere.niveau', 'niveau')
-      .leftJoinAndSelect('niveau.classe', 'classe');
+      .leftJoinAndSelect('matiere.niveaux', 'niveaux')
+      .leftJoinAndSelect('niveaux.classe', 'classe');
 
     // Apply tenant filter
     if (tenantId) {
@@ -98,7 +97,7 @@ export class MatiereService {
 
     // Apply niveau filter
     if (niveauId) {
-      queryBuilder.andWhere('niveau.id = :niveauId', { niveauId });
+      queryBuilder.andWhere('niveaux.id = :niveauId', { niveauId });
     }
 
     // Apply parcours (classe) filter
@@ -118,8 +117,8 @@ export class MatiereService {
   async findOne(id: number, tenantId?: number): Promise<Matiere> {
     const queryBuilder = this.matiereRepository
       .createQueryBuilder('matiere')
-      .leftJoinAndSelect('matiere.niveau', 'niveau')
-      .leftJoinAndSelect('niveau.classe', 'classe')
+      .leftJoinAndSelect('matiere.niveaux', 'niveaux')
+      .leftJoinAndSelect('niveaux.classe', 'classe')
       .where('matiere.id = :id', { id });
 
     if (tenantId) {
@@ -139,8 +138,8 @@ export class MatiereService {
   async findByCode(code: string, tenantId?: number): Promise<Matiere | null> {
     const queryBuilder = this.matiereRepository
       .createQueryBuilder('matiere')
-      .leftJoinAndSelect('matiere.niveau', 'niveau')
-      .leftJoinAndSelect('niveau.classe', 'classe')
+      .leftJoinAndSelect('matiere.niveaux', 'niveaux')
+      .leftJoinAndSelect('niveaux.classe', 'classe')
       .where('matiere.code = :code', { code });
 
     if (tenantId) {
@@ -160,7 +159,7 @@ export class MatiereService {
       name,
       coefficient,
       hours,
-      niveauId,
+      niveauIds,
       numeroUe,
       elementsConstitutifs,
       tpTd,
@@ -210,18 +209,18 @@ export class MatiereService {
       matiere.credits = credits;
     }
 
-    if (niveauId) {
-      const niveau = await this.niveauRepository.findOne({
+    if (niveauIds !== undefined) {
+      const niveaux = await this.niveauRepository.find({
         where: TenantHelper.addTenantFilter(
-          { id: niveauId },
+          { id: In(niveauIds) },
           tenantId,
           'classe.etablissement',
         ),
       });
-      if (!niveau) {
-        throw new NotFoundException('Niveau introuvable');
+      if (niveaux.length !== niveauIds.length) {
+        throw new NotFoundException('Un ou plusieurs niveaux introuvables');
       }
-      matiere.niveau = niveau;
+      matiere.niveaux = niveaux;
     }
 
     return await this.matiereRepository.save(matiere);

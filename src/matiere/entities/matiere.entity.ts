@@ -2,12 +2,13 @@ import {
   Column,
   CreateDateColumn,
   Entity,
+  ManyToMany,
   ManyToOne,
   PrimaryGeneratedColumn,
   UpdateDateColumn,
   JoinColumn,
+  JoinTable,
 } from 'typeorm';
-import { ApiProperty } from '@nestjs/swagger';
 import { Niveau } from '../../niveau/entities/niveau.entity';
 import { Etablissement } from '../../etablissement/entities/etablissement.entity';
 
@@ -46,8 +47,9 @@ export class Matiere {
   @Column({ type: 'decimal', precision: 5, scale: 2, nullable: true })
   credits?: number;
 
-  @ManyToOne(() => Niveau, (niveau) => niveau.matieres, { nullable: false })
-  niveau!: Niveau;
+  @ManyToMany(() => Niveau, (niveau) => niveau.matieres)
+  @JoinTable()
+  niveaux!: Niveau[];
 
   @ManyToOne(() => Etablissement, { nullable: false })
   @JoinColumn({ name: 'etablissementId' })
