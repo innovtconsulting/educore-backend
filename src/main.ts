@@ -13,17 +13,7 @@ async function bootstrap() {
   // Préfixe global
   app.setGlobalPrefix('api');
 
-  app.enableCors({
-    origin: [
-      'https://educore-three.vercel.app',
-      'http://localhost:4200',
-      'http://localhost:3000',
-      'http://localhost:5173',
-    ],
-    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
-    allowedHeaders: 'Content-Type,Authorization',
-    credentials: true,
-  });
+  app.enableCors();
 
   // Servir les fichiers statiques (photos de profil, etc.)
   app.useStaticAssets(join(process.cwd(), 'uploads'), {

@@ -325,7 +325,7 @@ export class SiteStageController {
 
   @Post('import/sites')
   @Permissions('STAGE_MANAGE')
-  @UseInterceptors(FileInterceptor('file'))
+  @UseInterceptors(FileInterceptor('file', { limits: { fileSize: 5 * 1024 * 1024 } }))
   @ApiOperation({ summary: 'Importer les sites de stage depuis un fichier DOCX' })
   async importSitesFromDocx(@UploadedFile() file: Express.Multer.File) {
     if (!file) throw new BadRequestException('Fichier requis');
@@ -469,7 +469,7 @@ export class SiteStageController {
 
   @Post('import/repartition')
   @Permissions('STAGE_MANAGE')
-  @UseInterceptors(FileInterceptor('file'))
+  @UseInterceptors(FileInterceptor('file', { limits: { fileSize: 15 * 1024 * 1024 } }))
   @ApiOperation({ summary: 'Importer la répartition des stages depuis un fichier XLSX' })
   async importRepartition(
     @UploadedFile() file: Express.Multer.File,
@@ -477,20 +477,51 @@ export class SiteStageController {
   ) {
     if (!file) throw new BadRequestException('Fichier requis');
 
-    const workbook = new ExcelJS.Workbook();
-    await workbook.xlsx.load(file.buffer as any);
+    const { Readable } = require('stream');
+    const stream = Readable.from(file.buffer);
+    const reader = new ExcelJS.stream.xlsx.WorkbookReader(stream, {});
 
     const results: any[] = [];
     let totalAffectations = 0;
 
-    for (const worksheet of workbook.worksheets) {
-      const sheetName = worksheet.name;
+    for await (const worksheet of reader) {
+      const sheetName = (worksheet as any).name;
       const headers: string[] = [];
-      const headerRow = worksheet.getRow(1);
-      headerRow.eachCell((cell) => headers.push(cell.text?.trim() || ''));
+      const rows: any[][] = [];
+      let isHeader = true;
+
+      for await (const row of worksheet) {
+        const values: string[] = [];
+        for (let c = 1; c <= (row.cellCount || 0); c++) {
+          const cell = row.getCell(c);
+          const text = cell?.text ?? cell?.value;
+          values.push(text !== undefined && text !== null ? String(text).trim() : '');
+        }
+        if (isHeader) {
+          headers.push(...values);
+          isHeader = false;
+        } else {
+          rows.push(values);
+        }
+      }
+
+      const mockWorksheet = {
+        name: sheetName,
+        rowCount: rows.length + 1,
+        getRow: (r: number) => {
+          const vals = r === 1 ? headers : (rows[r - 2] || []);
+          return {
+            getCell: (c: number) => {
+              const v = vals[c - 1] ?? '';
+              return { text: v, value: v };
+            },
+            cellCount: vals.length,
+          };
+        },
+      };
 
       const sheetResult = await this.siteStageService.importRepartitionSheet(
-        worksheet,
+        mockWorksheet,
         headers,
         sheetName,
         tenantId,
