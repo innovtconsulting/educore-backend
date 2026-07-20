@@ -9,6 +9,7 @@ import {
   Query,
   ParseIntPipe,
   UseGuards,
+  ForbiddenException,
 } from '@nestjs/common';
 import { FinanceService } from './finance.service';
 import { CreateFeeGroupDto } from './dto/create-fee-group.dto';
@@ -24,6 +25,7 @@ import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { Permissions } from '../auth/decorators/permissions.decorator';
 import { Role } from '../user/entities/user.entity';
+import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { CurrentEtablissement } from '../auth/decorators/current-etablissement.decorator';
 
 @ApiTags('finance')
@@ -220,8 +222,28 @@ export class FinanceController {
     return { message: 'Groupe de paiements récupéré avec succès', data };
   }
 
+  @Get('etudiants/me/factures')
+  @Roles(Role.ETUDIANT)
+  @Permissions('FINANCE_VIEW')
+  @ApiOperation({
+    summary: "Lister les factures de l'étudiant connecté",
+  })
+  async getMyFactures(
+    @CurrentUser() user: any,
+    @CurrentEtablissement() tenantId?: number,
+  ) {
+    if (!user.etudiantId) {
+      throw new ForbiddenException('Profil étudiant introuvable');
+    }
+    const data = await this.financeService.getFacturesByEtudiant(
+      user.etudiantId,
+      tenantId,
+    );
+    return { message: 'Mes factures récupérées avec succès', data };
+  }
+
   @Get('etudiants/:etudiantId/factures')
-  @Roles(Role.ADMIN, Role.SUPER_ADMIN, Role.COMPTABLE)
+  @Roles(Role.ADMIN, Role.SUPER_ADMIN, Role.COMPTABLE, Role.PARENT)
   @Permissions('FINANCE_VIEW')
   @ApiOperation({
     summary:
@@ -229,8 +251,20 @@ export class FinanceController {
   })
   async getFacturesByEtudiant(
     @Param('etudiantId', ParseIntPipe) etudiantId: number,
+    @CurrentUser() user: any,
     @CurrentEtablissement() tenantId?: number,
   ) {
+    if (user.role === Role.PARENT && user.parentId) {
+      const hasAccess = await this.financeService.checkParentAccess(
+        user.parentId,
+        etudiantId,
+      );
+      if (!hasAccess) {
+        throw new ForbiddenException(
+          'Vous ne pouvez consulter que les factures de vos enfants',
+        );
+      }
+    }
     const data = await this.financeService.getFacturesByEtudiant(
       etudiantId,
       tenantId,

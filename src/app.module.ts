@@ -85,6 +85,7 @@ import { PaiePersonnel } from './personnel/entities/paie-personnel.entity';
 import { JournalModule } from './journal/journal.module';
 import { Journal } from './journal/entities/journal.entity';
 import { JournalHistory } from './journal/entities/journal-history.entity';
+import { ActivityModule } from './activity/activity.module';
 
 @Module({
   imports: [
@@ -187,6 +188,7 @@ import { JournalHistory } from './journal/entities/journal-history.entity';
     PersonnelModule,
     SharedModule,
     JournalModule,
+    ActivityModule,
   ],
   controllers: [AppController],
   providers: [

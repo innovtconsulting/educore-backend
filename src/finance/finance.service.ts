@@ -11,6 +11,7 @@ import { Facture, InvoiceStatus } from './entities/facture.entity';
 import { Paiement } from './entities/paiement.entity';
 import { Depense, DepenseCategory } from './entities/depense.entity';
 import { Etudiant } from '../etudiant/entities/etudiant.entity';
+import { Parent } from '../parent/entities/parent.entity';
 import { Classe } from '../classe/entities/classe.entity';
 import { Niveau } from '../niveau/entities/niveau.entity';
 import { CreateFeeGroupDto } from './dto/create-fee-group.dto';
@@ -34,6 +35,8 @@ export class FinanceService {
     public readonly depenseRepository: Repository<Depense>,
     @InjectRepository(Etudiant)
     public readonly etudiantRepository: Repository<Etudiant>,
+    @InjectRepository(Parent)
+    public readonly parentRepository: Repository<Parent>,
     @InjectRepository(Classe)
     public readonly classeRepository: Repository<Classe>,
     @InjectRepository(Niveau)
@@ -658,6 +661,14 @@ export class FinanceService {
     factures.forEach((f) => this.enrichFactureWithPaymentSummary(f));
 
     return { etudiant, factures };
+  }
+
+  async checkParentAccess(parentId: number, etudiantId: number): Promise<boolean> {
+    const parent = await this.parentRepository.findOne({
+      where: { id: parentId },
+      relations: { etudiants: true },
+    });
+    return parent?.etudiants?.some((e) => e.id === etudiantId) ?? false;
   }
 
   async updateFactureStatus(factureId: number) {
