@@ -23,7 +23,7 @@ export enum UserRole {
   ETUDIANT = 'Etudiant',
   PARENT = 'Parent',
   COMPTABLE = 'Comptable',
-  MONITRICE = 'Monitrice',
+  SURVEILLANT = 'Surveillant',
 }
 
 export { UserRole as Role };
@@ -40,7 +40,7 @@ export class User {
   email: string | null;
 
   // Uniquement utilisé comme identifiant de connexion alternatif pour les
-  // comptes sans profil lié (Admin, SuperAdmin, Comptable, Monitrice) —
+  // comptes sans profil lié (Admin, SuperAdmin, Comptable, Surveillant) —
   // pour Etudiant/Enseignant/Parent, le numéro de téléphone vit sur leur
   // profil respectif (etudiant.phoneNumber, enseignant.phone, parent.phoneNumber).
   @Column({ type: 'varchar', unique: true, nullable: true })

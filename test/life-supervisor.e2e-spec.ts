@@ -10,7 +10,7 @@ import * as bcrypt from 'bcrypt';
 describe('School Life Supervisor (e2e)', () => {
   let app: INestApplication;
   let dataSource: DataSource;
-  let monitriceToken: string;
+  let surveillantToken: string;
   let etudiantId: number;
 
   beforeAll(async () => {
@@ -75,13 +75,13 @@ describe('School Life Supervisor (e2e)', () => {
     await userRepo.save({
       email: 'supervisor@test.com',
       password: passwordHash,
-      role: Role.MONITRICE,
+      role: Role.SURVEILLANT,
     });
 
     const login = await request(app.getHttpServer())
       .post('/api/auth/login')
       .send({ email: 'supervisor@test.com', password: 'password123' });
-    monitriceToken = login.body.data.access_token;
+    surveillantToken = login.body.data.access_token;
   });
 
   afterAll(async () => {
@@ -91,14 +91,14 @@ describe('School Life Supervisor (e2e)', () => {
   it('Supervisor can access Life Dashboard', async () => {
     await request(app.getHttpServer())
       .get('/api/life-dashboard')
-      .set('Authorization', `Bearer ${monitriceToken}`)
+      .set('Authorization', `Bearer ${surveillantToken}`)
       .expect(200);
   });
 
   it('Supervisor can create a sanction', async () => {
     await request(app.getHttpServer())
       .post('/api/sanctions')
-      .set('Authorization', `Bearer ${monitriceToken}`)
+      .set('Authorization', `Bearer ${surveillantToken}`)
       .send({
         etudiantId,
         type: 'Avertissement',
@@ -114,7 +114,7 @@ describe('School Life Supervisor (e2e)', () => {
     // Let's just check the 404/400 because of missing data vs 403 Forbidden.
     const res = await request(app.getHttpServer())
       .post('/api/presence/bulk')
-      .set('Authorization', `Bearer ${monitriceToken}`)
+      .set('Authorization', `Bearer ${surveillantToken}`)
       .send({ emploiDuTempId: 999, items: [] });
 
     expect(res.status).not.toBe(403);
@@ -123,14 +123,14 @@ describe('School Life Supervisor (e2e)', () => {
   it('Supervisor can access Discipline rules', async () => {
     await request(app.getHttpServer())
       .get('/api/discipline')
-      .set('Authorization', `Bearer ${monitriceToken}`)
+      .set('Authorization', `Bearer ${surveillantToken}`)
       .expect(200);
   });
 
   it('Supervisor can access Daily Report preview', async () => {
     await request(app.getHttpServer())
       .get('/api/reporting/supervisor-daily')
-      .set('Authorization', `Bearer ${monitriceToken}`)
+      .set('Authorization', `Bearer ${surveillantToken}`)
       .expect(200);
   });
 });

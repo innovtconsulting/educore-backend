@@ -30,7 +30,7 @@ export class AnnonceController {
   constructor(private readonly annonceService: AnnonceService) {}
 
   @Post()
-  @Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN, UserRole.MONITRICE)
+  @Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN, UserRole.SURVEILLANT)
   @ApiOperation({ summary: 'Créer une nouvelle annonce' })
   async create(
     @Body() createAnnonceDto: CreateAnnonceDto,
@@ -56,7 +56,7 @@ export class AnnonceController {
     UserRole.ADMIN,
     UserRole.SUPER_ADMIN,
     UserRole.COMPTABLE,
-    UserRole.MONITRICE,
+    UserRole.SURVEILLANT,
   )
   @ApiOperation({ summary: 'Récupérer toutes les annonces' })
   async findAll(
@@ -83,7 +83,7 @@ export class AnnonceController {
     UserRole.ADMIN,
     UserRole.SUPER_ADMIN,
     UserRole.COMPTABLE,
-    UserRole.MONITRICE,
+    UserRole.SURVEILLANT,
   )
   @ApiOperation({ summary: 'Récupérer une annonce par son ID' })
   async findOne(
@@ -99,7 +99,7 @@ export class AnnonceController {
   }
 
   @Patch(':id')
-  @Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN, UserRole.MONITRICE)
+  @Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN, UserRole.SURVEILLANT)
   @ApiOperation({ summary: 'Modifier une annonce' })
   async update(
     @Param('id') id: string,
@@ -120,7 +120,7 @@ export class AnnonceController {
   }
 
   @Delete(':id')
-  @Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN, UserRole.MONITRICE)
+  @Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN, UserRole.SURVEILLANT)
   @ApiOperation({ summary: 'Supprimer une annonce' })
   async remove(
     @Param('id') id: string,

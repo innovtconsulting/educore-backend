@@ -17,7 +17,7 @@ export class LifeDashboardController {
   @Get()
   @Permissions('REPORT_DAILY_MANAGE')
   @ApiOperation({
-    summary: 'Récupérer les statistiques de vie scolaire (Monitrice)',
+    summary: 'Récupérer les statistiques de vie scolaire (Surveillant)',
   })
   async getDashboard() {
     const data = await this.dashboardService.getDashboardStats();

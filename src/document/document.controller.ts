@@ -178,7 +178,7 @@ export class DocumentController {
     Role.PARENT,
     Role.ENSEIGNANT,
     Role.ADMIN,
-    Role.MONITRICE,
+    Role.SURVEILLANT,
     Role.COMPTABLE,
   )
   @ApiOperation({
@@ -219,7 +219,7 @@ export class DocumentController {
     Role.PARENT,
     Role.ENSEIGNANT,
     Role.ADMIN,
-    Role.MONITRICE,
+    Role.SURVEILLANT,
     Role.COMPTABLE,
   )
   @ApiOperation({ summary: 'Télécharger le fichier physique' })
@@ -245,7 +245,7 @@ export class DocumentController {
     Role.PARENT,
     Role.ENSEIGNANT,
     Role.ADMIN,
-    Role.MONITRICE,
+    Role.SURVEILLANT,
     Role.COMPTABLE,
   )
   @ApiOperation({

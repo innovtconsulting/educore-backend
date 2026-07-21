@@ -51,7 +51,7 @@ export class UserController {
     Role.ETUDIANT,
     Role.PARENT,
     Role.COMPTABLE,
-    Role.MONITRICE,
+    Role.SURVEILLANT,
   )
   @ApiOperation({ summary: "Obtenir mon propre profil d'utilisateur" })
   getMe(@Request() req: any, @CurrentEtablissement() tenantId?: number) {
@@ -66,7 +66,7 @@ export class UserController {
     Role.ETUDIANT,
     Role.PARENT,
     Role.COMPTABLE,
-    Role.MONITRICE,
+    Role.SURVEILLANT,
   )
   @ApiOperation({ summary: 'Mettre à jour mon profil' })
   updateMe(@Request() req: any, @Body() updateProfileDto: UpdateProfileDto) {
@@ -81,7 +81,7 @@ export class UserController {
     Role.ETUDIANT,
     Role.PARENT,
     Role.COMPTABLE,
-    Role.MONITRICE,
+    Role.SURVEILLANT,
   )
   @ApiOperation({
     summary: 'Changer mon propre mot de passe (nécessite le mot de passe actuel)',
@@ -102,7 +102,7 @@ export class UserController {
     Role.ETUDIANT,
     Role.PARENT,
     Role.COMPTABLE,
-    Role.MONITRICE,
+    Role.SURVEILLANT,
   )
   @ApiOperation({ summary: 'Mettre à jour ma photo de profil' })
   @ApiConsumes('multipart/form-data')

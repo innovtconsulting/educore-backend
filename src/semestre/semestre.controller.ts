@@ -46,7 +46,7 @@ export class SemestreController {
     Role.ETUDIANT,
     Role.ENSEIGNANT,
     Role.ADMIN,
-    Role.MONITRICE,
+    Role.SURVEILLANT,
   )
   @Permissions('ACADEMIC_VIEW')
   @ApiOperation({

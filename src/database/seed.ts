@@ -255,11 +255,11 @@ async function seed() {
         ]),
       },
     );
-    const roleMonitriceAcl = await findOrCreate(
+    const roleSurveillantAcl = await findOrCreate(
       roleAclRepo,
-      { name: 'Monitrice' },
+      { name: 'Surveillant' },
       {
-        name: 'Monitrice',
+        name: 'Surveillant',
         description: 'Gestionnaire de la vie scolaire',
         permissions: getPerms([
           'STUDENT_VIEW',
@@ -295,7 +295,7 @@ async function seed() {
     await roleAclRepo.save([
       roleAdminAcl,
       roleComptableAcl,
-      roleMonitriceAcl,
+      roleSurveillantAcl,
       roleEnseignantAcl,
     ]);
 
@@ -1077,11 +1077,11 @@ async function seed() {
         etablissement: fst,
       }),
       userRepo.create({
-        email: 'monitrice@espm.sn',
-        username: 'monitrice',
+        email: 'surveillant@espm.sn',
+        username: 'surveillant',
         password: passwordHash,
-        role: Role.MONITRICE,
-        aclRole: roleMonitriceAcl,
+        role: Role.SURVEILLANT,
+        aclRole: roleSurveillantAcl,
         etablissement: fst,
       }),
 
@@ -1103,11 +1103,11 @@ async function seed() {
         etablissement: esp,
       }),
       userRepo.create({
-        email: 'monitrice.esp@espm.sn',
-        username: 'monitrice_esp',
+        email: 'surveillant.esp@espm.sn',
+        username: 'surveillant_esp',
         password: passwordHash,
-        role: Role.MONITRICE,
-        aclRole: roleMonitriceAcl,
+        role: Role.SURVEILLANT,
+        aclRole: roleSurveillantAcl,
         etablissement: esp,
       }),
 
@@ -1129,11 +1129,11 @@ async function seed() {
         etablissement: iut,
       }),
       userRepo.create({
-        email: 'monitrice.iut@espm.sn',
-        username: 'monitrice_iut',
+        email: 'surveillant.iut@espm.sn',
+        username: 'surveillant_iut',
         password: passwordHash,
-        role: Role.MONITRICE,
-        aclRole: roleMonitriceAcl,
+        role: Role.SURVEILLANT,
+        aclRole: roleSurveillantAcl,
         etablissement: iut,
       }),
 
@@ -1171,8 +1171,8 @@ async function seed() {
 
     // 12. Personnel (Gestion des salaires) — lié aux utilisateurs existants
     const comptableUser = users.find((u) => u.email === 'comptable@espm.sn');
-    const monitriceUser = users.find(
-      (u) => u.email === 'monitrice@espm.sn',
+    const surveillantUser = users.find(
+      (u) => u.email === 'surveillant@espm.sn',
     );
     const profDialloUser = users.find((u) => u.email === 'prof.diallo@espm.sn');
 
@@ -1192,15 +1192,15 @@ async function seed() {
       etablissement: fst,
       etablissementId: fst.id,
     });
-    const espMonitriceUser = users.find(
-      (u) => u.email === 'monitrice.esp@espm.sn',
+    const espSurveillantUser = users.find(
+      (u) => u.email === 'surveillant.esp@espm.sn',
     );
     const pers3 = personnelRepo.create({
       nom: 'Oumar Tall',
       poste: 'Bibliothécaire',
       salaireMensuel: 200000,
-      userId: espMonitriceUser?.id,
-      user: espMonitriceUser,
+      userId: espSurveillantUser?.id,
+      user: espSurveillantUser,
       etablissement: esp,
       etablissementId: esp.id,
     });

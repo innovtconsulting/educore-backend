@@ -50,8 +50,8 @@ describe('Personnel Registration (e2e)', () => {
     });
 
     await userRepo.save({
-      email: 'monitrice@test.com',
-      role: Role.MONITRICE,
+      email: 'surveillant@test.com',
+      role: Role.SURVEILLANT,
       isActive: true,
       // No password
     });
@@ -93,11 +93,11 @@ describe('Personnel Registration (e2e)', () => {
       expect(loginRes.body.data.access_token).toBeDefined();
     });
 
-    it('should activate a MONITRICE account using ID and password', async () => {
+    it('should activate a SURVEILLANT account using ID and password', async () => {
       // Find the user ID first
       const userRepo = dataSource.getRepository('User');
       const user = await userRepo.findOne({
-        where: { email: 'monitrice@test.com' },
+        where: { email: 'surveillant@test.com' },
       });
       const userId = user?.id;
 
@@ -106,12 +106,12 @@ describe('Personnel Registration (e2e)', () => {
         .send({
           id: userId,
           password: 'secure-password-surv',
-          role: Role.MONITRICE,
+          role: Role.SURVEILLANT,
         });
 
       expect(res.status).toBe(201);
       expect(res.body.data.message).toBe('Activation du compte réussie.');
-      expect(res.body.data.user.email).toBe('monitrice@test.com');
+      expect(res.body.data.user.email).toBe('surveillant@test.com');
     });
 
     it('should fail if ID is missing for personnel role', async () => {

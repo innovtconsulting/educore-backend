@@ -28,13 +28,13 @@ export async function generateDailyReportPdf(data: any): Promise<string> {
         .text(schoolName, { align: 'center' })
         .fontSize(12)
         .font('Helvetica')
-        .text('RAPPORT QUOTIDIEN DU MONITRICE', { align: 'center' })
+        .text('RAPPORT QUOTIDIEN DU SURVEILLANT', { align: 'center' })
         .moveDown();
 
       doc
         .fontSize(10)
         .text(`Date : ${data.date}`, { align: 'right' })
-        .text(`Monitrice : ${data.supervisorName}`, { align: 'right' })
+        .text(`Surveillant : ${data.supervisorName}`, { align: 'right' })
         .moveDown();
 
       // --- Résumé ---

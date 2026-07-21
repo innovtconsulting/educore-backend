@@ -34,9 +34,9 @@ export class CreateEtablissementDto {
 
   @ApiPropertyOptional({
     enum: SupervisorLabel,
-    default: SupervisorLabel.MONITRICE,
+    default: SupervisorLabel.SURVEILLANT,
     description:
-      "Libellé d'affichage du rôle Monitrice (ex: \"Monitrice\" ou \"Monitrice\"), purement cosmétique",
+      "Libellé d'affichage du rôle Surveillant (ex: \"Surveillant\" ou \"Monitrice\"), purement cosmétique",
   })
   @IsEnum(SupervisorLabel)
   @IsOptional()

@@ -92,7 +92,7 @@ export class NoteController {
     Role.PARENT,
     Role.ENSEIGNANT,
     Role.ADMIN,
-    Role.MONITRICE,
+    Role.SURVEILLANT,
   )
   @Permissions('ACADEMIC_VIEW')
   @ApiOperation({
