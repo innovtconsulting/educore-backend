@@ -12,7 +12,7 @@ export class SubmitDailyReportDto {
   @IsNotEmpty()
   date!: string;
 
-  @ApiProperty({ description: 'Nom du surveillant' })
+  @ApiProperty({ description: 'Nom du monitrice' })
   @IsString()
   @IsNotEmpty()
   supervisorName!: string;

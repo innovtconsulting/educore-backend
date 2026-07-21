@@ -14,7 +14,7 @@ describe('Note Restriction (e2e)', () => {
   let adminToken: string;
   let teacher1Token: string; // Responsable
   let teacher2Token: string; // Non responsable
-  let surveillantToken: string;
+  let monitriceToken: string;
 
   let etudiantId: number;
   let evaluationId: number;
@@ -134,7 +134,7 @@ describe('Note Restriction (e2e)', () => {
       {
         email: 'surv@test.com',
         password: passwordHash,
-        role: Role.SURVEILLANT,
+        role: Role.MONITRICE,
       },
     ]);
 
@@ -148,7 +148,7 @@ describe('Note Restriction (e2e)', () => {
     adminToken = await login('admin@test.com');
     teacher1Token = await login('t1@test.com');
     teacher2Token = await login('t2@test.com');
-    surveillantToken = await login('surv@test.com');
+    monitriceToken = await login('surv@test.com');
 
     // Create Student
     const etu = await etuRepo.save({
@@ -211,10 +211,10 @@ describe('Note Restriction (e2e)', () => {
         .expect(403);
     });
 
-    it('Surveillant CANNOT create a note', async () => {
+    it('Monitrice CANNOT create a note', async () => {
       await request(app.getHttpServer())
         .post('/api/note')
-        .set('Authorization', `Bearer ${surveillantToken}`)
+        .set('Authorization', `Bearer ${monitriceToken}`)
         .send({ value: 10, etudiantId, evaluationId })
         .expect(403);
     });
@@ -284,10 +284,10 @@ describe('Note Restriction (e2e)', () => {
         .expect(200);
     });
 
-    it('Surveillant can consult notes', async () => {
+    it('Monitrice can consult notes', async () => {
       await request(app.getHttpServer())
         .get('/api/note')
-        .set('Authorization', `Bearer ${surveillantToken}`)
+        .set('Authorization', `Bearer ${monitriceToken}`)
         .expect(200);
     });
   });

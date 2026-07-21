@@ -30,7 +30,7 @@ export class JournalController {
   constructor(private readonly journalService: JournalService) {}
 
   @Get('slots')
-  @Roles(Role.ENSEIGNANT, Role.SURVEILLANT, Role.ADMIN)
+  @Roles(Role.ENSEIGNANT, Role.MONITRICE, Role.ADMIN)
   @Permissions('JOURNAL_MANAGE')
   @ApiOperation({
     summary: 'Liste des créneaux avec le statut de leur cahier de journal',
@@ -44,7 +44,7 @@ export class JournalController {
   }
 
   @Post()
-  @Roles(Role.ENSEIGNANT, Role.SURVEILLANT, Role.ADMIN)
+  @Roles(Role.ENSEIGNANT, Role.MONITRICE, Role.ADMIN)
   @Permissions('JOURNAL_MANAGE')
   @ApiOperation({ summary: 'Créer le journal d’un créneau' })
   create(
@@ -56,7 +56,7 @@ export class JournalController {
   }
 
   @Patch(':id')
-  @Roles(Role.ENSEIGNANT, Role.SURVEILLANT, Role.ADMIN)
+  @Roles(Role.ENSEIGNANT, Role.MONITRICE, Role.ADMIN)
   @Permissions('JOURNAL_MANAGE')
   @ApiOperation({ summary: 'Modifier le journal d’un créneau' })
   update(
@@ -69,7 +69,7 @@ export class JournalController {
   }
 
   @Get(':id')
-  @Roles(Role.ENSEIGNANT, Role.SURVEILLANT, Role.ADMIN)
+  @Roles(Role.ENSEIGNANT, Role.MONITRICE, Role.ADMIN)
   @Permissions('JOURNAL_MANAGE')
   @ApiOperation({ summary: 'Récupérer un journal par son ID' })
   findOne(
@@ -80,7 +80,7 @@ export class JournalController {
   }
 
   @Get(':id/history')
-  @Roles(Role.ENSEIGNANT, Role.SURVEILLANT, Role.ADMIN)
+  @Roles(Role.ENSEIGNANT, Role.MONITRICE, Role.ADMIN)
   @Permissions('JOURNAL_MANAGE')
   @ApiOperation({ summary: "Historique des modifications d'un journal" })
   getHistory(

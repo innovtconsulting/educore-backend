@@ -85,7 +85,7 @@ export class PersonnelService {
       SuperAdmin: 'Super Administrateur',
       Admin: 'Administrateur',
       Comptable: 'Comptable',
-      Surveillant: 'Surveillant',
+      Monitrice: 'Monitrice',
       Enseignant: 'Enseignant',
     };
     return posteMap[user.role] || user.role;
@@ -160,7 +160,7 @@ export class PersonnelService {
   async searchUsers(search: string, tenantId?: number) {
     if (!search || search.length < 2) return [];
 
-    const staffRoles = ['Admin', 'Comptable', 'Surveillant', 'Enseignant', 'SuperAdmin'];
+    const staffRoles = ['Admin', 'Comptable', 'Monitrice', 'Enseignant', 'SuperAdmin'];
     const term = `%${search}%`;
 
     const users = await this.userRepository

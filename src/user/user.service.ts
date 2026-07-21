@@ -157,7 +157,7 @@ export class UserService {
   // Utilisé uniquement pour la connexion : accepte l'email OU le numéro de
   // téléphone comme identifiant. Le téléphone peut vivre à deux endroits
   // selon le rôle : directement sur User.phoneNumber (Admin/SuperAdmin/
-  // Comptable/Surveillant, qui n'ont pas de profil lié), ou sur le profil
+  // Comptable/Monitrice, qui n'ont pas de profil lié), ou sur le profil
   // lié (enseignant.phone, etudiant.phoneNumber, parent.phoneNumber).
   async findByLoginIdentifier(identifier: string): Promise<User | null> {
     const normalized = identifier.toLowerCase().trim();
@@ -430,7 +430,7 @@ export class UserService {
       phoneNumber &&
       phoneNumber !== user.phoneNumber
     ) {
-      // Comptes sans profil lié (Admin, SuperAdmin, Comptable, Surveillant) :
+      // Comptes sans profil lié (Admin, SuperAdmin, Comptable, Monitrice) :
       // le numéro de téléphone est stocké directement sur le User.
       const existing = await this.userRepository.findOne({
         where: { phoneNumber },

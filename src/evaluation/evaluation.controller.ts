@@ -31,7 +31,7 @@ export class EvaluationController {
   constructor(private readonly evaluationService: EvaluationService) {}
 
   @Post()
-  @Roles(Role.ENSEIGNANT, Role.ADMIN, Role.SURVEILLANT)
+  @Roles(Role.ENSEIGNANT, Role.ADMIN, Role.MONITRICE)
   @Permissions('ACADEMIC_MANAGE')
   @ApiOperation({
     summary: 'Créer une évaluation',
@@ -51,7 +51,7 @@ export class EvaluationController {
   }
 
   @Get()
-  @Roles(Role.ENSEIGNANT, Role.ADMIN, Role.SURVEILLANT, Role.ETUDIANT)
+  @Roles(Role.ENSEIGNANT, Role.ADMIN, Role.MONITRICE, Role.ETUDIANT)
   @Permissions('ACADEMIC_VIEW')
   @ApiOperation({
     summary: 'Lister toutes les évaluations',

@@ -49,4 +49,8 @@ export class CreateEmploiDuTempDto {
   @IsNumber()
   @IsOptional()
   salleId?: number;
+
+  @ApiProperty({ required: false })
+  @IsOptional()
+  groupeId?: string;
 }

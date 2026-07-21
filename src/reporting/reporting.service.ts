@@ -54,7 +54,7 @@ export class ReportingService {
       totalEnseignants,
       totalClasses,
       totalComptables,
-      totalSurveillants,
+      totalMonitrices,
       totalSanctions,
       totalEtablissements,
     ] = await Promise.all([
@@ -78,7 +78,7 @@ export class ReportingService {
       }),
       this.userRepository.count({
         where: TenantHelper.addTenantFilter(
-          { role: Role.SURVEILLANT },
+          { role: Role.MONITRICE },
           resolvedTenantId,
         ) as any,
       }),
@@ -92,7 +92,7 @@ export class ReportingService {
       teachers: totalEnseignants,
       students: totalEtudiants,
       comptables: totalComptables,
-      surveillants: totalSurveillants,
+      monitrices: totalMonitrices,
       classes: totalClasses,
       sanctions: totalSanctions,
       etablissements: totalEtablissements,

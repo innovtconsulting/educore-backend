@@ -44,7 +44,7 @@ export class AnnonceService {
         UserRole.ENSEIGNANT,
         UserRole.ADMIN,
         UserRole.COMPTABLE,
-        UserRole.SURVEILLANT,
+        UserRole.MONITRICE,
         UserRole.SUPER_ADMIN,
       ];
     } else {
@@ -104,7 +104,7 @@ export class AnnonceService {
     } else if (user.role === UserRole.COMPTABLE) {
       userAudiences.push(TargetAudience.COMPTABLES);
     } else {
-      // Admin, SuperAdmin, Surveillant see all
+      // Admin, SuperAdmin, Monitrice see all
       userAudiences.push(...Object.values(TargetAudience));
     }
 
@@ -179,7 +179,7 @@ export class AnnonceService {
         annonce.targetAudiences.includes(TargetAudience.PARENTS)) ||
       (user.role === UserRole.COMPTABLE &&
         annonce.targetAudiences.includes(TargetAudience.COMPTABLES)) ||
-      [UserRole.ADMIN, UserRole.SUPER_ADMIN, UserRole.SURVEILLANT].includes(
+      [UserRole.ADMIN, UserRole.SUPER_ADMIN, UserRole.MONITRICE].includes(
         user.role,
       );
 

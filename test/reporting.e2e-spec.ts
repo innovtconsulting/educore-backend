@@ -194,13 +194,13 @@ describe('Reporting Module (e2e)', () => {
       .set('Authorization', `Bearer ${accessToken}`)
       .send({
         date: today,
-        supervisorName: 'Surveillant Test',
+        supervisorName: 'Monitrice Test',
         observations: "Tout est en ordre pour aujourd'hui",
       })
       .expect(201);
 
     expect(res.body.data.isSubmitted).toBe(true);
-    expect(res.body.data.supervisorName).toBe('Surveillant Test');
+    expect(res.body.data.supervisorName).toBe('Monitrice Test');
     expect(res.body.data.totalAbsences).toBe(1);
     expect(res.body.data.pdfUrl).toBeDefined();
     expect(res.body.data.pdfUrl).toContain(
@@ -248,6 +248,6 @@ describe('Reporting Module (e2e)', () => {
       .expect(200);
 
     expect(res.body.data.id).toBe(reportId);
-    expect(res.body.data.supervisorName).toBe('Surveillant Test');
+    expect(res.body.data.supervisorName).toBe('Monitrice Test');
   });
 });

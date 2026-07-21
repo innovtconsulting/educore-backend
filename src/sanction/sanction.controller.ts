@@ -30,7 +30,7 @@ export class SanctionController {
   constructor(private readonly sanctionService: SanctionService) {}
 
   @Post()
-  @Roles(Role.ADMIN, Role.SURVEILLANT)
+  @Roles(Role.ADMIN, Role.MONITRICE)
   @Permissions('DISCIPLINE_MANAGE')
   @ApiOperation({ summary: 'Créer une nouvelle sanction' })
   async create(
@@ -45,7 +45,7 @@ export class SanctionController {
   }
 
   @Get()
-  @Roles(Role.ADMIN, Role.SURVEILLANT, Role.ENSEIGNANT)
+  @Roles(Role.ADMIN, Role.MONITRICE, Role.ENSEIGNANT)
   @Permissions('DISCIPLINE_MANAGE')
   @ApiOperation({ summary: 'Récupérer toutes les sanctions' })
   async findAll(
@@ -62,7 +62,7 @@ export class SanctionController {
   @Get(':id')
   @Roles(
     Role.ADMIN,
-    Role.SURVEILLANT,
+    Role.MONITRICE,
     Role.ENSEIGNANT,
     Role.ETUDIANT,
     Role.PARENT,
@@ -83,7 +83,7 @@ export class SanctionController {
   @Get('etudiant/:etudiantId')
   @Roles(
     Role.ADMIN,
-    Role.SURVEILLANT,
+    Role.MONITRICE,
     Role.ENSEIGNANT,
     Role.ETUDIANT,
     Role.PARENT,
@@ -105,7 +105,7 @@ export class SanctionController {
   }
 
   @Patch(':id')
-  @Roles(Role.ADMIN, Role.SURVEILLANT)
+  @Roles(Role.ADMIN, Role.MONITRICE)
   @Permissions('DISCIPLINE_MANAGE')
   @ApiOperation({ summary: 'Mettre à jour une sanction' })
   async update(
@@ -125,7 +125,7 @@ export class SanctionController {
   }
 
   @Delete(':id')
-  @Roles(Role.ADMIN, Role.SURVEILLANT)
+  @Roles(Role.ADMIN, Role.MONITRICE)
   @Permissions('DISCIPLINE_MANAGE')
   @ApiOperation({ summary: 'Supprimer une sanction' })
   async remove(

@@ -38,7 +38,7 @@ export class RegisterDto {
     enum: UserRole,
     example: UserRole.ETUDIANT,
     description:
-      "Rôle de l'utilisateur (Etudiant, Enseignant, Parent, Admin, Comptable, Surveillant)",
+      "Rôle de l'utilisateur (Etudiant, Enseignant, Parent, Admin, Comptable, Monitrice)",
   })
   @IsEnum(UserRole)
   @IsNotEmpty()

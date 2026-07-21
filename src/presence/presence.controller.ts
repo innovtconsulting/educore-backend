@@ -28,7 +28,7 @@ export class PresenceController {
   constructor(private readonly presenceService: PresenceService) {}
 
   @Post('bulk')
-  @Roles(Role.ENSEIGNANT, Role.ADMIN, Role.SURVEILLANT)
+  @Roles(Role.ENSEIGNANT, Role.ADMIN, Role.MONITRICE)
   @Permissions('ATTENDANCE_MANAGE')
   @ApiOperation({
     summary: 'Enregistrer les présences pour une session (en masse)',
@@ -41,7 +41,7 @@ export class PresenceController {
   }
 
   @Get()
-  @Roles(Role.ENSEIGNANT, Role.ADMIN, Role.SURVEILLANT)
+  @Roles(Role.ENSEIGNANT, Role.ADMIN, Role.MONITRICE)
   @Permissions('ATTENDANCE_MANAGE')
   @ApiOperation({ summary: 'Liste de toutes les présences' })
   findAll(
@@ -52,7 +52,7 @@ export class PresenceController {
   }
 
   @Get('sessions-summary')
-  @Roles(Role.ENSEIGNANT, Role.ADMIN, Role.SURVEILLANT)
+  @Roles(Role.ENSEIGNANT, Role.ADMIN, Role.MONITRICE)
   @Permissions('ATTENDANCE_MANAGE')
   @ApiOperation({ summary: 'Résumé des présences par créneau (session)' })
   getSessionsSummary(
@@ -63,7 +63,7 @@ export class PresenceController {
   }
 
   @Get('session/:id')
-  @Roles(Role.ENSEIGNANT, Role.ADMIN, Role.SURVEILLANT)
+  @Roles(Role.ENSEIGNANT, Role.ADMIN, Role.MONITRICE)
   @Permissions('ATTENDANCE_MANAGE')
   @ApiOperation({ summary: "Récupérer les présences d'un créneau spécifique" })
   findBySession(
@@ -76,7 +76,7 @@ export class PresenceController {
   @Get('etudiant/:id')
   @Roles(
     Role.ADMIN,
-    Role.SURVEILLANT,
+    Role.MONITRICE,
     Role.ENSEIGNANT,
     Role.PARENT,
     Role.ETUDIANT,

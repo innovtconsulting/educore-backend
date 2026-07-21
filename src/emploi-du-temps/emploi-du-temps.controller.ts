@@ -58,7 +58,7 @@ export class EmploiDuTempsController {
   }
 
   @Get()
-  @Roles(Role.ETUDIANT, Role.ENSEIGNANT, Role.ADMIN, Role.SURVEILLANT)
+  @Roles(Role.ETUDIANT, Role.ENSEIGNANT, Role.ADMIN, Role.MONITRICE)
   @ApiOperation({
     summary: "Récupérer l'emploi du temps (avec filtres optionnels)",
   })
@@ -98,7 +98,7 @@ export class EmploiDuTempsController {
   }
 
   @Get('hours')
-  @Roles(Role.ETUDIANT, Role.ENSEIGNANT, Role.ADMIN, Role.SURVEILLANT)
+  @Roles(Role.ETUDIANT, Role.ENSEIGNANT, Role.ADMIN, Role.MONITRICE)
   @ApiOperation({
     summary:
       'Calculer le nombre total d heures effectuées pour une matière et un enseignant',
@@ -134,7 +134,7 @@ export class EmploiDuTempsController {
   }
 
   @Get(':id')
-  @Roles(Role.ETUDIANT, Role.ENSEIGNANT, Role.ADMIN, Role.SURVEILLANT)
+  @Roles(Role.ETUDIANT, Role.ENSEIGNANT, Role.ADMIN, Role.MONITRICE)
   @ApiOperation({ summary: 'Récupérer un créneau par son ID' })
   findOne(@Param('id') id: string, @CurrentEtablissement() tenantId?: number) {
     return this.emploiDuTempsService.findOne(+id, tenantId);

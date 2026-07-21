@@ -53,6 +53,7 @@ export class EmploiDuTempsService {
       classeId,
       niveauId,
       salleId,
+      groupeId,
     } = createEmploiDuTempDto;
     const start = new Date(startTime);
     const end = new Date(endTime);
@@ -131,6 +132,7 @@ export class EmploiDuTempsService {
       classeId,
       undefined,
       salleId,
+      groupeId,
     );
 
     const newEmploi = this.emploiDuTempRepository.create({
@@ -142,6 +144,7 @@ export class EmploiDuTempsService {
       classe,
       niveau,
       salle,
+      groupeId,
     });
 
     return await this.emploiDuTempRepository.save(newEmploi);
@@ -152,13 +155,21 @@ export class EmploiDuTempsService {
     end: Date,
     enseignantId: number,
     excludeId?: number,
+    groupeId?: string,
   ) {
-    const conflict = await this.emploiDuTempRepository
+    const queryBuilder = this.emploiDuTempRepository
       .createQueryBuilder('e')
       .where('e.enseignantId = :enseignantId', { enseignantId })
-      .andWhere(':start < e.endTime AND :end > e.startTime', { start, end })
-      .andWhere(excludeId ? 'e.id != :excludeId' : '1=1', { excludeId })
-      .getOne();
+      .andWhere(':start < e.endTime AND :end > e.startTime', { start, end });
+
+    if (excludeId) {
+      queryBuilder.andWhere('e.id != :excludeId', { excludeId });
+    }
+    if (groupeId) {
+      queryBuilder.andWhere('(e.groupeId IS NULL OR e.groupeId != :groupeId)', { groupeId });
+    }
+
+    const conflict = await queryBuilder.getOne();
 
     if (conflict) {
       throw new BadRequestException(
@@ -214,8 +225,9 @@ export class EmploiDuTempsService {
     classeId: number,
     excludeId?: number,
     salleId?: number,
+    groupeId?: string,
   ) {
-    await this.checkEnseignantConflict(start, end, enseignantId, excludeId);
+    await this.checkEnseignantConflict(start, end, enseignantId, excludeId, groupeId);
     await this.checkClasseConflict(start, end, classeId, excludeId);
     if (salleId) {
       await this.checkSalleConflict(start, end, salleId, excludeId);

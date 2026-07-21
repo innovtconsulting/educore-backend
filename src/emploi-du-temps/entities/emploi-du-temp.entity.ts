@@ -34,10 +34,10 @@ export class EmploiDuTemp {
   @Index()
   groupeId?: string;
 
-  @Column({ type: 'timestamp' })
+  @Column({ type: 'timestamptz' })
   startTime!: Date;
 
-  @Column({ type: 'timestamp' })
+  @Column({ type: 'timestamptz' })
   endTime!: Date;
 
   @ManyToOne(() => Matiere, { onDelete: 'CASCADE', nullable: true })
