@@ -645,9 +645,11 @@ export class SiteStageService {
       const typeRaw = getCellText(row, typeCol);
       const type = typeRaw.toLowerCase().replace(/[^a-z]/g, '');
 
-      if (!nameVal || !['date', 'lieu', 'service', 'nature'].includes(type)) continue;
+      if (!['date', 'lieu', 'service', 'nature'].includes(type)) continue;
 
-      if (!current || nameVal !== current.name) {
+      if (!nameVal) {
+        if (!current) continue;
+      } else if (!current || nameVal !== current.name) {
         current = { name: nameVal, prog: progVal, date: new Map(), lieu: new Map(), service: new Map(), nature: new Map() };
         groups.push(current);
       }
@@ -701,13 +703,14 @@ export class SiteStageService {
     for (const p of allPeriodes) periodeMap.set(p.libelle, p);
 
     const affectationKey = (eid: number, pid: number) => `${eid}::${pid}`;
-    const existingAffectationSet = new Set<string>();
+    const existingAffectationMap = new Map<string, AffectationStage>();
     for (const a of existingAffectations) {
-      existingAffectationSet.add(affectationKey(a.etudiantId, a.periodeStageId));
+      existingAffectationMap.set(affectationKey(a.etudiantId, a.periodeStageId), a);
     }
 
     // 4) Traiter chaque groupe
     const affectationsToCreate: AffectationStage[] = [];
+    const affectationsToUpdate: Array<{ id: number; siteStageId: number; service?: string; statut: StageStatus; natureStageId?: number }> = [];
     const siteNaturesMap = new Map<number, Set<number>>();
     const studentsCreated: Etudiant[] = [];
 
@@ -919,8 +922,16 @@ export class SiteStageService {
         }
 
         const ak = affectationKey(etudiant.id, periode.id);
-        if (existingAffectationSet.has(ak)) {
-          erreurs.push(`${group.name}: déjà affecté à ${periodeLibelle}`);
+        const existing = existingAffectationMap.get(ak);
+        if (existing) {
+          const updateData: any = { siteStageId: siteStage.id, service, statut: StageStatus.ACTIF };
+          if (natureName) {
+            const nature = await findOrCreateNature(natureName);
+            if (!siteNaturesMap.has(siteStage.id)) siteNaturesMap.set(siteStage.id, new Set());
+            siteNaturesMap.get(siteStage.id)!.add(nature.id);
+            updateData.natureStageId = nature.id;
+          }
+          affectationsToUpdate.push({ id: existing.id, ...updateData });
           continue;
         }
 
@@ -933,7 +944,7 @@ export class SiteStageService {
           etablissementId: rowEtablissementId,
         });
         affectationsToCreate.push(affectation);
-        existingAffectationSet.add(ak);
+        existingAffectationMap.set(ak, affectation);
 
         // Lier la nature au site (Many-to-Many)
         if (natureName) {
@@ -955,7 +966,15 @@ export class SiteStageService {
       }
     }
 
-    // Mettre à jour la relation Many-to-Many SiteStage ↔ NatureStage
+    // 6) Batch update existing affectations
+    if (affectationsToUpdate.length > 0) {
+      for (let start = 0; start < affectationsToUpdate.length; start += CHUNK) {
+        const chunk = affectationsToUpdate.slice(start, start + CHUNK);
+        await Promise.all(chunk.map(u => this.affectationRepository.update(u.id, { siteStageId: u.siteStageId, service: u.service, statut: u.statut, natureStageId: u.natureStageId })));
+      }
+    }
+
+    // 7) Mettre à jour la relation Many-to-Many SiteStage ↔ NatureStage
     for (const [siteId, natureIds] of siteNaturesMap.entries()) {
       const site = await this.siteStageRepository.findOne({
         where: { id: siteId },
@@ -973,7 +992,7 @@ export class SiteStageService {
       }
     }
 
-    return { sheetName, affectationsCreated: affectationsToCreate.length, studentsCreated: studentsCreated.length, erreurs };
+    return { sheetName, affectationsCreated: affectationsToCreate.length + affectationsToUpdate.length, studentsCreated: studentsCreated.length, erreurs };
   }
 
   async getMyStageInfo(etudiantId: number) {
