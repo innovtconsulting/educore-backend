@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   ConflictException,
   Injectable,
   NotFoundException,
@@ -466,7 +467,16 @@ export class SiteStageService {
       if (!siteStage) {
         throw new NotFoundException('Site de stage non trouvé');
       }
+      if (siteStage.capacite) {
+        const count = await this.affectationRepository.count({
+          where: { siteStageId: dto.siteStageId, periodeStageId: affectation.periodeStageId },
+        });
+        if (count >= siteStage.capacite) {
+          throw new BadRequestException('Capacité maximale atteinte pour ce site');
+        }
+      }
       affectation.siteStageId = dto.siteStageId;
+      affectation.siteStage = siteStage;
     }
 
     if (dto.service !== undefined) {
@@ -481,9 +491,10 @@ export class SiteStageService {
         throw new NotFoundException('Nature de stage non trouvée');
       }
       affectation.natureStageId = dto.natureStageId;
+      affectation.natureStage = natureStage;
     }
 
-    if (dto.enseignantId !== undefined) {
+    if (dto.enseignantId !== undefined && dto.enseignantId !== null) {
       const enseignant = await this.enseignantRepository.findOne({
         where: TenantHelper.addTenantFilter(
           { id: dto.enseignantId },
@@ -495,13 +506,18 @@ export class SiteStageService {
         throw new NotFoundException('Enseignant non trouvé');
       }
       affectation.enseignantId = dto.enseignantId;
+      affectation.enseignant = enseignant;
+    } else if (dto.enseignantId === null) {
+      affectation.enseignantId = null as any;
+      affectation.enseignant = null as any;
     }
 
     if (dto.statut !== undefined) {
       affectation.statut = dto.statut;
     }
 
-    return await this.affectationRepository.save(affectation);
+    await this.affectationRepository.save(affectation);
+    return await this.findOneAffectation(id, tenantId);
   }
 
   async removeAffectation(id: number, tenantId?: number): Promise<void> {
@@ -550,44 +566,139 @@ export class SiteStageService {
     niveauId: number,
     etablissementId: number,
     siteStageId?: number,
-  ): Promise<AffectationStage | null> {
+    overwrite = false,
+  ): Promise<AffectationStage[]> {
     const anneeActive = await this.anneeRepository.findOne({
       where: { etablissementId, isActive: true },
     });
-    if (!anneeActive) return null;
+    if (!anneeActive) return [];
 
     const periodes = await this.periodeStageRepository.find({
       where: { anneeUniversitaireId: anneeActive.id, etablissementId },
       order: { dateDebut: 'ASC' },
     });
-    if (periodes.length === 0) return null;
+    if (periodes.length === 0) return [];
 
-    let site: SiteStage | null = null;
-    if (siteStageId) {
-      site = await this.siteStageRepository.findOne({ where: { id: siteStageId } });
-    }
-    if (!site) {
-      const sites = await this.siteStageRepository.find({
-        order: { nom: 'ASC' },
+    const allSites = await this.siteStageRepository.find({ order: { nom: 'ASC' } });
+    if (allSites.length === 0) return [];
+
+    const results: AffectationStage[] = [];
+
+    for (const periode of periodes) {
+      const existing = await this.affectationRepository.findOne({
+        where: { etudiantId, periodeStageId: periode.id },
       });
-      if (sites.length === 0) return null;
-      site = sites[0];
+      if (existing) {
+        if (overwrite) {
+          await this.affectationRepository.remove(existing);
+        } else {
+          continue;
+        }
+      }
+
+      let site: SiteStage | null = null;
+      if (siteStageId) {
+        site = allSites.find((s) => s.id === siteStageId) || null;
+      }
+      if (!site) {
+        const shuffled = [...allSites].sort(() => Math.random() - 0.5);
+        for (const s of shuffled) {
+          if (s.capacite) {
+            const count = await this.affectationRepository.count({
+              where: { siteStageId: s.id, periodeStageId: periode.id },
+            });
+            if (count >= s.capacite) continue;
+          }
+          site = s;
+          break;
+        }
+      }
+      if (!site) continue;
+
+      const natureIds = site.natures?.map((n) => n.id) || [];
+      const natureStageId = natureIds.length > 0
+        ? natureIds[Math.floor(Math.random() * natureIds.length)]
+        : undefined;
+
+      const affectation = this.affectationRepository.create({
+        etudiantId,
+        siteStageId: site.id,
+        periodeStageId: periode.id,
+        natureStageId,
+        statut: StageStatus.ACTIF,
+        etablissementId,
+      });
+      results.push(await this.affectationRepository.save(affectation));
     }
-    const periode = periodes[0];
 
-    const count = await this.affectationRepository.count({
-      where: { siteStageId: site.id, periodeStageId: periode.id },
+    return results;
+  }
+
+  async autoAssignAll(tenantId?: number): Promise<number> {
+    const anneeActive = await this.anneeRepository.findOne({
+      where: { etablissementId: tenantId, isActive: true },
     });
+    if (!anneeActive) return 0;
 
-    if (site.capacite && count >= site.capacite) return null;
-
-    const affectation = this.affectationRepository.create({
-      etudiantId,
-      siteStageId: site.id,
-      periodeStageId: periode.id,
-      statut: StageStatus.ACTIF,
-      etablissementId,
+    const whereClause: any = {};
+    if (tenantId) whereClause.etablissement = { id: tenantId };
+    const etudiants = await this.etudiantRepository.find({
+      where: whereClause,
+      relations: { classe: true, niveau: true, etablissement: true },
     });
+    if (etudiants.length === 0) return 0;
+
+    let total = 0;
+    for (const etudiant of etudiants) {
+      if (!etudiant.classe?.id || !etudiant.niveau?.id) continue;
+      try {
+        const eId = tenantId ?? etudiant.etablissement?.id;
+        if (!eId) continue;
+        const affs = await this.autoAssignStage(
+          etudiant.id,
+          etudiant.classe.id,
+          etudiant.niveau.id,
+          eId,
+          undefined,
+          true,
+        );
+        total += affs.length;
+      } catch {
+        // ignorer les erreurs individuelles
+      }
+    }
+    return total;
+  }
+
+  async reassignStage(
+    affectationId: number,
+    siteStageId: number,
+    tenantId?: number,
+  ): Promise<AffectationStage> {
+    const affectation = await this.affectationRepository.findOne({
+      where: { id: affectationId },
+      relations: { siteStage: true, periodeStage: true },
+    });
+    if (!affectation) {
+      throw new NotFoundException('Affectation introuvable');
+    }
+
+    const site = await this.siteStageRepository.findOne({ where: { id: siteStageId } });
+    if (!site) {
+      throw new NotFoundException('Site introuvable');
+    }
+
+    if (site.capacite) {
+      const count = await this.affectationRepository.count({
+        where: { siteStageId: site.id, periodeStageId: affectation.periodeStage.id },
+      });
+      if (count >= site.capacite) {
+        throw new BadRequestException('Capacité maximale atteinte pour ce site');
+      }
+    }
+
+    affectation.siteStage = site;
+    affectation.siteStageId = site.id;
     return await this.affectationRepository.save(affectation);
   }
 

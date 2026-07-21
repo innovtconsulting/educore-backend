@@ -27,12 +27,16 @@ import { Depense } from '../finance/entities/depense.entity';
 import { Personnel } from '../personnel/entities/personnel.entity';
 import { PaiePersonnel } from '../personnel/entities/paie-personnel.entity';
 import { Discipline } from '../discipline/entities/discipline.entity';
-import { Inscription } from '../etudiant/entities/inscription.entity'; // Correction du nom si nécessaire, mais glob a dit inscription.entity.ts
+import { Inscription } from '../etudiant/entities/inscription.entity';
 import { GeneratedDocument } from '../certificate/entities/generated-document.entity';
 import { GlobalSetting } from '../global-setting/entities/global-setting.entity';
 import { Role as AclRole } from '../acl/entities/role.entity';
 import { Permission } from '../acl/entities/permission.entity';
 import { Notification } from '../notifications/entities/notification.entity';
+import { SiteStage } from '../site-stage/entities/site-stage.entity';
+import { PeriodeStage } from '../site-stage/entities/periode-stage.entity';
+import { AffectationStage } from '../site-stage/entities/affectation-stage.entity';
+import { NatureStage } from '../site-stage/entities/nature-stage.entity';
 import * as dotenv from 'dotenv';
 
 dotenv.config();
@@ -84,6 +88,10 @@ const dataSource = new DataSource({
     AclRole,
     Permission,
     Notification,
+    SiteStage,
+    PeriodeStage,
+    AffectationStage,
+    NatureStage,
   ],
   synchronize: false,
 });

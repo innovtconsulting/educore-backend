@@ -12,6 +12,7 @@ import {
   UploadedFile,
   UseInterceptors,
   BadRequestException,
+  NotFoundException,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import * as mammoth from 'mammoth';
@@ -31,13 +32,20 @@ import { Roles } from '../auth/decorators/roles.decorator';
 import { Role } from '../user/entities/user.entity';
 import { Permissions } from '../auth/decorators/permissions.decorator';
 import { CurrentEtablissement } from '../auth/decorators/current-etablissement.decorator';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import { Etudiant } from '../etudiant/entities/etudiant.entity';
 
 @ApiTags('sites-stage')
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Controller()
 export class SiteStageController {
-  constructor(private readonly siteStageService: SiteStageService) {}
+  constructor(
+    private readonly siteStageService: SiteStageService,
+    @InjectRepository(Etudiant)
+    private readonly etudiantRepository: Repository<Etudiant>,
+  ) {}
 
   // ===================== SITES DE STAGE =====================
 
@@ -235,6 +243,41 @@ export class SiteStageController {
       message: 'Affectations du site récupérées avec succès',
       data,
     };
+  }
+
+  @Post('etudiants/:etudiantId/affectations-stage/auto-assign')
+  @Permissions('STAGE_MANAGE')
+  @ApiOperation({ summary: 'Assigner aléatoirement un étudiant à tous les stages de l\'année' })
+  async autoAssignStudent(
+    @Param('etudiantId') etudiantId: string,
+    @CurrentEtablissement() tenantId?: number,
+  ) {
+    const etudiant = await this.etudiantRepository.findOne({
+      where: { id: +etudiantId },
+      relations: { classe: true, niveau: true, etablissement: true },
+    });
+    if (!etudiant) throw new NotFoundException('Étudiant non trouvé');
+
+    const affectations = await this.siteStageService.autoAssignStage(
+      etudiant.id,
+      etudiant.classe.id,
+      etudiant.niveau.id,
+      etudiant.etablissement?.id ?? tenantId,
+      undefined,
+      true,
+    );
+    return {
+      message: `${affectations.length} affectation(s) créée(s) avec succès`,
+      data: affectations,
+    };
+  }
+
+  @Post('affectations-stage/auto-assign-all')
+  @Permissions('STAGE_MANAGE')
+  @ApiOperation({ summary: 'Assigner aléatoirement tous les étudiants aux stages de l\'année' })
+  async autoAssignAllStudents(@CurrentEtablissement() tenantId?: number) {
+    const total = await this.siteStageService.autoAssignAll(tenantId);
+    return { message: `${total} affectation(s) créée(s) avec succès` };
   }
 
   @Patch('affectations-stage/:id')

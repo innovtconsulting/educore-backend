@@ -217,17 +217,28 @@ export class InscriptionService {
         await queryRunner.manager.save(oldInscription);
       }
 
-      // 3. Créer la nouvelle inscription
-      const newInscription = queryRunner.manager.create(Inscription, {
-        etudiant,
-        anneeUniversitaire: annee,
-        classe,
-        niveau,
-        etablissement: etudiant.etablissement,
-        dateInscription: new Date(),
-        status: InscriptionStatus.ACTIF,
+      // 3. Créer ou mettre à jour l'inscription pour l'année
+      let newInscription = await queryRunner.manager.findOne(Inscription, {
+        where: { etudiant: { id: etudiantId }, anneeUniversitaire: { id: anneeUniversitaireId } },
       });
-      await queryRunner.manager.save(newInscription);
+      if (newInscription) {
+        newInscription.classe = classe;
+        newInscription.niveau = niveau;
+        newInscription.dateInscription = new Date();
+        newInscription.status = InscriptionStatus.ACTIF;
+        await queryRunner.manager.save(newInscription);
+      } else {
+        newInscription = queryRunner.manager.create(Inscription, {
+          etudiant,
+          anneeUniversitaire: annee,
+          classe,
+          niveau,
+          etablissement: etudiant.etablissement,
+          dateInscription: new Date(),
+          status: InscriptionStatus.ACTIF,
+        });
+        await queryRunner.manager.save(newInscription);
+      }
 
       // 4. Mettre à jour la fiche étudiant
       etudiant.classe = classe;
@@ -242,6 +253,7 @@ export class InscriptionService {
           niveau.id,
           etudiant.etablissement.id,
           siteStageId,
+          true,
         );
       } catch {
         // Échec silencieux — l'assignation du stage est optionnelle

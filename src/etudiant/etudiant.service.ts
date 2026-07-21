@@ -581,8 +581,8 @@ export class EtudiantService {
 
 		await this.ensureActiveYearInscription(savedEtudiant, tenantId);
 
-		// Assignation du stage si un site est sélectionné
-		if (siteStageId && savedEtudiant.classe && savedEtudiant.niveau) {
+		// Assignation automatique à tous les stages de l'année
+		if (savedEtudiant.classe && savedEtudiant.niveau) {
 			try {
 				await this.siteStageService?.autoAssignStage(
 					savedEtudiant.id,
@@ -590,6 +590,7 @@ export class EtudiantService {
 					savedEtudiant.niveau.id,
 					savedEtudiant.etablissement?.id ?? tenantId,
 					siteStageId,
+					true,
 				);
 			} catch {
 				// Échec silencieux — l'assignation du stage est optionnelle
@@ -1495,18 +1496,6 @@ export class EtudiantService {
 									status: InscriptionStatus.ACTIF,
 								});
 							await queryRunner.manager.save(inscription);
-
-							// Auto-assignation du stage
-							try {
-								await this.siteStageService?.autoAssignStage(
-									savedEtudiantRun.id,
-									classe.id,
-									niveau.id,
-									etablissement.id,
-								);
-							} catch {
-								// Échec silencieux — l'assignation du stage est optionnelle
-							}
 						}
 
 						sheetReport.nombreEtudiantsImportes++;
@@ -1527,6 +1516,11 @@ export class EtudiantService {
 			throw error;
 		} finally {
 			await queryRunner.release();
+		}
+
+		// Auto-assignation massive après la transaction (non bloquant)
+		if (runDto.inscrireAutomatiquement && totalEtudiantsImportes > 0) {
+			this.siteStageService?.autoAssignAll(tenantId).catch(() => {});
 		}
 
 		return {

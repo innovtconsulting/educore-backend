@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsNotEmpty, IsNumber } from 'class-validator';
+import { IsNotEmpty, IsNumber, IsOptional } from 'class-validator';
 
 export class CreateInscriptionDto {
   @ApiProperty({ example: 1 })
@@ -30,6 +30,7 @@ export class CreateInscriptionDto {
     description: 'ID du site de stage (optionnel)',
     required: false,
   })
+  @IsOptional()
   @IsNumber()
   siteStageId?: number;
 }
