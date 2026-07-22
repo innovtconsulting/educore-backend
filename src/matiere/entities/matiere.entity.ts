@@ -32,8 +32,17 @@ export class Matiere {
   @Column({ type: 'varchar', nullable: true })
   numeroUe?: string;
 
+  // Document Tiptap JSON (node "doc") : chaque chapitre/sous-chapitre (listItem
+  // dans un orderedList) porte un id stable, utilisé par le module `progression`
+  // pour suivre l'avancement du programme sans avoir à parser du HTML.
+  @Column({ type: 'jsonb', nullable: true })
+  elementsConstitutifs?: Record<string, any> | null;
+
+  // Ancien contenu HTML (avant le passage au format JSON structuré), conservé en
+  // lecture seule pour ne rien perdre. Jamais réécrit : une fois la matière
+  // rouverte et réenregistrée, `elementsConstitutifs` (JSON) prend le relais.
   @Column({ type: 'text', nullable: true })
-  elementsConstitutifs?: string;
+  elementsConstitutifsLegacyHtml?: string | null;
 
   @Column({ type: 'int', nullable: true })
   tpTd?: number;

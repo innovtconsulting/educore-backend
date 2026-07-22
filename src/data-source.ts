@@ -37,6 +37,10 @@ import { PaiePersonnel } from './personnel/entities/paie-personnel.entity';
 import { Role as AclRole } from './acl/entities/role.entity';
 import { Permission } from './acl/entities/permission.entity';
 import { Notification } from './notifications/entities/notification.entity';
+import { ChapitreProgression } from './progression/entities/chapitre-progression.entity';
+import { Annonce } from './annonce/entities/annonce.entity';
+import { Journal } from './journal/entities/journal.entity';
+import { JournalHistory } from './journal/entities/journal-history.entity';
 import * as dotenv from 'dotenv';
 
 dotenv.config();
@@ -90,6 +94,10 @@ export const AppDataSource = new DataSource({
     NatureStage,
     Personnel,
     PaiePersonnel,
+    ChapitreProgression,
+    Annonce,
+    Journal,
+    JournalHistory,
   ],
   ssl:
     process.env.DB_HOST === 'localhost' || !process.env.DATABASE_URL

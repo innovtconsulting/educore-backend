@@ -152,6 +152,7 @@ export class JournalService {
         .select('e.id', 'emploiDuTempId')
         .addSelect('e.startTime', 'startTime')
         .addSelect('e.endTime', 'endTime')
+        .addSelect('matiere.id', 'matiereId')
         .addSelect('matiere.name', 'matiereName')
         .addSelect('classe.id', 'classeId')
         .addSelect('classe.name', 'classeName')
@@ -193,6 +194,7 @@ export class JournalService {
           emploiDuTempId: Number(r.emploiDuTempId),
           startTime: r.startTime,
           endTime: r.endTime,
+          matiereId: r.matiereId ? Number(r.matiereId) : undefined,
           matiereName: r.matiereName || r.eventTitle || '',
           classeId: r.classeId ? Number(r.classeId) : undefined,
           classeName: r.classeName || '',

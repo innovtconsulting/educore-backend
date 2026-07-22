@@ -4,12 +4,15 @@ import {
   IsArray,
   IsNotEmpty,
   IsNumber,
+  IsObject,
   IsOptional,
   IsString,
   MaxLength,
   Min,
   ArrayNotEmpty,
+  Validate,
 } from 'class-validator';
+import { IsTiptapDocConstraint } from '../validators/is-tiptap-doc.validator';
 
 export class CreateMatiereDto {
   @ApiProperty({ example: 'SI101', description: 'Code de la matière' })
@@ -56,15 +59,14 @@ export class CreateMatiereDto {
   numeroUe?: string;
 
   @ApiProperty({
-    example: '<ol><li>Cours magistral</li><li>TD</li></ol>',
-    description: 'Éléments constitutifs (HTML)',
+    example: { type: 'doc', content: [] },
+    description: 'Éléments constitutifs (document Tiptap JSON)',
     required: false,
   })
   @IsOptional()
-  @IsString({
-    message: 'Les éléments constitutifs doivent être une chaîne de caractères',
-  })
-  elementsConstitutifs?: string;
+  @IsObject({ message: 'Les éléments constitutifs doivent être un objet JSON' })
+  @Validate(IsTiptapDocConstraint)
+  elementsConstitutifs?: Record<string, any>;
 
   @ApiProperty({ example: 12, description: 'Heures TP/TD', required: false })
   @IsOptional()
