@@ -88,7 +88,6 @@ export class SanctionController {
     Role.ETUDIANT,
     Role.PARENT,
   )
-  @Permissions('DISCIPLINE_MANAGE')
   @ApiOperation({ summary: "Récupérer toutes les sanctions d'un étudiant" })
   async findByEtudiant(
     @Param('etudiantId', ParseIntPipe) etudiantId: number,

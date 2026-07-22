@@ -58,7 +58,7 @@ export class EmploiDuTempsController {
   }
 
   @Get()
-  @Roles(Role.ETUDIANT, Role.ENSEIGNANT, Role.ADMIN, Role.SURVEILLANT)
+  @Roles(Role.ETUDIANT, Role.PARENT, Role.ENSEIGNANT, Role.ADMIN, Role.SURVEILLANT)
   @ApiOperation({
     summary: "Récupérer l'emploi du temps (avec filtres optionnels)",
   })

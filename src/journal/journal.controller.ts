@@ -2,6 +2,7 @@ import {
   Body,
   Controller,
   Get,
+  NotFoundException,
   Param,
   ParseIntPipe,
   Patch,
@@ -10,7 +11,7 @@ import {
   Request,
   UseGuards,
 } from '@nestjs/common';
-import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiOperation, ApiQuery, ApiTags } from '@nestjs/swagger';
 import { JournalService } from './journal.service';
 import { CreateJournalDto } from './dto/create-journal.dto';
 import { UpdateJournalDto } from './dto/update-journal.dto';
@@ -66,6 +67,27 @@ export class JournalController {
     @CurrentEtablissement() tenantId?: number,
   ) {
     return this.journalService.update(id, dto, req.user, tenantId);
+  }
+
+  @Get('overview')
+  @Roles(Role.ETUDIANT, Role.PARENT)
+  @ApiOperation({ summary: 'Aperçu du journal pour un étudiant (groupé par matière)' })
+  @ApiQuery({ name: 'etudiantId', required: false, type: Number, description: 'ID étudiant (obligatoire pour PARENT)' })
+  getOverview(
+    @Query('etudiantId') etudiantIdQuery: string | undefined,
+    @Request() req: any,
+    @CurrentEtablissement() tenantId?: number,
+  ) {
+    const etudiantId =
+      req.user.role === Role.PARENT
+        ? Number(etudiantIdQuery)
+        : req.user.etudiantId;
+
+    if (!etudiantId || isNaN(etudiantId)) {
+      throw new NotFoundException('Étudiant introuvable');
+    }
+
+    return this.journalService.getStudentOverview(etudiantId, tenantId);
   }
 
   @Get(':id')

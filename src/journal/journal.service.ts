@@ -10,6 +10,9 @@ import { Journal } from './entities/journal.entity';
 import { JournalAction, JournalHistory } from './entities/journal-history.entity';
 import { EmploiDuTemp } from '../emploi-du-temps/entities/emploi-du-temp.entity';
 import { User, Role } from '../user/entities/user.entity';
+import { Etudiant } from '../etudiant/entities/etudiant.entity';
+import { Niveau } from '../niveau/entities/niveau.entity';
+import { Matiere } from '../matiere/entities/matiere.entity';
 import { CreateJournalDto } from './dto/create-journal.dto';
 import { UpdateJournalDto } from './dto/update-journal.dto';
 import {
@@ -29,6 +32,12 @@ export class JournalService {
     private readonly emploiDuTempRepository: Repository<EmploiDuTemp>,
     @InjectRepository(User)
     private readonly userRepository: Repository<User>,
+    @InjectRepository(Etudiant)
+    private readonly etudiantRepository: Repository<Etudiant>,
+    @InjectRepository(Niveau)
+    private readonly niveauRepository: Repository<Niveau>,
+    @InjectRepository(Matiere)
+    private readonly matiereRepository: Repository<Matiere>,
   ) {}
 
   private resolveDisplayName(user: User): string {
@@ -353,5 +362,80 @@ export class JournalService {
       where: { journalId },
       order: { createdAt: 'DESC' },
     });
+  }
+
+  async getStudentOverview(
+    etudiantId: number,
+    tenantId?: number,
+  ) {
+    const etudiant = await this.etudiantRepository.findOne({
+      where: { id: etudiantId },
+      relations: { classe: true, niveau: { matieres: true } },
+    });
+    if (!etudiant) throw new NotFoundException('Étudiant introuvable');
+
+    const raw = await this.emploiDuTempRepository
+      .createQueryBuilder('e')
+      .leftJoin('e.matiere', 'matiere')
+      .leftJoin('e.enseignant', 'enseignant')
+      .leftJoin(Journal, 'journal', 'journal.emploiDuTempId = e.id')
+      .where('e.classeId = :classeId', { classeId: etudiant.classe.id })
+      .andWhere('journal.id IS NOT NULL')
+      .andWhere(tenantId ? 'e.etablissementId = :tenantId' : '1=1', { tenantId })
+      .select([
+        'e.id AS e_id',
+        'e.startTime AS e_start_time',
+        'e.endTime AS e_end_time',
+        'matiere.id AS matiere_id',
+        'matiere.name AS matiere_name',
+        'matiere.code AS matiere_code',
+        "CONCAT(enseignant.firstName, ' ', enseignant.lastName) AS enseignant_name",
+        'journal.id AS journal_id',
+        'journal.title AS journal_title',
+        'journal.content AS journal_content',
+        'journal.objectives AS journal_objectives',
+        'journal.homework AS journal_homework',
+        'journal.remarks AS journal_remarks',
+        'journal.createdAt AS journal_created_at',
+        'journal.updatedAt AS journal_updated_at',
+      ])
+      .orderBy('e.startTime', 'DESC')
+      .getRawMany();
+
+    const matiereMap = new Map<number, any>();
+
+    for (const r of raw) {
+      const mId = Number(r.matiere_id);
+      if (!mId) continue;
+      if (!matiereMap.has(mId)) {
+        matiereMap.set(mId, {
+          matiere: { id: mId, name: r.matiere_name, code: r.matiere_code },
+          niveau: { id: etudiant.niveau.id, name: etudiant.niveau.name },
+          entries: [],
+        });
+      }
+      matiereMap.get(mId).entries.push({
+        id: Number(r.journal_id),
+        title: r.journal_title,
+        content: r.journal_content,
+        objectives: r.journal_objectives || undefined,
+        homework: r.journal_homework || undefined,
+        remarks: r.journal_remarks || undefined,
+        teacherName: r.enseignant_name || '',
+        startTime: r.e_start_time,
+        endTime: r.e_end_time,
+        createdAt: r.journal_created_at,
+      });
+    }
+
+    return {
+      etudiant: {
+        id: etudiant.id,
+        firstName: etudiant.firstName,
+        lastName: etudiant.lastName,
+      },
+      classe: { id: etudiant.classe.id, name: etudiant.classe.name },
+      matieres: Array.from(matiereMap.values()),
+    };
   }
 }

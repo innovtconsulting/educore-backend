@@ -248,7 +248,7 @@ export class SiteStageController {
   }
 
   @Get('etudiants/:etudiantId/affectations-stage')
-  @Permissions('STAGE_VIEW')
+  @Roles(Role.ETUDIANT, Role.PARENT, Role.ADMIN)
   @ApiOperation({ summary: 'Stages d\'un étudiant' })
   async findByEtudiant(
     @Param('etudiantId') etudiantId: string,
