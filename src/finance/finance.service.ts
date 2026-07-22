@@ -626,7 +626,7 @@ export class FinanceService {
   async getPaymentsByGroupeReference(groupeReference: string, tenantId?: number) {
     const paiements = await this.paiementRepository.find({
       where: { groupeReference, etablissementId: tenantId },
-      relations: { facture: { frais: true }, etudiant: true },
+      relations: { facture: { frais: { classe: true, niveau: true, anneeUniversitaire: true } }, etudiant: { etablissement: true, classe: true, niveau: true } },
       order: { id: 'ASC' },
     });
 

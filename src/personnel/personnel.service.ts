@@ -217,6 +217,21 @@ export class PersonnelService {
       .filter((p) => p.type === 'Solde')
       .reduce((s, p) => s + Number(p.montant), 0);
 
+    const now = new Date();
+    const moisCourant = now.getMonth() + 1;
+    const anneeCourante = now.getFullYear();
+    const paiesMois = paies.filter((p) => p.mois === moisCourant && p.annee === anneeCourante);
+    const moisAvance = paiesMois
+      .filter((p) => p.type === 'Avance')
+      .reduce((s, p) => s + Number(p.montant), 0);
+    const moisSolde = paiesMois
+      .filter((p) => p.type === 'Solde')
+      .reduce((s, p) => s + Number(p.montant), 0);
+
+    const totalPaye = totalAvance + totalSolde;
+    const moisPaye = moisAvance + moisSolde;
+    const salaireMensuel = Number(personnel.salaireMensuel);
+
     return {
       personnel,
       paies,
@@ -224,10 +239,15 @@ export class PersonnelService {
         if (a.annee !== b.annee) return b.annee - a.annee;
         return b.mois - a.mois;
       }),
-      totalAvance,
-      totalSolde,
-      totalPaye: totalAvance + totalSolde,
-      salaireMensuel: Number(personnel.salaireMensuel),
+      totalAvances: totalAvance,
+      totalSoldes: totalSolde,
+      totalPaye,
+      salaireMensuel,
+      reste: salaireMensuel - totalPaye,
+      moisAvances: moisAvance,
+      moisSoldes: moisSolde,
+      moisPaye,
+      moisReste: salaireMensuel - moisPaye,
     };
   }
 }
