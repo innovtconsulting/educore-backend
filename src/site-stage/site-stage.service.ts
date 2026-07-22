@@ -18,6 +18,7 @@ import { CreateAffectationStageDto } from './dto/create-affectation-stage.dto';
 import { UpdateAffectationStageDto } from './dto/update-affectation-stage.dto';
 import { AffectationStageFilterDto } from './dto/affectation-stage-filter.dto';
 import { Etudiant } from '../etudiant/entities/etudiant.entity';
+import { Inscription } from '../etudiant/entities/inscription.entity';
 import { Enseignant } from '../enseignant/entities/enseignant.entity';
 import { AnneeUniversitaire } from '../annee-universitaire/entities/annee-universitaire.entity';
 import { TenantHelper } from '../common/tenant/tenant.helper';
@@ -34,6 +35,8 @@ export class SiteStageService {
     private readonly affectationRepository: Repository<AffectationStage>,
     @InjectRepository(Etudiant)
     private readonly etudiantRepository: Repository<Etudiant>,
+    @InjectRepository(Inscription)
+    private readonly inscriptionRepository: Repository<Inscription>,
     @InjectRepository(NatureStage)
     private readonly natureStageRepository: Repository<NatureStage>,
     @InjectRepository(Enseignant)
@@ -393,6 +396,11 @@ export class SiteStageService {
     page = 1,
     limit = 20,
     tenantId?: number,
+    classeId?: number,
+    niveauId?: number,
+    siteStageId?: number,
+    natureStageId?: number,
+    all = false,
   ): Promise<{
     items: any[];
     periodes: PeriodeStage[];
@@ -412,8 +420,12 @@ export class SiteStageService {
     }
 
     const periodeIds = periodes.map((p) => p.id);
+    const affectationWhere: any = { periodeStageId: In(periodeIds), ...tenantFilter };
+    if (siteStageId) affectationWhere.siteStageId = siteStageId;
+    if (natureStageId) affectationWhere.natureStageId = natureStageId;
+
     const affectations = await this.affectationRepository.find({
-      where: { periodeStageId: In(periodeIds), ...tenantFilter },
+      where: affectationWhere,
       relations: {
         etudiant: true,
         siteStage: true,
@@ -448,7 +460,49 @@ export class SiteStageService {
       }
     }
 
-    let students = Array.from(studentMap.values());
+    let studentIds = Array.from(studentMap.keys());
+
+    // Attach classe/niveau info when exporting all
+    const classeNiveauMap = new Map<number, { classeName: string; niveauName: string }>();
+
+    if (all || classeId || niveauId) {
+      const inscriptionFilter: any = { anneeUniversitaire: { id: anneeUniversitaireId } };
+      if (classeId) inscriptionFilter.classe = { id: classeId };
+      if (niveauId) inscriptionFilter.niveau = { id: niveauId };
+      if (tenantId) inscriptionFilter.etablissement = { id: tenantId };
+
+      const inscriptions = await this.inscriptionRepository.find({
+        where: inscriptionFilter,
+        relations: { etudiant: true, classe: true, niveau: true },
+      });
+
+      if (classeId || niveauId) {
+        const filteredIds = new Set(inscriptions.map((ins) => ins.etudiant.id));
+        studentIds = studentIds.filter((id) => filteredIds.has(id));
+      }
+
+      if (all) {
+        for (const ins of inscriptions) {
+          classeNiveauMap.set(ins.etudiant.id, {
+            classeName: ins.classe?.name ?? '',
+            niveauName: ins.niveau?.name ?? '',
+          });
+        }
+      }
+    }
+
+    let students = studentIds.map((id) => {
+      const s = studentMap.get(id)!;
+      if (all) {
+        const cn = classeNiveauMap.get(id);
+        if (cn) {
+          s.classeName = cn.classeName;
+          s.niveauName = cn.niveauName;
+        }
+      }
+      return s;
+    });
+
     if (search) {
       const q = search.toLowerCase();
       students = students.filter(
@@ -460,10 +514,10 @@ export class SiteStageService {
     }
 
     const total = students.length;
-    const skip = (page - 1) * limit;
-    const items = students.slice(skip, skip + limit);
+    const skip = all ? 0 : (page - 1) * limit;
+    const items = all ? students : students.slice(skip, skip + limit);
 
-    return { items, periodes, total, page, limit };
+    return { items, periodes, total, page: all ? 1 : page, limit: all ? total : limit };
   }
 
   async findOneAffectation(

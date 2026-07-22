@@ -208,14 +208,24 @@ export class SiteStageController {
     @Query('page') page: string,
     @Query('limit') limit: string,
     @Query('search') search: string,
+    @Query('classeId') classeId: string,
+    @Query('niveauId') niveauId: string,
+    @Query('siteStageId') siteStageId: string,
+    @Query('natureStageId') natureStageId: string,
+    @Query('all') all: string,
     @CurrentEtablissement() tenantId?: number,
   ) {
     const data = await this.siteStageService.getGrilleAffectations(
       +anneeUniversitaireId,
       search,
       page ? +page : 1,
-      limit ? +limit : 20,
+      limit ? +limit : 5,
       tenantId,
+      classeId ? +classeId : undefined,
+      niveauId ? +niveauId : undefined,
+      siteStageId ? +siteStageId : undefined,
+      natureStageId ? +natureStageId : undefined,
+      all === 'true',
     );
     return {
       message: 'Grille des affectations récupérée avec succès',

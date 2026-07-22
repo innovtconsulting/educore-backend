@@ -7,6 +7,7 @@ import { PeriodeStage } from './entities/periode-stage.entity';
 import { AffectationStage } from './entities/affectation-stage.entity';
 import { NatureStage } from './entities/nature-stage.entity';
 import { Etudiant } from '../etudiant/entities/etudiant.entity';
+import { Inscription } from '../etudiant/entities/inscription.entity';
 import { Enseignant } from '../enseignant/entities/enseignant.entity';
 import { AnneeUniversitaire } from '../annee-universitaire/entities/annee-universitaire.entity';
 import { FinanceModule } from '../finance/finance.module';
@@ -19,6 +20,7 @@ import { FinanceModule } from '../finance/finance.module';
       AffectationStage,
       NatureStage,
       Etudiant,
+      Inscription,
       Enseignant,
       AnneeUniversitaire,
     ]),
