@@ -33,6 +33,7 @@ import { GeneratedDocument } from '../../certificate/entities/generated-document
 export enum CertificateTemplate {
   DEFAULT = 'DEFAULT',
   ESPM = 'ESPM',
+  ESPA = 'ESPA',
 }
 
 // Libellé d'affichage utilisé pour désigner le rôle Surveillant, propre à
