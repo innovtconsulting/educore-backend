@@ -86,6 +86,8 @@ import { JournalModule } from './journal/journal.module';
 import { Journal } from './journal/entities/journal.entity';
 import { JournalHistory } from './journal/entities/journal-history.entity';
 import { ActivityModule } from './activity/activity.module';
+import { ProgressionModule } from './progression/progression.module';
+import { ChapitreProgression } from './progression/entities/chapitre-progression.entity';
 
 @Module({
   imports: [
@@ -143,6 +145,7 @@ import { ActivityModule } from './activity/activity.module';
         PaiePersonnel,
         Journal,
         JournalHistory,
+        ChapitreProgression,
       ],
       synchronize: process.env.NODE_ENV !== 'production',
       ssl:
@@ -189,6 +192,7 @@ import { ActivityModule } from './activity/activity.module';
     SharedModule,
     JournalModule,
     ActivityModule,
+    ProgressionModule,
   ],
   controllers: [AppController],
   providers: [

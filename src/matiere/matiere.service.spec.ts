@@ -2,7 +2,6 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { MatiereService } from './matiere.service';
 import { Matiere } from './entities/matiere.entity';
-import { Classe } from '../classe/entities/classe.entity';
 import { Niveau } from '../niveau/entities/niveau.entity';
 
 describe('MatiereService', () => {
@@ -17,10 +16,6 @@ describe('MatiereService', () => {
     remove: jest.fn(),
   };
 
-  const mockClasseRepository = {
-    findBy: jest.fn(),
-  };
-
   const mockNiveauRepository = {
     findBy: jest.fn(),
   };
@@ -32,10 +27,6 @@ describe('MatiereService', () => {
         {
           provide: getRepositoryToken(Matiere),
           useValue: mockMatiereRepository,
-        },
-        {
-          provide: getRepositoryToken(Classe),
-          useValue: mockClasseRepository,
         },
         {
           provide: getRepositoryToken(Niveau),

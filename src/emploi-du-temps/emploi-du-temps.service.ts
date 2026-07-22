@@ -129,7 +129,7 @@ export class EmploiDuTempsService {
       start,
       end,
       enseignantId,
-      classeId,
+      niveauId,
       undefined,
       salleId,
       groupeId,
@@ -178,22 +178,25 @@ export class EmploiDuTempsService {
     }
   }
 
-  private async checkClasseConflict(
+  private async checkNiveauConflict(
     start: Date,
     end: Date,
-    classeId: number,
+    niveauId: number,
     excludeId?: number,
   ) {
+    // Le conflit se vérifie au niveau du groupe d'élèves réel (le niveau),
+    // pas au niveau de la classe/filière qui peut regrouper plusieurs
+    // niveaux occupés simultanément par des cours différents.
     const conflict = await this.emploiDuTempRepository
       .createQueryBuilder('e')
-      .where('e.classeId = :classeId', { classeId })
+      .where('e.niveauId = :niveauId', { niveauId })
       .andWhere(':start < e.endTime AND :end > e.startTime', { start, end })
       .andWhere(excludeId ? 'e.id != :excludeId' : '1=1', { excludeId })
       .getOne();
 
     if (conflict) {
       throw new BadRequestException(
-        'La classe est déjà occupée sur cette plage horaire',
+        'Ce niveau est déjà occupé sur cette plage horaire',
       );
     }
   }
@@ -222,13 +225,13 @@ export class EmploiDuTempsService {
     start: Date,
     end: Date,
     enseignantId: number,
-    classeId: number,
+    niveauId: number,
     excludeId?: number,
     salleId?: number,
     groupeId?: string,
   ) {
     await this.checkEnseignantConflict(start, end, enseignantId, excludeId, groupeId);
-    await this.checkClasseConflict(start, end, classeId, excludeId);
+    await this.checkNiveauConflict(start, end, niveauId, excludeId);
     if (salleId) {
       await this.checkSalleConflict(start, end, salleId, excludeId);
     }
@@ -340,9 +343,9 @@ export class EmploiDuTempsService {
     if (salle) {
       await this.checkSalleConflict(start, end, salle.id);
     }
-    const distinctClasseIds = [...new Set(pairs.map((p) => p.classe.id))];
-    for (const classeId of distinctClasseIds) {
-      await this.checkClasseConflict(start, end, classeId);
+    const distinctNiveauIds = [...new Set(pairs.map((p) => p.niveau.id))];
+    for (const niveauId of distinctNiveauIds) {
+      await this.checkNiveauConflict(start, end, niveauId);
     }
 
     const groupeId = randomUUID();
@@ -496,21 +499,21 @@ export class EmploiDuTempsService {
     const start = startTime ? new Date(startTime) : emploi.startTime;
     const end = endTime ? new Date(endTime) : emploi.endTime;
     const eId = enseignantId || emploi.enseignant?.id;
-    const cId = classeId || emploi.classe.id;
+    const nId = niveauId || emploi.niveau.id;
     const sId = salleId !== undefined ? salleId || undefined : emploi.salle?.id;
 
     if (
       startTime ||
       endTime ||
       enseignantId ||
-      classeId ||
+      niveauId ||
       salleId !== undefined
     ) {
       if (start >= end)
         throw new BadRequestException(
           "L'heure de début doit être avant l'heure de fin",
         );
-      await this.checkClasseConflict(start, end, cId, id);
+      await this.checkNiveauConflict(start, end, nId, id);
       if (eId) await this.checkEnseignantConflict(start, end, eId, id);
       if (sId) await this.checkSalleConflict(start, end, sId, id);
     }

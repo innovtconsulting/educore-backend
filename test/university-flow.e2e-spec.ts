@@ -280,7 +280,7 @@ describe('University Workflow (e2e)', () => {
     expect(res.body.message).toContain("L'enseignant n'est pas affecté");
   });
 
-  it("10. ÉCHEC : Création d'un créneau avec conflit classe", async () => {
+  it("10. ÉCHEC : Création d'un créneau avec conflit niveau", async () => {
     // Création d'un autre enseignant et affectation
     const resEns = await request(app.getHttpServer())
       .post('/api/enseignants')
@@ -305,7 +305,7 @@ describe('University Workflow (e2e)', () => {
       })
       .expect(201);
 
-    // Tentative de créer un cours pour Mariam avec la même classe (Informatique) sur le même créneau que Moussa (08:00-10:00)
+    // Tentative de créer un cours pour Mariam avec le même niveau (L1 Informatique) sur le même créneau que Moussa (08:00-10:00)
     const res = await request(app.getHttpServer())
       .post('/api/emploi-du-temps')
       .set('Authorization', `Bearer ${superAdminToken}`)
@@ -320,7 +320,7 @@ describe('University Workflow (e2e)', () => {
       })
       .expect(400);
 
-    expect(res.body.message).toContain('La classe est déjà occupée');
+    expect(res.body.message).toContain('Ce niveau est déjà occupé');
   });
 
   it("10.1. ÉCHEC : Création d'un créneau avec conflit salle", async () => {
