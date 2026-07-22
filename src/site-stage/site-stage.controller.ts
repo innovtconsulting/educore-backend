@@ -200,6 +200,29 @@ export class SiteStageController {
     };
   }
 
+  @Get('affectations-stage/grille')
+  @Permissions('STAGE_VIEW')
+  @ApiOperation({ summary: 'Grille des affectations par étudiant et par période' })
+  async getGrilleAffectations(
+    @Query('anneeUniversitaireId') anneeUniversitaireId: string,
+    @Query('page') page: string,
+    @Query('limit') limit: string,
+    @Query('search') search: string,
+    @CurrentEtablissement() tenantId?: number,
+  ) {
+    const data = await this.siteStageService.getGrilleAffectations(
+      +anneeUniversitaireId,
+      search,
+      page ? +page : 1,
+      limit ? +limit : 20,
+      tenantId,
+    );
+    return {
+      message: 'Grille des affectations récupérée avec succès',
+      data,
+    };
+  }
+
   @Get('affectations-stage/:id')
   @Permissions('STAGE_VIEW')
   @ApiOperation({ summary: 'Détail d\'une affectation' })

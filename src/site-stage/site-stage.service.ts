@@ -5,7 +5,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, ILike, MoreThanOrEqual, LessThanOrEqual } from 'typeorm';
+import { Repository, ILike, In, MoreThanOrEqual, LessThanOrEqual } from 'typeorm';
 import { SiteStage } from './entities/site-stage.entity';
 import { PeriodeStage } from './entities/periode-stage.entity';
 import { AffectationStage, StageStatus } from './entities/affectation-stage.entity';
@@ -385,6 +385,85 @@ export class SiteStageService {
       .getManyAndCount();
 
     return { items, total, page, limit };
+  }
+
+  async getGrilleAffectations(
+    anneeUniversitaireId: number,
+    search?: string,
+    page = 1,
+    limit = 20,
+    tenantId?: number,
+  ): Promise<{
+    items: any[];
+    periodes: PeriodeStage[];
+    total: number;
+    page: number;
+    limit: number;
+  }> {
+    const tenantFilter = tenantId ? { etablissementId: tenantId } : {};
+
+    const periodes = await this.periodeStageRepository.find({
+      where: { anneeUniversitaireId, ...tenantFilter },
+      order: { dateDebut: 'ASC' },
+    });
+
+    if (periodes.length === 0) {
+      return { items: [], periodes: [], total: 0, page, limit };
+    }
+
+    const periodeIds = periodes.map((p) => p.id);
+    const affectations = await this.affectationRepository.find({
+      where: { periodeStageId: In(periodeIds), ...tenantFilter },
+      relations: {
+        etudiant: true,
+        siteStage: true,
+        natureStage: true,
+        enseignant: true,
+        periodeStage: true,
+      },
+    });
+
+    const studentMap = new Map<number, any>();
+    for (const aff of affectations) {
+      if (!aff.etudiant) continue;
+      const eId = aff.etudiant.id;
+      if (!studentMap.has(eId)) {
+        studentMap.set(eId, {
+          etudiant: aff.etudiant,
+          affectations: {},
+        });
+      }
+      const entry = studentMap.get(eId)!;
+      const idx = periodes.findIndex((p) => p.id === aff.periodeStageId);
+      if (idx !== -1) {
+        entry.affectations[`stage${idx + 1}`] = {
+          id: aff.id,
+          siteStage: aff.siteStage,
+          natureStage: aff.natureStage,
+          service: aff.service,
+          statut: aff.statut,
+          enseignant: aff.enseignant,
+          dateAffectation: aff.dateAffectation,
+        };
+      }
+    }
+
+    let students = Array.from(studentMap.values());
+    if (search) {
+      const q = search.toLowerCase();
+      students = students.filter(
+        (s) =>
+          s.etudiant.firstName.toLowerCase().includes(q) ||
+          s.etudiant.lastName.toLowerCase().includes(q) ||
+          (s.etudiant.matricule && s.etudiant.matricule.toLowerCase().includes(q)),
+      );
+    }
+
+    const total = students.length;
+    const skip = (page - 1) * limit;
+    const items = students.slice(skip, skip + limit);
+
+    return { items, periodes, total, page, limit };
   }
 
   async findOneAffectation(
