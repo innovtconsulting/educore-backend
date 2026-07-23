@@ -1,19 +1,9 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { getRepositoryToken } from '@nestjs/typeorm';
+import { BadRequestException, NotFoundException } from '@nestjs/common';
+import { DataSource } from 'typeorm';
 import { EmploiDuTempsService } from './emploi-du-temps.service';
-import { EmploiDuTemp } from './entities/emploi-du-temp.entity';
-import { Matiere } from '../matiere/entities/matiere.entity';
-import { Enseignant } from '../enseignant/entities/enseignant.entity';
-import { Etablissement } from '../etablissement/entities/etablissement.entity';
-import { Classe } from '../classe/entities/classe.entity';
-import { Niveau } from '../niveau/entities/niveau.entity';
-import { Salle } from '../salle/entities/salle.entity';
-import { Affectation } from '../enseignant/entities/affectation.entity';
 
-describe('EmploiDuTempsService', () => {
-  let service: EmploiDuTempsService;
-
-  const mockRepository = {
+function createRepositoryMock() {
+  return {
     create: jest.fn(),
     save: jest.fn(),
     find: jest.fn(),
@@ -21,58 +11,154 @@ describe('EmploiDuTempsService', () => {
     findOneBy: jest.fn(),
     remove: jest.fn(),
     createQueryBuilder: jest.fn(() => ({
-      leftJoinAndSelect: jest.fn().mockReturnThis(),
       where: jest.fn().mockReturnThis(),
       andWhere: jest.fn().mockReturnThis(),
+      leftJoinAndSelect: jest.fn().mockReturnThis(),
       orderBy: jest.fn().mockReturnThis(),
+      skip: jest.fn().mockReturnThis(),
+      take: jest.fn().mockReturnThis(),
       getMany: jest.fn().mockResolvedValue([]),
+      getManyAndCount: jest.fn().mockResolvedValue([[], 0]),
       getOne: jest.fn().mockResolvedValue(null),
     })),
   };
+}
 
-  beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
-      providers: [
-        EmploiDuTempsService,
-        {
-          provide: getRepositoryToken(EmploiDuTemp),
-          useValue: mockRepository,
-        },
-        {
-          provide: getRepositoryToken(Matiere),
-          useValue: mockRepository,
-        },
-        {
-          provide: getRepositoryToken(Enseignant),
-          useValue: mockRepository,
-        },
-        {
-          provide: getRepositoryToken(Etablissement),
-          useValue: mockRepository,
-        },
-        {
-          provide: getRepositoryToken(Classe),
-          useValue: mockRepository,
-        },
-        {
-          provide: getRepositoryToken(Niveau),
-          useValue: mockRepository,
-        },
-        {
-          provide: getRepositoryToken(Salle),
-          useValue: mockRepository,
-        },
-        {
-          provide: getRepositoryToken(Affectation),
-          useValue: mockRepository,
-        },
-      ],
-    }).compile();
+describe('EmploiDuTempsService', () => {
+  let service: EmploiDuTempsService;
+  let emploiRepository: ReturnType<typeof createRepositoryMock>;
+  let matiereRepository: ReturnType<typeof createRepositoryMock>;
+  let enseignantRepository: ReturnType<typeof createRepositoryMock>;
+  let etablissementRepository: ReturnType<typeof createRepositoryMock>;
+  let classeRepository: ReturnType<typeof createRepositoryMock>;
+  let niveauRepository: ReturnType<typeof createRepositoryMock>;
+  let salleRepository: ReturnType<typeof createRepositoryMock>;
+  let affectationRepository: ReturnType<typeof createRepositoryMock>;
 
-    service = module.get<EmploiDuTempsService>(EmploiDuTempsService);
+  beforeEach(() => {
+    emploiRepository = createRepositoryMock();
+    matiereRepository = createRepositoryMock();
+    enseignantRepository = createRepositoryMock();
+    etablissementRepository = createRepositoryMock();
+    classeRepository = createRepositoryMock();
+    niveauRepository = createRepositoryMock();
+    salleRepository = createRepositoryMock();
+    affectationRepository = createRepositoryMock();
+
+    const dataSource = {
+      createQueryRunner: jest.fn(),
+    } as unknown as DataSource;
+
+    service = new EmploiDuTempsService(
+      emploiRepository as any,
+      matiereRepository as any,
+      enseignantRepository as any,
+      etablissementRepository as any,
+      classeRepository as any,
+      niveauRepository as any,
+      salleRepository as any,
+      affectationRepository as any,
+      dataSource,
+    );
   });
 
-  it('should be defined', () => {
-    expect(service).toBeDefined();
+  const dto = {
+    startTime: '2026-07-24T08:00:00.000Z',
+    endTime: '2026-07-24T10:00:00.000Z',
+    matiereId: 10,
+    enseignantId: 20,
+    etablissementId: 30,
+    classeId: 40,
+    niveauId: 50,
+  };
+
+  function mockBaseDependencies() {
+    matiereRepository.findOne.mockResolvedValue({
+      id: dto.matiereId,
+      niveaux: [
+        {
+          id: dto.niveauId,
+          classe: { id: dto.classeId },
+        },
+      ],
+    });
+    enseignantRepository.findOneBy.mockResolvedValue({ id: dto.enseignantId });
+    etablissementRepository.findOneBy.mockResolvedValue({ id: dto.etablissementId });
+    classeRepository.findOneBy.mockResolvedValue({ id: dto.classeId });
+    niveauRepository.findOne.mockResolvedValue({
+      id: dto.niveauId,
+      classe: { id: dto.classeId },
+    });
+    affectationRepository.findOne.mockResolvedValue({
+      id: 1,
+      enseignant: { id: dto.enseignantId },
+      matiere: { id: dto.matiereId },
+      niveau: { id: dto.niveauId },
+    });
+    emploiRepository.create.mockImplementation((payload) => payload);
+    emploiRepository.save.mockImplementation(async (payload) => ({
+      id: 99,
+      ...payload,
+    }));
+  }
+
+  it('crée un créneau quand la matière correspond exactement au parcours et au niveau', async () => {
+    mockBaseDependencies();
+
+    const result = await service.create(dto as any);
+
+    expect(result.id).toBe(99);
+    expect(emploiRepository.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        classe: { id: dto.classeId },
+        niveau: { id: dto.niveauId, classe: { id: dto.classeId } },
+      }),
+    );
+  });
+
+  it("rejette la création quand le niveau n'appartient pas au parcours choisi", async () => {
+    mockBaseDependencies();
+    niveauRepository.findOne.mockResolvedValue({
+      id: dto.niveauId,
+      classe: { id: 999 },
+    });
+
+    await expect(service.create(dto as any)).rejects.toThrow(
+      new BadRequestException(
+        "Le niveau sélectionné n'appartient pas au parcours choisi",
+      ),
+    );
+  });
+
+  it("rejette la création quand la matière couvre séparément le parcours et le niveau mais pas le couple exact", async () => {
+    mockBaseDependencies();
+    matiereRepository.findOne.mockResolvedValue({
+      id: dto.matiereId,
+      niveaux: [
+        {
+          id: 111,
+          classe: { id: dto.classeId },
+        },
+        {
+          id: dto.niveauId,
+          classe: { id: 222 },
+        },
+      ],
+    });
+
+    await expect(service.create(dto as any)).rejects.toThrow(
+      new BadRequestException(
+        "Cette matière n'est pas prévue pour cette classe ou ce niveau",
+      ),
+    );
+  });
+
+  it("rejette la création quand le niveau demandé est introuvable", async () => {
+    mockBaseDependencies();
+    niveauRepository.findOne.mockResolvedValue(null);
+
+    await expect(service.create(dto as any)).rejects.toThrow(
+      new NotFoundException(`Niveau ${dto.niveauId} introuvable`),
+    );
   });
 });

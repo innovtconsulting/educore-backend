@@ -41,6 +41,22 @@ export class EmploiDuTempsService {
     private readonly dataSource: DataSource,
   ) {}
 
+  private assertMatiereScope(
+    matiere: Matiere,
+    classeId: number,
+    niveauId: number,
+  ) {
+    const supportsScope = matiere.niveaux?.some(
+      (niveau) => niveau.id === niveauId && niveau.classe.id === classeId,
+    );
+
+    if (!supportsScope) {
+      throw new BadRequestException(
+        "Cette matière n'est pas prévue pour cette classe ou ce niveau",
+      );
+    }
+  }
+
   async create(
     createEmploiDuTempDto: CreateEmploiDuTempDto,
   ): Promise<EmploiDuTemp> {
@@ -72,16 +88,6 @@ export class EmploiDuTempsService {
     if (!matiere)
       throw new NotFoundException(`Matière ${matiereId} introuvable`);
 
-    // Vérification de la cohérence académique : La matière doit être liée à la classe et au niveau
-    const hasClasse = matiere.niveaux?.some((n) => n.classe.id === classeId);
-    const hasNiveau = matiere.niveaux?.some((n) => n.id === niveauId);
-
-    if (!hasClasse || !hasNiveau) {
-      throw new BadRequestException(
-        "Cette matière n'est pas prévue pour cette classe ou ce niveau",
-      );
-    }
-
     const enseignant = await this.enseignantRepository.findOneBy({
       id: enseignantId,
     });
@@ -99,8 +105,18 @@ export class EmploiDuTempsService {
     const classe = await this.classeRepository.findOneBy({ id: classeId });
     if (!classe) throw new NotFoundException(`Classe ${classeId} introuvable`);
 
-    const niveau = await this.niveauRepository.findOneBy({ id: niveauId });
+    const niveau = await this.niveauRepository.findOne({
+      where: { id: niveauId },
+      relations: { classe: true },
+    });
     if (!niveau) throw new NotFoundException(`Niveau ${niveauId} introuvable`);
+    if (niveau.classe.id !== classeId) {
+      throw new BadRequestException(
+        "Le niveau sélectionné n'appartient pas au parcours choisi",
+      );
+    }
+
+    this.assertMatiereScope(matiere, classeId, niveauId);
 
     let salle: Salle | undefined;
     if (salleId) {
@@ -529,13 +545,19 @@ export class EmploiDuTempsService {
       });
 
       if (matiere) {
-        const hasClasse = matiere.niveaux?.some((n) => n.classe.id === clId);
-        const hasNiveau = matiere.niveaux?.some((n) => n.id === nId);
-        if (!hasClasse || !hasNiveau) {
+        const niveau = await this.niveauRepository.findOne({
+          where: { id: nId },
+          relations: { classe: true },
+        });
+        if (!niveau) {
+          throw new NotFoundException(`Niveau ${nId} introuvable`);
+        }
+        if (niveau.classe.id !== clId) {
           throw new BadRequestException(
-            "Cette matière n'est pas prévue pour cette classe ou ce niveau",
+            "Le niveau sélectionné n'appartient pas au parcours choisi",
           );
         }
+        this.assertMatiereScope(matiere, clId, nId);
       }
     }
 

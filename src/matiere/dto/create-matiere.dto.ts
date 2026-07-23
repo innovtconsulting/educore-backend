@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { Type } from 'class-transformer';
+import { Transform, Type } from 'class-transformer';
 import {
   IsArray,
   IsNotEmpty,
@@ -45,7 +45,10 @@ export class CreateMatiereDto {
   @IsArray({ message: 'Les IDs des niveaux doivent être un tableau' })
   @ArrayNotEmpty({ message: 'Au moins un niveau est requis' })
   @Type(() => Number)
-  @IsNumber({}, { each: true, message: 'Chaque ID de niveau doit être un nombre' })
+  @IsNumber(
+    {},
+    { each: true, message: 'Chaque ID de niveau doit être un nombre' },
+  )
   niveauIds!: number[];
 
   @ApiProperty({
@@ -65,6 +68,13 @@ export class CreateMatiereDto {
   })
   @IsOptional()
   @IsObject({ message: 'Les éléments constitutifs doivent être un objet JSON' })
+  @Transform(({ value }) => {
+    try {
+      return JSON.parse(value);
+    } catch {
+      throw new Error('elementsConstitutifs doit être un JSON Valid');
+    }
+  })
   @Validate(IsTiptapDocConstraint)
   elementsConstitutifs?: Record<string, any>;
 
@@ -82,7 +92,11 @@ export class CreateMatiereDto {
   @Min(0, { message: 'TPE ne peut pas être négatif' })
   tpe?: number;
 
-  @ApiProperty({ example: 52, description: 'Volume horaire total', required: false })
+  @ApiProperty({
+    example: 52,
+    description: 'Volume horaire total',
+    required: false,
+  })
   @IsOptional()
   @Type(() => Number)
   @IsNumber({}, { message: 'VHT doit être un nombre' })
