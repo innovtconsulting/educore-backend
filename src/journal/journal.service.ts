@@ -7,7 +7,10 @@ import {
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Journal } from './entities/journal.entity';
-import { JournalAction, JournalHistory } from './entities/journal-history.entity';
+import {
+  JournalAction,
+  JournalHistory,
+} from './entities/journal-history.entity';
 import { EmploiDuTemp } from '../emploi-du-temps/entities/emploi-du-temp.entity';
 import { User, Role } from '../user/entities/user.entity';
 import { Etudiant } from '../etudiant/entities/etudiant.entity';
@@ -58,14 +61,18 @@ export class JournalService {
       where: { id: userId },
       relations: { enseignant: true, etudiant: true, parent: true },
     });
-    if (!user) throw new NotFoundException(`Utilisateur #${userId} introuvable`);
+    if (!user)
+      throw new NotFoundException(`Utilisateur #${userId} introuvable`);
     return user;
   }
 
   private assertOwnership(emploi: EmploiDuTemp, user: any) {
-    if (user?.role === Role.ENSEIGNANT && emploi.enseignant?.id !== user.enseignantId) {
+    if (
+      user?.role === Role.ENSEIGNANT &&
+      emploi.enseignant?.id !== user.enseignantId
+    ) {
       throw new ForbiddenException(
-        "Vous ne pouvez gérer le journal que de vos propres créneaux",
+        'Vous ne pouvez gérer le journal que de vos propres créneaux',
       );
     }
   }
@@ -159,6 +166,7 @@ export class JournalService {
     const [rawItems, countResult] = await Promise.all([
       base()
         .select('e.id', 'emploiDuTempId')
+        .addSelect('e.groupeId', 'groupeId')
         .addSelect('e.startTime', 'startTime')
         .addSelect('e.endTime', 'endTime')
         .addSelect('matiere.id', 'matiereId')
@@ -190,7 +198,8 @@ export class JournalService {
 
     return {
       items: rawItems.map((r) => {
-        let journalStatus: JournalStatusFilter = JournalStatusFilter.NON_RENSEIGNE;
+        let journalStatus: JournalStatusFilter =
+          JournalStatusFilter.NON_RENSEIGNE;
         if (r.journalId) {
           const created = new Date(r.journalCreatedAt).getTime();
           const updated = new Date(r.journalUpdatedAt).getTime();
@@ -201,6 +210,7 @@ export class JournalService {
         }
         return {
           emploiDuTempId: Number(r.emploiDuTempId),
+          groupeId: r.groupeId,
           startTime: r.startTime,
           endTime: r.endTime,
           matiereId: r.matiereId ? Number(r.matiereId) : undefined,
@@ -223,6 +233,80 @@ export class JournalService {
       page,
       limit,
     };
+  }
+
+  private async applyJournalToGroup(
+    groupeId: string,
+    excludeEmploiId: number,
+    dto: CreateJournalDto | UpdateJournalDto,
+    actor: User,
+    actorName: string,
+    isUpdate: boolean,
+    tenantId?: number,
+  ) {
+    const groupEmplois = await this.emploiDuTempRepository.find({
+      where: { groupeId },
+      relations: { enseignant: true, etablissement: true },
+    });
+
+    for (const emploi of groupEmplois) {
+      if (emploi.id === excludeEmploiId) continue;
+
+      if (tenantId && emploi.etablissement.id !== tenantId) continue;
+
+      let journal = await this.journalRepository.findOne({
+        where: { emploiDuTempId: emploi.id },
+      });
+
+      if (isUpdate) {
+        if (!journal) continue;
+        Object.assign(journal, {
+          title: dto.title ?? journal.title,
+          content: dto.content ?? journal.content,
+          objectives: dto.objectives ?? journal.objectives,
+          homework: dto.homework ?? journal.homework,
+          remarks: dto.remarks ?? journal.remarks,
+          lastModifiedById: actor.id,
+          lastModifiedByName: actorName,
+          lastModifiedByRole: actor.role,
+        });
+      } else {
+        if (journal) continue;
+        journal = this.journalRepository.create({
+          emploiDuTempId: emploi.id,
+          title: dto.title,
+          content: dto.content,
+          objectives: dto.objectives,
+          homework: dto.homework,
+          remarks: dto.remarks,
+          createdById: actor.id,
+          createdByName: actorName,
+          createdByRole: actor.role,
+          lastModifiedById: actor.id,
+          lastModifiedByName: actorName,
+          lastModifiedByRole: actor.role,
+          etablissementId: tenantId || emploi.etablissement.id,
+        });
+      }
+
+      const saved = await this.journalRepository.save(journal);
+      await this.journalHistoryRepository.save(
+        this.journalHistoryRepository.create({
+          journalId: saved.id,
+          action: isUpdate ? JournalAction.UPDATE : JournalAction.CREATE,
+          performedById: actor.id,
+          performedByName: actorName,
+          performedByRole: actor.role,
+          snapshot: {
+            title: saved.title,
+            content: saved.content,
+            objectives: saved.objectives,
+            homework: saved.homework,
+            remarks: saved.remarks,
+          },
+        }),
+      );
+    }
   }
 
   async create(
@@ -287,6 +371,18 @@ export class JournalService {
       }),
     );
 
+    if (emploi.groupeId) {
+      await this.applyJournalToGroup(
+        emploi.groupeId,
+        emploi.id,
+        dto,
+        actor,
+        actorName,
+        false,
+        tenantId,
+      );
+    }
+
     return saved;
   }
 
@@ -331,6 +427,18 @@ export class JournalService {
       }),
     );
 
+    if (journal.emploiDuTemp.groupeId) {
+      await this.applyJournalToGroup(
+        journal.emploiDuTemp.groupeId,
+        journal.emploiDuTemp.id,
+        dto,
+        actor,
+        actorName,
+        true,
+        tenantId,
+      );
+    }
+
     return saved;
   }
 
@@ -366,10 +474,7 @@ export class JournalService {
     });
   }
 
-  async getStudentOverview(
-    etudiantId: number,
-    tenantId?: number,
-  ) {
+  async getStudentOverview(etudiantId: number, tenantId?: number) {
     const etudiant = await this.etudiantRepository.findOne({
       where: { id: etudiantId },
       relations: { classe: true, niveau: { matieres: true } },
@@ -383,7 +488,9 @@ export class JournalService {
       .leftJoin(Journal, 'journal', 'journal.emploiDuTempId = e.id')
       .where('e.classeId = :classeId', { classeId: etudiant.classe.id })
       .andWhere('journal.id IS NOT NULL')
-      .andWhere(tenantId ? 'e.etablissementId = :tenantId' : '1=1', { tenantId })
+      .andWhere(tenantId ? 'e.etablissementId = :tenantId' : '1=1', {
+        tenantId,
+      })
       .select([
         'e.id AS e_id',
         'e.startTime AS e_start_time',
