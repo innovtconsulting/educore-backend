@@ -200,6 +200,39 @@ export class SiteStageController {
     };
   }
 
+  @Get('affectations-stage/grille')
+  @Permissions('STAGE_VIEW')
+  @ApiOperation({ summary: 'Grille des affectations par étudiant et par période' })
+  async getGrilleAffectations(
+    @Query('anneeUniversitaireId') anneeUniversitaireId: string,
+    @Query('page') page: string,
+    @Query('limit') limit: string,
+    @Query('search') search: string,
+    @Query('classeId') classeId: string,
+    @Query('niveauId') niveauId: string,
+    @Query('siteStageId') siteStageId: string,
+    @Query('natureStageId') natureStageId: string,
+    @Query('all') all: string,
+    @CurrentEtablissement() tenantId?: number,
+  ) {
+    const data = await this.siteStageService.getGrilleAffectations(
+      +anneeUniversitaireId,
+      search,
+      page ? +page : 1,
+      limit ? +limit : 5,
+      tenantId,
+      classeId ? +classeId : undefined,
+      niveauId ? +niveauId : undefined,
+      siteStageId ? +siteStageId : undefined,
+      natureStageId ? +natureStageId : undefined,
+      all === 'true',
+    );
+    return {
+      message: 'Grille des affectations récupérée avec succès',
+      data,
+    };
+  }
+
   @Get('affectations-stage/:id')
   @Permissions('STAGE_VIEW')
   @ApiOperation({ summary: 'Détail d\'une affectation' })
@@ -215,7 +248,7 @@ export class SiteStageController {
   }
 
   @Get('etudiants/:etudiantId/affectations-stage')
-  @Permissions('STAGE_VIEW')
+  @Roles(Role.ETUDIANT, Role.PARENT, Role.ADMIN)
   @ApiOperation({ summary: 'Stages d\'un étudiant' })
   async findByEtudiant(
     @Param('etudiantId') etudiantId: string,

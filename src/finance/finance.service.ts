@@ -644,8 +644,10 @@ export class FinanceService {
   }
 
   async getFacturesByEtudiant(etudiantId: number, tenantId?: number) {
+    const where: any = { id: etudiantId };
+    if (tenantId) where.etablissement = { id: tenantId };
     const etudiant = await this.etudiantRepository.findOne({
-      where: { id: etudiantId, etablissement: { id: tenantId } },
+      where,
       relations: { classe: true, niveau: true },
     });
     if (!etudiant) {

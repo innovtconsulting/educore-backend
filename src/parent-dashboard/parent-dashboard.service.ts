@@ -83,7 +83,9 @@ export class ParentDashboardService {
           fullName: `${etudiant.firstName} ${etudiant.lastName}`,
           matricule: etudiant.matricule,
           classe: etudiant.classe.name,
+          classeId: etudiant.classe.id,
           niveau: etudiant.niveau.name,
+          niveauId: etudiant.niveau.id,
           etablissement: etudiant.etablissement?.name ?? '',
           recentNotes: notes.items,
           presence: {
