@@ -699,18 +699,26 @@ export class FinanceService {
 
   // --- Tableau de Bord & Rapports (conservés, adaptés minimalement) ---
 
-  async getDashboardStats(tenantId?: number) {
-    const where = tenantId
+  async getDashboardStats(tenantId?: number, feeType?: FeeType) {
+    let where: any = tenantId
       ? TenantHelper.addTenantFilter({}, tenantId, 'etudiant.etablissement')
       : {};
+    let paiementsWhere: any = { ...where };
+    if (feeType) {
+      paiementsWhere = { ...paiementsWhere, facture: { frais: { type: feeType } } };
+      where = { ...where, frais: { type: feeType } };
+    }
 
     const now = new Date();
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
     const startOfYear = new Date(now.getFullYear(), 0, 1);
 
     const allPaiements = await this.paiementRepository.find({
-      where,
-      relations: { etudiant: { niveau: true, classe: true }, facture: true },
+      where: paiementsWhere,
+      relations: {
+        etudiant: { niveau: true, classe: true },
+        facture: { frais: true },
+      },
     });
 
     const totalCollected = allPaiements.reduce(
@@ -952,6 +960,7 @@ export class FinanceService {
     tenantId?: number,
     classeId?: number,
     niveauId?: number,
+    feeType?: FeeType,
   ) {
     // Filtre étudiant partagé (parcours/niveau), fusionné avec le filtre tenant
     // par TenantHelper.addTenantFilter (deep-merge, ne s'écrasent pas entre eux).
@@ -966,6 +975,9 @@ export class FinanceService {
     if (Object.keys(etudiantFilter).length > 0) {
       paiementsWhere.etudiant = etudiantFilter;
     }
+    if (feeType) {
+      paiementsWhere.facture = { frais: { type: feeType } };
+    }
     paiementsWhere = TenantHelper.addTenantFilter(
       paiementsWhere,
       tenantId,
@@ -974,7 +986,10 @@ export class FinanceService {
 
     const paiements = await this.paiementRepository.find({
       where: paiementsWhere,
-      relations: { etudiant: { niveau: true, classe: true }, facture: true },
+      relations: {
+        etudiant: { niveau: true, classe: true },
+        facture: { frais: true },
+      },
       order: { datePaiement: 'ASC' },
     });
 
@@ -989,6 +1004,9 @@ export class FinanceService {
     if (Object.keys(etudiantFilter).length > 0) {
       facturesWhere.etudiant = etudiantFilter;
     }
+    if (feeType) {
+      facturesWhere.frais = { type: feeType };
+    }
     facturesWhere = TenantHelper.addTenantFilter(
       facturesWhere,
       tenantId,
@@ -996,7 +1014,7 @@ export class FinanceService {
     );
     const factures = await this.factureRepository.find({
       where: facturesWhere,
-      relations: { etudiant: { niveau: true, classe: true } },
+      relations: { etudiant: { niveau: true, classe: true }, frais: true },
     });
     const totalInvoiced = factures.reduce(
       (sum, f) => sum + Number(f.montantTotal),

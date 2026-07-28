@@ -336,25 +336,31 @@ export class FinanceController {
   @Get('dashboard')
   @Roles(Role.ADMIN, Role.SUPER_ADMIN, Role.COMPTABLE)
   @Permissions('FINANCE_REPORT')
-  @ApiOperation({ summary: 'Statistiques du tableau de bord financier' })
-  async getDashboard(@CurrentEtablissement() tenantId?: number) {
-    const data = await this.financeService.getDashboardStats(tenantId);
+  @ApiOperation({ summary: 'Statistiques du tableau de bord financier, filtrable par type de frais' })
+  @ApiQuery({ name: 'feeType', required: false, enum: FeeType })
+  async getDashboard(
+    @Query('feeType') feeType?: FeeType,
+    @CurrentEtablissement() tenantId?: number,
+  ) {
+    const data = await this.financeService.getDashboardStats(tenantId, feeType);
     return { message: 'Dashboard récupéré avec succès', data };
   }
 
   @Get('report')
   @Roles(Role.ADMIN, Role.SUPER_ADMIN, Role.COMPTABLE)
   @Permissions('FINANCE_REPORT')
-  @ApiOperation({ summary: 'Générer un rapport financier sur une période, filtrable par parcours/niveau' })
+  @ApiOperation({ summary: 'Générer un rapport financier sur une période, filtrable par parcours/niveau/type de frais' })
   @ApiQuery({ name: 'start', required: false })
   @ApiQuery({ name: 'end', required: false })
   @ApiQuery({ name: 'classeId', required: false, type: Number })
   @ApiQuery({ name: 'niveauId', required: false, type: Number })
+  @ApiQuery({ name: 'feeType', required: false, enum: FeeType })
   async getReport(
     @Query('start') start?: string,
     @Query('end') end?: string,
     @Query('classeId') classeId?: string,
     @Query('niveauId') niveauId?: string,
+    @Query('feeType') feeType?: FeeType,
     @CurrentEtablissement() tenantId?: number,
   ) {
     const data = await this.financeService.getFinancialReport(
@@ -363,6 +369,7 @@ export class FinanceController {
       tenantId,
       classeId ? +classeId : undefined,
       niveauId ? +niveauId : undefined,
+      feeType,
     );
     return { message: 'Rapport financier généré avec succès', data };
   }

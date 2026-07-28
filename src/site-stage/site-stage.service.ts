@@ -396,7 +396,7 @@ export class SiteStageService {
     page = 1,
     limit = 20,
     tenantId?: number,
-    classeId?: number,
+    classeIds?: number[],
     niveauId?: number,
     siteStageId?: number,
     natureStageId?: number,
@@ -464,10 +464,11 @@ export class SiteStageService {
 
     // Attach classe/niveau info when exporting all
     const classeNiveauMap = new Map<number, { classeName: string; niveauName: string }>();
+    const hasClasseFilter = !!classeIds && classeIds.length > 0;
 
-    if (all || classeId || niveauId) {
+    if (all || hasClasseFilter || niveauId) {
       const inscriptionFilter: any = { anneeUniversitaire: { id: anneeUniversitaireId } };
-      if (classeId) inscriptionFilter.classe = { id: classeId };
+      if (hasClasseFilter) inscriptionFilter.classe = { id: In(classeIds!) };
       if (niveauId) inscriptionFilter.niveau = { id: niveauId };
       if (tenantId) inscriptionFilter.etablissement = { id: tenantId };
 
@@ -476,7 +477,7 @@ export class SiteStageService {
         relations: { etudiant: true, classe: true, niveau: true },
       });
 
-      if (classeId || niveauId) {
+      if (hasClasseFilter || niveauId) {
         const filteredIds = new Set(inscriptions.map((ins) => ins.etudiant.id));
         studentIds = studentIds.filter((id) => filteredIds.has(id));
       }

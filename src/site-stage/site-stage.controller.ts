@@ -17,7 +17,7 @@ import {
 import { FileInterceptor } from '@nestjs/platform-express';
 import * as mammoth from 'mammoth';
 import * as ExcelJS from 'exceljs';
-import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiBearerAuth, ApiQuery } from '@nestjs/swagger';
 import { SiteStageService } from './site-stage.service';
 import { CreateSiteStageDto } from './dto/create-site-stage.dto';
 import { UpdateSiteStageDto } from './dto/update-site-stage.dto';
@@ -203,25 +203,29 @@ export class SiteStageController {
   @Get('affectations-stage/grille')
   @Permissions('STAGE_VIEW')
   @ApiOperation({ summary: 'Grille des affectations par étudiant et par période' })
+  @ApiQuery({ name: 'classeIds', required: false, type: [Number], description: 'Un ou plusieurs identifiants de parcours' })
   async getGrilleAffectations(
     @Query('anneeUniversitaireId') anneeUniversitaireId: string,
     @Query('page') page: string,
     @Query('limit') limit: string,
     @Query('search') search: string,
-    @Query('classeId') classeId: string,
+    @Query('classeIds') classeIds: string | string[],
     @Query('niveauId') niveauId: string,
     @Query('siteStageId') siteStageId: string,
     @Query('natureStageId') natureStageId: string,
     @Query('all') all: string,
     @CurrentEtablissement() tenantId?: number,
   ) {
+    const classeIdsArray = classeIds
+      ? (Array.isArray(classeIds) ? classeIds : [classeIds]).map(Number).filter((n) => !Number.isNaN(n))
+      : undefined;
     const data = await this.siteStageService.getGrilleAffectations(
       +anneeUniversitaireId,
       search,
       page ? +page : 1,
       limit ? +limit : 5,
       tenantId,
-      classeId ? +classeId : undefined,
+      classeIdsArray,
       niveauId ? +niveauId : undefined,
       siteStageId ? +siteStageId : undefined,
       natureStageId ? +natureStageId : undefined,
