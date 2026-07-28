@@ -594,6 +594,34 @@ export class SiteStageService {
   ): Promise<AffectationStage> {
     const affectation = await this.findOneAffectation(id, tenantId);
 
+    if (dto.etudiantId !== undefined && dto.etudiantId !== affectation.etudiantId) {
+      const etudiant = await this.etudiantRepository.findOne({
+        where: TenantHelper.addTenantFilter(
+          { id: dto.etudiantId },
+          tenantId,
+          'etablissement',
+        ),
+      });
+      if (!etudiant) {
+        throw new NotFoundException('Étudiant non trouvé');
+      }
+
+      const conflict = await this.affectationRepository.findOne({
+        where: {
+          etudiantId: dto.etudiantId,
+          periodeStageId: affectation.periodeStageId,
+        },
+      });
+      if (conflict) {
+        throw new ConflictException(
+          'Cet étudiant est déjà affecté à un site pour cette période',
+        );
+      }
+
+      affectation.etudiantId = dto.etudiantId;
+      affectation.etudiant = etudiant;
+    }
+
     if (dto.siteStageId !== undefined) {
       const siteStage = await this.siteStageRepository.findOne({
         where: { id: dto.siteStageId },

@@ -3,6 +3,11 @@ import { IsEnum, IsNumber, IsOptional, IsString } from 'class-validator';
 import { StageStatus } from '../entities/affectation-stage.entity';
 
 export class UpdateAffectationStageDto {
+  @ApiPropertyOptional({ example: 1, description: 'ID du nouvel étudiant affecté' })
+  @IsOptional()
+  @IsNumber({}, { message: 'L\'ID de l\'étudiant doit être un nombre' })
+  etudiantId?: number;
+
   @ApiPropertyOptional({ example: 1, description: 'ID du site de stage' })
   @IsOptional()
   @IsNumber({}, { message: 'L\'ID du site de stage doit être un nombre' })
