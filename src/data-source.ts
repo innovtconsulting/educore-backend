@@ -28,8 +28,8 @@ import { Submission } from './devoir/entities/submission.entity';
 import { Salle } from './salle/entities/salle.entity';
 import { Inscription } from './etudiant/entities/inscription.entity';
 import { SiteStage } from './site-stage/entities/site-stage.entity';
-import { PeriodeStage } from './site-stage/entities/periode-stage.entity';
-import { AffectationStage } from './site-stage/entities/affectation-stage.entity';
+import { LigneStage } from './site-stage/entities/ligne-stage.entity';
+import { LigneStageSlot } from './site-stage/entities/ligne-stage-slot.entity';
 import { NatureStage } from './site-stage/entities/nature-stage.entity';
 import { GlobalSetting } from './global-setting/entities/global-setting.entity';
 import { Personnel } from './personnel/entities/personnel.entity';
@@ -89,8 +89,8 @@ export const AppDataSource = new DataSource({
     GlobalSetting,
     Notification,
     SiteStage,
-    PeriodeStage,
-    AffectationStage,
+    LigneStage,
+    LigneStageSlot,
     NatureStage,
     Personnel,
     PaiePersonnel,

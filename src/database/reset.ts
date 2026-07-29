@@ -34,8 +34,8 @@ import { Role as AclRole } from '../acl/entities/role.entity';
 import { Permission } from '../acl/entities/permission.entity';
 import { Notification } from '../notifications/entities/notification.entity';
 import { SiteStage } from '../site-stage/entities/site-stage.entity';
-import { PeriodeStage } from '../site-stage/entities/periode-stage.entity';
-import { AffectationStage } from '../site-stage/entities/affectation-stage.entity';
+import { LigneStage } from '../site-stage/entities/ligne-stage.entity';
+import { LigneStageSlot } from '../site-stage/entities/ligne-stage-slot.entity';
 import { NatureStage } from '../site-stage/entities/nature-stage.entity';
 import * as dotenv from 'dotenv';
 
@@ -89,8 +89,8 @@ const dataSource = new DataSource({
     Permission,
     Notification,
     SiteStage,
-    PeriodeStage,
-    AffectationStage,
+    LigneStage,
+    LigneStageSlot,
     NatureStage,
   ],
   synchronize: false,

@@ -9,7 +9,6 @@ import { CreateAnneeUniversitaireDto } from './dto/create-annee-universitaire.dt
 import { UpdateAnneeUniversitaireDto } from './dto/update-annee-universitaire.dto';
 import { AnneeUniversitaire } from './entities/annee-universitaire.entity';
 import { Etablissement } from '../etablissement/entities/etablissement.entity';
-import { PeriodeStage } from '../site-stage/entities/periode-stage.entity';
 
 @Injectable()
 export class AnneeUniversitaireService {
@@ -18,8 +17,6 @@ export class AnneeUniversitaireService {
     private readonly repo: Repository<AnneeUniversitaire>,
     @InjectRepository(Etablissement)
     private readonly etablissementRepo: Repository<Etablissement>,
-    @InjectRepository(PeriodeStage)
-    private readonly periodeStageRepo: Repository<PeriodeStage>,
   ) {}
 
   async create(dto: CreateAnneeUniversitaireDto, tenantId?: number) {
@@ -45,16 +42,7 @@ export class AnneeUniversitaireService {
     const annee = this.repo.create({ ...rest, etablissement, etablissementId });
     const saved = await this.repo.save(annee);
 
-    await this.createDefaultPeriodes(saved, etablissementId);
-
     return saved;
-  }
-
-  private async createDefaultPeriodes(
-    annee: AnneeUniversitaire,
-    etablissementId: number,
-  ) {
-    await this.syncDefaultPeriodes(annee, etablissementId);
   }
 
   async findAll(tenantId?: number) {
@@ -99,50 +87,7 @@ export class AnneeUniversitaireService {
     Object.assign(annee, dto);
     const saved = await this.repo.save(annee);
 
-    if (dto.startDate || dto.endDate) {
-      await this.syncDefaultPeriodes(saved, saved.etablissementId);
-    }
-
     return saved;
-  }
-
-  private async syncDefaultPeriodes(
-    annee: AnneeUniversitaire,
-    etablissementId: number,
-  ) {
-    const existing = await this.periodeStageRepo.find({
-      where: { anneeUniversitaireId: annee.id, etablissementId },
-      order: { dateDebut: 'ASC' },
-    });
-
-    const start = new Date(annee.startDate);
-    const end = new Date(annee.endDate);
-    const totalDays = Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
-    const chunkSize = Math.floor(totalDays / 5);
-
-    for (let i = 0; i < 5; i++) {
-      const pStart = new Date(start.getTime() + i * chunkSize * 86400000);
-      const pEnd = i < 4
-        ? new Date(start.getTime() + (i + 1) * chunkSize * 86400000 - 86400000)
-        : new Date(end);
-
-      if (existing[i]) {
-        await this.periodeStageRepo.update(existing[i].id, {
-          dateDebut: pStart,
-          dateFin: pEnd,
-        });
-      } else {
-        await this.periodeStageRepo.save(
-          this.periodeStageRepo.create({
-            libelle: `Stage ${i + 1}`,
-            dateDebut: pStart,
-            dateFin: pEnd,
-            anneeUniversitaireId: annee.id,
-            etablissementId,
-          }),
-        );
-      }
-    }
   }
 
   async remove(id: number, tenantId?: number) {

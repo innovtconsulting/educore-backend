@@ -48,11 +48,6 @@ import { Inscription } from '../etudiant/entities/inscription.entity';
 import { Role as AclRole } from '../acl/entities/role.entity';
 import { Permission } from '../acl/entities/permission.entity';
 import { SiteStage } from '../site-stage/entities/site-stage.entity';
-import { PeriodeStage } from '../site-stage/entities/periode-stage.entity';
-import {
-  AffectationStage,
-  StageStatus,
-} from '../site-stage/entities/affectation-stage.entity';
 import { NatureStage } from '../site-stage/entities/nature-stage.entity';
 import { Personnel } from '../personnel/entities/personnel.entity';
 import { PaiePersonnel } from '../personnel/entities/paie-personnel.entity';
@@ -112,8 +107,6 @@ async function seed() {
     const roleAclRepo = AppDataSource.getRepository(AclRole);
     const permissionRepo = AppDataSource.getRepository(Permission);
     const siteStageRepo = AppDataSource.getRepository(SiteStage);
-    const periodeStageRepo = AppDataSource.getRepository(PeriodeStage);
-    const affectationStageRepo = AppDataSource.getRepository(AffectationStage);
     const natureStageRepo = AppDataSource.getRepository(NatureStage);
     const personnelRepo = AppDataSource.getRepository(Personnel);
     const paiePersonnelRepo = AppDataSource.getRepository(PaiePersonnel);
@@ -1321,12 +1314,7 @@ async function seed() {
       description: 'Centre de Services des Entreprises',
       capacite: 8,
     });
-    const savedSites = await siteStageRepo.save([
-      siteOrange,
-      siteSonatel,
-      siteBceao,
-      siteCse,
-    ]);
+    await siteStageRepo.save([siteOrange, siteSonatel, siteBceao, siteCse]);
 
     // 20.1 Natures de Stage (globales)
     const natureSoinsInfirmiers = await findOrCreate(natureStageRepo, { nom: 'Soins Infirmiers' }, { nom: 'Soins Infirmiers', description: 'Stage en soins infirmiers et services paramédicaux' });
@@ -1341,58 +1329,6 @@ async function seed() {
     siteBceao.natures = [natureComptabilite, natureBanque];
     siteCse.natures = [natureSoinsInfirmiers, natureComptabilite];
     await siteStageRepo.save([siteOrange, siteSonatel, siteBceao, siteCse]);
-
-    // 21. Périodes de Stage (Multi-tenant)
-    const periodeFst1 = periodeStageRepo.create({
-      libelle: 'Stage de fin de cycle 2026-2027',
-      dateDebut: new Date('2026-06-01'),
-      dateFin: new Date('2026-09-30'),
-      anneeUniversitaireId: annee2026.id,
-      etablissementId: fst.id,
-    });
-    const periodeFst2 = periodeStageRepo.create({
-      libelle: 'Stage de perfectionnement L3 2026-2027',
-      dateDebut: new Date('2027-02-01'),
-      dateFin: new Date('2027-05-31'),
-      anneeUniversitaireId: annee2026.id,
-      etablissementId: fst.id,
-    });
-    const periodeEsp1 = periodeStageRepo.create({
-      libelle: 'Stage professionnel 2026-2027',
-      dateDebut: new Date('2026-07-01'),
-      dateFin: new Date('2026-10-31'),
-      anneeUniversitaireId: annee2026.id,
-      etablissementId: esp.id,
-    });
-    const savedPeriodes = await periodeStageRepo.save([
-      periodeFst1,
-      periodeFst2,
-      periodeEsp1,
-    ]);
-
-    // 22. Affectations (Multi-tenant)
-    const fstActiveStudents = fstStudentsList.filter(
-      (s) => s.status === EnrollmentStatus.ACTIF && s.matricule,
-    );
-    if (fstActiveStudents.length >= 2) {
-      const aff1 = affectationStageRepo.create({
-        etudiantId: fstActiveStudents[0].id,
-        siteStageId: savedSites[0].id,
-        periodeStageId: savedPeriodes[0].id,
-        enseignantId: profDiallo.id,
-        statut: StageStatus.ACTIF,
-        etablissementId: fst.id,
-      });
-      const aff2 = affectationStageRepo.create({
-        etudiantId: fstActiveStudents[1].id,
-        siteStageId: savedSites[1].id,
-        periodeStageId: savedPeriodes[0].id,
-        enseignantId: profSow.id,
-        statut: StageStatus.EN_ATTENTE,
-        etablissementId: fst.id,
-      });
-      await affectationStageRepo.save([aff1, aff2]);
-    }
 
     console.log('Seeding terminé avec succès !');
   } catch (error) {

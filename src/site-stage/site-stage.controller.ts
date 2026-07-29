@@ -21,11 +21,9 @@ import { ApiTags, ApiOperation, ApiBearerAuth, ApiQuery } from '@nestjs/swagger'
 import { SiteStageService } from './site-stage.service';
 import { CreateSiteStageDto } from './dto/create-site-stage.dto';
 import { UpdateSiteStageDto } from './dto/update-site-stage.dto';
-import { CreatePeriodeStageDto } from './dto/create-periode-stage.dto';
-import { UpdatePeriodeStageDto } from './dto/update-periode-stage.dto';
-import { CreateAffectationStageDto } from './dto/create-affectation-stage.dto';
-import { UpdateAffectationStageDto } from './dto/update-affectation-stage.dto';
-import { AffectationStageFilterDto } from './dto/affectation-stage-filter.dto';
+import { CreateLigneStageDto } from './dto/create-ligne-stage.dto';
+import { UpdateLigneStageDto } from './dto/update-ligne-stage.dto';
+import { UpdateLigneSlotDto } from './dto/update-ligne-slot.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
@@ -75,7 +73,7 @@ export class SiteStageController {
 
   @Get('sites-stage/:id')
   @Permissions('STAGE_VIEW')
-  @ApiOperation({ summary: 'Détail d\'un site de stage' })
+  @ApiOperation({ summary: "Détail d'un site de stage" })
   async findOneSite(@Param('id') id: string) {
     const data = await this.siteStageService.findOneSite(+id);
     return { message: `Site de stage #${id} récupéré avec succès`, data };
@@ -84,10 +82,7 @@ export class SiteStageController {
   @Patch('sites-stage/:id')
   @Permissions('STAGE_MANAGE')
   @ApiOperation({ summary: 'Modifier un site de stage' })
-  async updateSite(
-    @Param('id') id: string,
-    @Body() dto: UpdateSiteStageDto,
-  ) {
+  async updateSite(@Param('id') id: string, @Body() dto: UpdateSiteStageDto) {
     const data = await this.siteStageService.updateSite(+id, dto);
     return { message: `Site de stage #${id} mis à jour avec succès`, data };
   }
@@ -98,253 +93,6 @@ export class SiteStageController {
   async removeSite(@Param('id') id: string) {
     await this.siteStageService.removeSite(+id);
     return { message: `Site de stage #${id} supprimé avec succès` };
-  }
-
-  // ===================== PÉRIODES DE STAGE =====================
-
-  @Post('periodes-stage')
-  @Permissions('STAGE_MANAGE')
-  @ApiOperation({ summary: 'Créer une période de stage' })
-  async createPeriode(
-    @Body() dto: CreatePeriodeStageDto,
-    @CurrentEtablissement() tenantId?: number,
-  ) {
-    const data = await this.siteStageService.createPeriode(dto, tenantId);
-    return { message: 'Période de stage créée avec succès', data };
-  }
-
-  @Get('periodes-stage')
-  @Permissions('STAGE_VIEW')
-  @ApiOperation({ summary: 'Lister les périodes de stage' })
-  async findAllPeriodes(
-    @Query('search') search?: string,
-    @Query('anneeUniversitaireId') anneeUniversitaireId?: string,
-    @Query('dateDebutMin') dateDebutMin?: string,
-    @Query('dateDebutMax') dateDebutMax?: string,
-    @CurrentEtablissement() tenantId?: number,
-  ) {
-    const data = await this.siteStageService.findAllPeriodes(
-      search,
-      tenantId,
-      anneeUniversitaireId ? parseInt(anneeUniversitaireId) : undefined,
-      dateDebutMin,
-      dateDebutMax,
-    );
-    return {
-      message: 'Liste des périodes de stage récupérée avec succès',
-      data,
-    };
-  }
-
-  @Get('periodes-stage/:id')
-  @Permissions('STAGE_VIEW')
-  @ApiOperation({ summary: 'Détail d\'une période de stage' })
-  async findOnePeriode(
-    @Param('id') id: string,
-    @CurrentEtablissement() tenantId?: number,
-  ) {
-    const data = await this.siteStageService.findOnePeriode(+id, tenantId);
-    return { message: `Période de stage #${id} récupérée avec succès`, data };
-  }
-
-  @Patch('periodes-stage/:id')
-  @Permissions('STAGE_MANAGE')
-  @ApiOperation({ summary: 'Modifier une période de stage' })
-  async updatePeriode(
-    @Param('id') id: string,
-    @Body() dto: UpdatePeriodeStageDto,
-    @CurrentEtablissement() tenantId?: number,
-  ) {
-    const data = await this.siteStageService.updatePeriode(+id, dto, tenantId);
-    return { message: `Période de stage #${id} mise à jour avec succès`, data };
-  }
-
-  @Delete('periodes-stage/:id')
-  @Permissions('STAGE_MANAGE')
-  @ApiOperation({ summary: 'Supprimer une période de stage' })
-  async removePeriode(
-    @Param('id') id: string,
-    @CurrentEtablissement() tenantId?: number,
-  ) {
-    await this.siteStageService.removePeriode(+id, tenantId);
-    return { message: `Période de stage #${id} supprimée avec succès` };
-  }
-
-  // ===================== AFFECTATIONS =====================
-
-  @Post('affectations-stage')
-  @Permissions('STAGE_MANAGE')
-  @ApiOperation({ summary: 'Affecter un étudiant à un site de stage' })
-  async createAffectation(
-    @Body() dto: CreateAffectationStageDto,
-    @CurrentEtablissement() tenantId?: number,
-  ) {
-    const data = await this.siteStageService.createAffectation(dto, tenantId);
-    return { message: 'Affectation créée avec succès', data };
-  }
-
-  @Get('affectations-stage')
-  @Permissions('STAGE_VIEW')
-  @ApiOperation({ summary: 'Lister les affectations' })
-  async findAllAffectations(
-    @Query() filter: AffectationStageFilterDto,
-    @CurrentEtablissement() tenantId?: number,
-  ) {
-    const data = await this.siteStageService.findAllAffectations(
-      filter,
-      tenantId,
-    );
-    return {
-      message: 'Liste des affectations récupérée avec succès',
-      data,
-    };
-  }
-
-  @Get('affectations-stage/grille')
-  @Permissions('STAGE_VIEW')
-  @ApiOperation({ summary: 'Grille des affectations par étudiant et par période' })
-  @ApiQuery({ name: 'classeIds', required: false, type: [Number], description: 'Un ou plusieurs identifiants de parcours' })
-  async getGrilleAffectations(
-    @Query('anneeUniversitaireId') anneeUniversitaireId: string,
-    @Query('page') page: string,
-    @Query('limit') limit: string,
-    @Query('search') search: string,
-    @Query('classeIds') classeIds: string | string[],
-    @Query('niveauId') niveauId: string,
-    @Query('siteStageId') siteStageId: string,
-    @Query('natureStageId') natureStageId: string,
-    @Query('all') all: string,
-    @CurrentEtablissement() tenantId?: number,
-  ) {
-    const classeIdsArray = classeIds
-      ? (Array.isArray(classeIds) ? classeIds : [classeIds]).map(Number).filter((n) => !Number.isNaN(n))
-      : undefined;
-    const data = await this.siteStageService.getGrilleAffectations(
-      +anneeUniversitaireId,
-      search,
-      page ? +page : 1,
-      limit ? +limit : 5,
-      tenantId,
-      classeIdsArray,
-      niveauId ? +niveauId : undefined,
-      siteStageId ? +siteStageId : undefined,
-      natureStageId ? +natureStageId : undefined,
-      all === 'true',
-    );
-    return {
-      message: 'Grille des affectations récupérée avec succès',
-      data,
-    };
-  }
-
-  @Get('affectations-stage/:id')
-  @Permissions('STAGE_VIEW')
-  @ApiOperation({ summary: 'Détail d\'une affectation' })
-  async findOneAffectation(
-    @Param('id') id: string,
-    @CurrentEtablissement() tenantId?: number,
-  ) {
-    const data = await this.siteStageService.findOneAffectation(+id, tenantId);
-    return {
-      message: `Affectation #${id} récupérée avec succès`,
-      data,
-    };
-  }
-
-  @Get('etudiants/:etudiantId/affectations-stage')
-  @Roles(Role.ETUDIANT, Role.PARENT, Role.ADMIN)
-  @ApiOperation({ summary: 'Stages d\'un étudiant' })
-  async findByEtudiant(
-    @Param('etudiantId') etudiantId: string,
-    @CurrentEtablissement() tenantId?: number,
-  ) {
-    const data = await this.siteStageService.findByEtudiant(
-      +etudiantId,
-      tenantId,
-    );
-    return {
-      message: 'Affectations de l\'étudiant récupérées avec succès',
-      data,
-    };
-  }
-
-  @Get('sites-stage/:siteId/affectations')
-  @Permissions('STAGE_VIEW')
-  @ApiOperation({ summary: 'Étudiants d\'un site de stage' })
-  async findBySite(
-    @Param('siteId') siteId: string,
-    @CurrentEtablissement() tenantId?: number,
-  ) {
-    const data = await this.siteStageService.findBySite(+siteId, tenantId);
-    return {
-      message: 'Affectations du site récupérées avec succès',
-      data,
-    };
-  }
-
-  @Post('etudiants/:etudiantId/affectations-stage/auto-assign')
-  @Permissions('STAGE_MANAGE')
-  @ApiOperation({ summary: 'Assigner aléatoirement un étudiant à tous les stages de l\'année' })
-  async autoAssignStudent(
-    @Param('etudiantId') etudiantId: string,
-    @CurrentEtablissement() tenantId?: number,
-  ) {
-    const etudiant = await this.etudiantRepository.findOne({
-      where: { id: +etudiantId },
-      relations: { classe: true, niveau: true, etablissement: true },
-    });
-    if (!etudiant) throw new NotFoundException('Étudiant non trouvé');
-
-    const affectations = await this.siteStageService.autoAssignStage(
-      etudiant.id,
-      etudiant.classe.id,
-      etudiant.niveau.id,
-      etudiant.etablissement?.id ?? tenantId,
-      undefined,
-      true,
-    );
-    return {
-      message: `${affectations.length} affectation(s) créée(s) avec succès`,
-      data: affectations,
-    };
-  }
-
-  @Post('affectations-stage/auto-assign-all')
-  @Permissions('STAGE_MANAGE')
-  @ApiOperation({ summary: 'Assigner aléatoirement tous les étudiants aux stages de l\'année' })
-  async autoAssignAllStudents(@CurrentEtablissement() tenantId?: number) {
-    const total = await this.siteStageService.autoAssignAll(tenantId);
-    return { message: `${total} affectation(s) créée(s) avec succès` };
-  }
-
-  @Patch('affectations-stage/:id')
-  @Permissions('STAGE_MANAGE')
-  @ApiOperation({ summary: 'Modifier une affectation (statut, site, tuteur)' })
-  async updateAffectation(
-    @Param('id') id: string,
-    @Body() dto: UpdateAffectationStageDto,
-    @CurrentEtablissement() tenantId?: number,
-  ) {
-    const data = await this.siteStageService.updateAffectation(
-      +id,
-      dto,
-      tenantId,
-    );
-    return {
-      message: `Affectation #${id} mise à jour avec succès`,
-      data,
-    };
-  }
-
-  @Delete('affectations-stage/:id')
-  @Permissions('STAGE_MANAGE')
-  @ApiOperation({ summary: 'Supprimer une affectation' })
-  async removeAffectation(
-    @Param('id') id: string,
-    @CurrentEtablissement() tenantId?: number,
-  ) {
-    await this.siteStageService.removeAffectation(+id, tenantId);
-    return { message: `Affectation #${id} supprimée avec succès` };
   }
 
   // ===================== NATURES DE STAGE =====================
@@ -367,7 +115,7 @@ export class SiteStageController {
 
   @Get('natures-stage/:id')
   @Permissions('STAGE_VIEW')
-  @ApiOperation({ summary: 'Détail d\'une nature de stage' })
+  @ApiOperation({ summary: "Détail d'une nature de stage" })
   async findOneNatureStage(@Param('id') id: string) {
     const data = await this.siteStageService.findOneNatureStage(+id);
     return { message: `Nature de stage #${id} récupérée avec succès`, data };
@@ -389,16 +137,151 @@ export class SiteStageController {
     return { message: `Nature de stage #${id} supprimée avec succès` };
   }
 
+  // ===================== LIGNES DE STAGE =====================
+
+  @Post('lignes-stage')
+  @Permissions('STAGE_MANAGE')
+  @ApiOperation({ summary: 'Créer une ligne de stage (circuit de rotation)' })
+  async createLigne(
+    @Body() dto: CreateLigneStageDto,
+    @CurrentEtablissement() tenantId?: number,
+  ) {
+    const data = await this.siteStageService.createLigne(dto, tenantId);
+    return { message: 'Ligne de stage créée avec succès', data };
+  }
+
+  @Get('lignes-stage')
+  @Permissions('STAGE_VIEW')
+  @ApiOperation({ summary: 'Grille des lignes de stage, filtrable par parcours/niveau' })
+  @ApiQuery({ name: 'classeIds', required: false, type: [Number], description: 'Un ou plusieurs identifiants de parcours' })
+  async getGrille(
+    @Query('anneeUniversitaireId') anneeUniversitaireId: string,
+    @Query('page') page: string,
+    @Query('limit') limit: string,
+    @Query('search') search: string,
+    @Query('classeIds') classeIds: string | string[],
+    @Query('niveauId') niveauId: string,
+    @Query('siteStageId') siteStageId: string,
+    @Query('natureStageId') natureStageId: string,
+    @Query('all') all: string,
+    @CurrentEtablissement() tenantId?: number,
+  ) {
+    const classeIdsArray = classeIds
+      ? (Array.isArray(classeIds) ? classeIds : [classeIds]).map(Number).filter((n) => !Number.isNaN(n))
+      : undefined;
+    const data = await this.siteStageService.getGrille(
+      +anneeUniversitaireId,
+      search,
+      page ? +page : 1,
+      limit ? +limit : 5,
+      tenantId,
+      classeIdsArray,
+      niveauId ? +niveauId : undefined,
+      siteStageId ? +siteStageId : undefined,
+      natureStageId ? +natureStageId : undefined,
+      all === 'true',
+    );
+    return { message: 'Grille des lignes de stage récupérée avec succès', data };
+  }
+
+  @Get('lignes-stage/:id')
+  @Permissions('STAGE_VIEW')
+  @ApiOperation({ summary: "Détail d'une ligne de stage" })
+  async findOneLigne(
+    @Param('id') id: string,
+    @CurrentEtablissement() tenantId?: number,
+  ) {
+    const data = await this.siteStageService.findOneLigne(+id, tenantId);
+    return { message: `Ligne de stage #${id} récupérée avec succès`, data };
+  }
+
+  @Patch('lignes-stage/:id')
+  @Permissions('STAGE_MANAGE')
+  @ApiOperation({ summary: "Changer l'étudiant assigné à une ligne de stage" })
+  async updateLigneEtudiant(
+    @Param('id') id: string,
+    @Body() dto: UpdateLigneStageDto,
+    @CurrentEtablissement() tenantId?: number,
+  ) {
+    const data = await this.siteStageService.updateLigneEtudiant(+id, dto, tenantId);
+    return { message: `Ligne de stage #${id} mise à jour avec succès`, data };
+  }
+
+  @Patch('lignes-stage/:id/slots/:ordre')
+  @Permissions('STAGE_MANAGE')
+  @ApiOperation({ summary: "Modifier un créneau d'une ligne de stage (site, nature, service, tuteur, statut)" })
+  async updateSlot(
+    @Param('id') id: string,
+    @Param('ordre') ordre: string,
+    @Body() dto: UpdateLigneSlotDto,
+    @CurrentEtablissement() tenantId?: number,
+  ) {
+    const data = await this.siteStageService.updateSlot(+id, +ordre, dto, tenantId);
+    return { message: 'Créneau mis à jour avec succès', data };
+  }
+
+  @Delete('lignes-stage/:id')
+  @Permissions('STAGE_MANAGE')
+  @ApiOperation({ summary: 'Supprimer une ligne de stage' })
+  async removeLigne(
+    @Param('id') id: string,
+    @CurrentEtablissement() tenantId?: number,
+  ) {
+    await this.siteStageService.removeLigne(+id, tenantId);
+    return { message: `Ligne de stage #${id} supprimée avec succès` };
+  }
+
+  @Get('etudiants/:etudiantId/lignes-stage')
+  @Roles(Role.ETUDIANT, Role.PARENT, Role.ADMIN, Role.SUPER_ADMIN, Role.ENSEIGNANT)
+  @ApiOperation({ summary: "Lignes de stage d'un étudiant" })
+  async findLignesByEtudiant(
+    @Param('etudiantId') etudiantId: string,
+    @CurrentEtablissement() tenantId?: number,
+  ) {
+    const data = await this.siteStageService.findLignesByEtudiant(+etudiantId, tenantId);
+    return { message: "Lignes de stage de l'étudiant récupérées avec succès", data };
+  }
+
+  @Post('etudiants/:etudiantId/affectations-stage/auto-assign')
+  @Permissions('STAGE_MANAGE')
+  @ApiOperation({ summary: 'Assigner automatiquement un étudiant à une ligne de stage vacante' })
+  async autoAssignStudent(
+    @Param('etudiantId') etudiantId: string,
+    @CurrentEtablissement() tenantId?: number,
+  ) {
+    const etudiant = await this.etudiantRepository.findOne({
+      where: { id: +etudiantId },
+      relations: { classe: true, niveau: true, etablissement: true },
+    });
+    if (!etudiant) throw new NotFoundException('Étudiant non trouvé');
+
+    const ligne = await this.siteStageService.autoAssignStage(
+      etudiant.id,
+      etudiant.classe.id,
+      etudiant.niveau.id,
+      etudiant.etablissement?.id ?? tenantId,
+    );
+    return {
+      message: ligne ? 'Étudiant assigné à une ligne de stage avec succès' : 'Aucune ligne vacante disponible',
+      data: ligne,
+    };
+  }
+
+  @Post('affectations-stage/auto-assign-all')
+  @Permissions('STAGE_MANAGE')
+  @ApiOperation({ summary: 'Assigner automatiquement tous les étudiants non affectés à des lignes vacantes' })
+  async autoAssignAllStudents(@CurrentEtablissement() tenantId?: number) {
+    const total = await this.siteStageService.autoAssignAll(tenantId);
+    return { message: `${total} étudiant(s) assigné(s) avec succès` };
+  }
+
   @Get('stage/etudiant/me')
   @Roles(Role.ETUDIANT)
   @ApiOperation({ summary: 'Mon stage (avec vérification du paiement des écolages)' })
   async getMyStage(@Request() req: any) {
     const etudiantId = req.user.etudiantId;
     const data = await this.siteStageService.getMyStageInfo(etudiantId);
-    return {
-      message: 'Informations de stage récupérées avec succès',
-      data,
-    };
+    return { message: 'Informations de stage récupérées avec succès', data };
   }
 
   // ===================== IMPORT =====================
@@ -501,7 +384,6 @@ export class SiteStageController {
         let capacite: number | undefined;
 
         if (cells.length >= 5) {
-          // Tableau CHU : [prefix, location/natures, natures, resp, cap]
           if (!cells[0] && cells[1]) {
             siteName = cells[1];
             natureText = cells[2];
@@ -514,14 +396,12 @@ export class SiteStageController {
           responsable = cells[3] || '';
           capacite = parseInt(cells[4]) || undefined;
         } else {
-          // Tableau standard 4 colonnes : [site, natures, resp, cap]
           siteName = cells[0];
           natureText = cells[1];
           responsable = cells[2] || '';
           capacite = parseInt(cells[3]) || undefined;
         }
 
-        // Nettoie le nom du site
         const sdspIdx = siteName.search(/\bSDSP\b/i);
         if (sdspIdx >= 0) siteName = siteName.slice(0, sdspIdx).trim();
         siteName = siteName.replace(/\s*\([^)]+\)/, '').trim();
@@ -529,7 +409,7 @@ export class SiteStageController {
 
         const natures = [...new Set(splitNatures(natureText))];
 
-        const site = await this.siteStageService.createSite({
+        await this.siteStageService.createSite({
           nom: siteName,
           responsable,
           capacite,
@@ -550,19 +430,21 @@ export class SiteStageController {
   @Post('import/repartition')
   @Permissions('STAGE_MANAGE')
   @UseInterceptors(FileInterceptor('file', { limits: { fileSize: 15 * 1024 * 1024 } }))
-  @ApiOperation({ summary: 'Importer la répartition des stages depuis un fichier XLSX' })
+  @ApiOperation({ summary: 'Importer des lignes de stage depuis un fichier XLSX (sans assignation d\'étudiant)' })
   async importRepartition(
     @UploadedFile() file: Express.Multer.File,
+    @Query('anneeUniversitaireId') anneeUniversitaireId: string,
     @CurrentEtablissement() tenantId?: number,
   ) {
     if (!file) throw new BadRequestException('Fichier requis');
+    if (!anneeUniversitaireId) throw new BadRequestException("L'année universitaire est requise");
 
     const { Readable } = require('stream');
     const stream = Readable.from(file.buffer);
     const reader = new ExcelJS.stream.xlsx.WorkbookReader(stream, {});
 
     const results: any[] = [];
-    let totalAffectations = 0;
+    let totalLignes = 0;
 
     for await (const worksheet of reader) {
       const sheetName = (worksheet as any).name;
@@ -600,19 +482,22 @@ export class SiteStageController {
         },
       };
 
-      const sheetResult = await this.siteStageService.importRepartitionSheet(
+      const sheetResult = await this.siteStageService.importLignesFromSheet(
         mockWorksheet,
         headers,
         sheetName,
+        +anneeUniversitaireId,
+        undefined,
+        undefined,
         tenantId,
       );
       results.push(sheetResult);
-      totalAffectations += sheetResult.affectationsCreated;
+      totalLignes += sheetResult.lignesCreated;
     }
 
     return {
       message: 'Import de la répartition terminé',
-      data: { feuilles: results, totalAffectations },
+      data: { feuilles: results, totalLignes },
     };
   }
 }

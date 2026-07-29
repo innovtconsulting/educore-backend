@@ -73,8 +73,8 @@ import { NotificationTokenModule } from './notification-token/notification-token
 import { NotificationToken } from './notification-token/entities/notification-token.entity';
 import { SiteStageModule } from './site-stage/site-stage.module';
 import { SiteStage } from './site-stage/entities/site-stage.entity';
-import { PeriodeStage } from './site-stage/entities/periode-stage.entity';
-import { AffectationStage } from './site-stage/entities/affectation-stage.entity';
+import { LigneStage } from './site-stage/entities/ligne-stage.entity';
+import { LigneStageSlot } from './site-stage/entities/ligne-stage-slot.entity';
 import { NatureStage } from './site-stage/entities/nature-stage.entity';
 import { SharedModule } from './shared/shared.module';
 import { NotificationsModule } from './notifications/notifications.module';
@@ -138,8 +138,8 @@ import { ChapitreProgression } from './progression/entities/chapitre-progression
         NotificationToken,
         Notification,
         SiteStage,
-        PeriodeStage,
-        AffectationStage,
+        LigneStage,
+        LigneStageSlot,
         NatureStage,
         Personnel,
         PaiePersonnel,
