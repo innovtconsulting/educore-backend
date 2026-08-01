@@ -100,6 +100,27 @@ export class FinanceController {
     return { message: 'Détail du frais récupéré avec succès', data };
   }
 
+  @Post('frais/:groupeId/generate-missing-invoices')
+  @Roles(Role.ADMIN, Role.SUPER_ADMIN, Role.COMPTABLE)
+  @Permissions('FINANCE_MANAGE')
+  @ApiOperation({
+    summary:
+      "Régénérer les factures manquantes d'un frais (étudiants inscrits/validés après sa création)",
+  })
+  async generateMissingInvoices(
+    @Param('groupeId') groupeId: string,
+    @CurrentEtablissement() tenantId?: number,
+  ) {
+    const data = await this.financeService.generateMissingInvoices(groupeId, tenantId);
+    return {
+      message:
+        data.created > 0
+          ? `${data.created} facture(s) manquante(s) générée(s) avec succès`
+          : 'Aucune facture manquante : tous les étudiants concernés sont déjà facturés',
+      data,
+    };
+  }
+
   @Delete('frais/:groupeId')
   @Roles(Role.COMPTABLE)
   @Permissions('FINANCE_MANAGE')

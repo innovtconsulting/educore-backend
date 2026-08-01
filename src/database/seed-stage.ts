@@ -32,8 +32,8 @@ const CLASSE_NAME_BY_SUFFIX: Record<string, string> = {
   TL: 'Technicien de laboratoire',
 };
 
-const ETABLISSEMENT_ID = 4;
-const ANNEE_UNIVERSITAIRE_ID = 2;
+const ETABLISSEMENT_ID = 1;
+const ANNEE_UNIVERSITAIRE_ID = 1;
 const MAX_SCAN_ROWS = 2000;
 
 async function seedStage() {

@@ -4,7 +4,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Between, ILike, Not, Repository } from 'typeorm';
+import { Between, ILike, In, Not, Repository } from 'typeorm';
 import { randomUUID } from 'crypto';
 import { Frais, FeeType } from './entities/frais.entity';
 import { Facture, InvoiceStatus } from './entities/facture.entity';
@@ -20,6 +20,7 @@ import { CreateGlobalPaymentDto } from './dto/create-global-payment.dto';
 import { CreateDepenseDto } from './dto/create-depense.dto';
 import { UpdateDepenseDto } from './dto/update-depense.dto';
 import { AnneeUniversitaireService } from '../annee-universitaire/annee-universitaire.service';
+import { AnneeUniversitaire } from '../annee-universitaire/entities/annee-universitaire.entity';
 import { TenantHelper } from '../common/tenant/tenant.helper';
 
 @Injectable()
@@ -159,8 +160,31 @@ export class FinanceService {
     const savedScopeRows = await this.fraisRepository.save(scopeRows);
 
     // Générer les factures pour chaque étudiant déjà inscrit dans chaque scope
+    await this.generateInvoicesForFraisRows(
+      savedScopeRows,
+      tenantId,
+      anneeActive,
+      dto.dateEcheance ? new Date(dto.dateEcheance) : undefined,
+    );
+
+    return this.findFeeGroupDetail(groupeId, tenantId);
+  }
+
+  /**
+   * Crée les factures manquantes pour les étudiants d'un ou plusieurs frais
+   * (scope classe+niveau), sans dupliquer celles qui existent déjà. Utilisé
+   * à la création d'un frais (tous les étudiants sont "manquants") et par la
+   * régénération manuelle (rattrape les étudiants inscrits/validés après
+   * coup, qui ne sont sinon jamais facturés automatiquement).
+   */
+  private async generateInvoicesForFraisRows(
+    fraisRows: Frais[],
+    tenantId: number,
+    anneeUniversitaire: AnneeUniversitaire,
+    dateEcheance?: Date,
+  ): Promise<number> {
     const facturesToCreate: Facture[] = [];
-    for (const frais of savedScopeRows) {
+    for (const frais of fraisRows) {
       const etudiants = await this.etudiantRepository.find({
         where: {
           classe: { id: frais.classe.id },
@@ -168,19 +192,25 @@ export class FinanceService {
           etablissement: { id: tenantId },
         },
       });
+      if (etudiants.length === 0) continue;
+
+      const existing = await this.factureRepository.find({
+        where: { fraisId: frais.id },
+        select: { etudiantId: true },
+      });
+      const existingEtudiantIds = new Set(existing.map((f) => f.etudiantId));
 
       for (const etudiant of etudiants) {
+        if (existingEtudiantIds.has(etudiant.id)) continue;
         facturesToCreate.push(
           this.factureRepository.create({
-            numero: `FACT-${anneeActive.label}-${frais.id}-${etudiant.id}`,
+            numero: `FACT-${anneeUniversitaire.label}-${frais.id}-${etudiant.id}`,
             frais,
             etudiantId: etudiant.id,
             etablissementId: tenantId,
-            anneeUniversitaire: anneeActive,
+            anneeUniversitaire,
             dateEmission: new Date(),
-            dateEcheance: dto.dateEcheance
-              ? new Date(dto.dateEcheance)
-              : undefined,
+            dateEcheance,
             montantTotal: frais.amount,
             status: InvoiceStatus.VALIDE,
           }),
@@ -191,8 +221,94 @@ export class FinanceService {
     if (facturesToCreate.length > 0) {
       await this.factureRepository.save(facturesToCreate);
     }
+    return facturesToCreate.length;
+  }
 
-    return this.findFeeGroupDetail(groupeId, tenantId);
+  /**
+   * Génère, pour UN étudiant (classe/niveau/établissement donnés), les
+   * factures des frais existants de l'année active auxquels il n'est pas
+   * encore facturé. Appelé à la création d'un étudiant actif et à la
+   * validation d'inscription, pour que la facturation ne dépende plus
+   * uniquement de l'instant de création du frais (cf. generateInvoicesForFraisRows).
+   * Échoue silencieusement si aucune année n'est active.
+   */
+  async generateInvoicesForStudent(
+    etudiantId: number,
+    classeId: number,
+    niveauId: number,
+    tenantId: number,
+  ): Promise<number> {
+    let anneeActive: AnneeUniversitaire;
+    try {
+      anneeActive = await this.anneeUniversitaireService.getActiveYear(tenantId);
+    } catch {
+      return 0;
+    }
+
+    const fraisRows = await this.fraisRepository.find({
+      where: {
+        classe: { id: classeId },
+        niveau: { id: niveauId },
+        etablissementId: tenantId,
+        anneeUniversitaireId: anneeActive.id,
+      },
+      relations: { classe: true, niveau: true },
+    });
+    if (fraisRows.length === 0) return 0;
+
+    const existing = await this.factureRepository.find({
+      where: { etudiantId, fraisId: In(fraisRows.map((f) => f.id)) },
+      select: { fraisId: true },
+    });
+    const existingFraisIds = new Set(existing.map((f) => f.fraisId));
+    const missing = fraisRows.filter((f) => !existingFraisIds.has(f.id));
+    if (missing.length === 0) return 0;
+
+    const factures = missing.map((frais) =>
+      this.factureRepository.create({
+        numero: `FACT-${anneeActive.label}-${frais.id}-${etudiantId}`,
+        frais,
+        etudiantId,
+        etablissementId: tenantId,
+        anneeUniversitaire: anneeActive,
+        dateEmission: new Date(),
+        montantTotal: frais.amount,
+        status: InvoiceStatus.VALIDE,
+      }),
+    );
+    await this.factureRepository.save(factures);
+    return factures.length;
+  }
+
+  /**
+   * Rattrape les factures manquantes pour un groupe de frais existant : les
+   * étudiants inscrits/validés après la création du frais (ou dont la
+   * classe/niveau a changé sans repasser par la réinscription) n'ont jamais
+   * été facturés automatiquement. Idempotent : ne crée rien pour les
+   * étudiants déjà facturés.
+   */
+  async generateMissingInvoices(groupeId: string, tenantId?: number) {
+    const where: any = { groupeId };
+    if (tenantId) where.etablissementId = tenantId;
+
+    const scopeRows = await this.fraisRepository.find({
+      where,
+      relations: { classe: true, niveau: true, anneeUniversitaire: true },
+      order: { id: 'ASC' },
+    });
+    if (scopeRows.length === 0) {
+      throw new NotFoundException('Frais introuvable');
+    }
+
+    const etablissementId = tenantId ?? scopeRows[0].etablissementId;
+    const created = await this.generateInvoicesForFraisRows(
+      scopeRows,
+      etablissementId,
+      scopeRows[0].anneeUniversitaire,
+    );
+
+    const detail = await this.findFeeGroupDetail(groupeId, tenantId);
+    return { created, ...detail };
   }
 
   // --- Liste des frais (groupés) ---

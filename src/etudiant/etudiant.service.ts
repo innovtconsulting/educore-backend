@@ -45,6 +45,7 @@ import {
   ConfirmImportDto,
 } from './dto/import-student.dto';
 import { SiteStageService } from '../site-stage/site-stage.service';
+import { FinanceService } from '../finance/finance.service';
 
 @Injectable()
 export class EtudiantService {
@@ -66,6 +67,7 @@ export class EtudiantService {
 		private readonly anneeUniversitaireService: AnneeUniversitaireService,
 		private readonly dataSource: DataSource,
 		private readonly siteStageService?: SiteStageService,
+		private readonly financeService?: FinanceService,
 	) {}
 
 	// Crée un compte utilisateur (rôle PARENT) pour chaque parent qui n'en a pas encore,
@@ -260,6 +262,7 @@ export class EtudiantService {
 			);
 			if (savedEtudiant.status === EnrollmentStatus.ACTIF) {
 				await this.ensureActiveYearInscription(savedEtudiant, tenantId);
+				await this.generateMissingInvoices(savedEtudiant, etablissementId);
 			}
 			return savedEtudiant;
 		} catch (error) {
@@ -303,6 +306,29 @@ export class EtudiantService {
 		} catch {
 			// Aucune année universitaire active configurée : on ignore, ce n'est
 			// pas bloquant pour la création/validation de l'étudiant.
+		}
+	}
+
+	// Facture les frais déjà existants (année active) pour le parcours/niveau
+	// de l'étudiant : sans ça, un frais créé avant l'inscription/validation de
+	// cet étudiant ne le facture jamais automatiquement. Échoue silencieusement
+	// (comme l'assignation de stage) pour ne pas bloquer la création/validation.
+	private async generateMissingInvoices(
+		etudiant: Etudiant,
+		tenantId?: number,
+	): Promise<void> {
+		const resolvedTenantId = tenantId ?? etudiant.etablissement?.id;
+		if (!etudiant.classe?.id || !etudiant.niveau?.id || !resolvedTenantId) return;
+		try {
+			await this.financeService?.generateInvoicesForStudent(
+				etudiant.id,
+				etudiant.classe.id,
+				etudiant.niveau.id,
+				resolvedTenantId,
+			);
+		} catch {
+			// Échec silencieux — la facturation automatique est un rattrapage,
+			// pas une condition bloquante pour la création/validation.
 		}
 	}
 
@@ -580,6 +606,7 @@ export class EtudiantService {
 		}
 
 		await this.ensureActiveYearInscription(savedEtudiant, tenantId);
+		await this.generateMissingInvoices(savedEtudiant, tenantId);
 
 		// Assignation automatique à tous les stages de l'année
 		if (savedEtudiant.classe && savedEtudiant.niveau) {
