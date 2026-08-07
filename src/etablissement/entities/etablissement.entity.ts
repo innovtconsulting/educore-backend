@@ -73,6 +73,20 @@ export class Etablissement {
   @Column({ type: 'varchar', default: SupervisorLabel.SURVEILLANT })
   supervisorLabel!: SupervisorLabel;
 
+  // Activation du module Stage, propre à cet établissement. Réglable par
+  // l'ADMIN de l'établissement lui-même (page Paramètres) : présent dans
+  // les DTOs create/update.
+  @Column({ type: 'boolean', default: true })
+  stageEnabled!: boolean;
+
+  // Visibilité côté SUPER_ADMIN uniquement : si false, l'établissement est
+  // exclu des listes et des statistiques globales du super-admin (mais
+  // reste pleinement fonctionnel pour ses propres utilisateurs). Absent des
+  // DTOs create/update : réglable seulement via seeder ou requête directe en
+  // base, jamais depuis l'interface (même superadmin).
+  @Column({ type: 'boolean', default: true })
+  visible!: boolean;
+
   @OneToMany(() => Classe, (classe) => classe.etablissement)
   classes!: Classe[];
 

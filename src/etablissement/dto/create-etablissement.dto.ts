@@ -1,5 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsEmail, IsEnum, IsNotEmpty, IsOptional, IsString } from 'class-validator';
+import { IsBoolean, IsEmail, IsEnum, IsNotEmpty, IsOptional, IsString } from 'class-validator';
 import { CertificateTemplate, SupervisorLabel } from '../entities/etablissement.entity';
 
 export class CreateEtablissementDto {
@@ -41,4 +41,12 @@ export class CreateEtablissementDto {
   @IsEnum(SupervisorLabel)
   @IsOptional()
   supervisorLabel?: SupervisorLabel;
+
+  @ApiPropertyOptional({
+    default: true,
+    description: "Active ou désactive le module Stage pour cet établissement",
+  })
+  @IsBoolean()
+  @IsOptional()
+  stageEnabled?: boolean;
 }

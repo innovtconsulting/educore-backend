@@ -59,33 +59,53 @@ export class ReportingService {
       totalEtablissements,
     ] = await Promise.all([
       this.etudiantRepository.count({
-        where: TenantHelper.addTenantFilter(
-          { status: EnrollmentStatus.ACTIF },
+        where: TenantHelper.addVisibleOnlyFilter(
+          TenantHelper.addTenantFilter(
+            { status: EnrollmentStatus.ACTIF },
+            resolvedTenantId,
+          ),
           resolvedTenantId,
         ) as any,
       }),
       this.enseignantRepository.count({
-        where: TenantHelper.addTenantFilter({}, resolvedTenantId) as any,
+        where: TenantHelper.addVisibleOnlyFilter(
+          TenantHelper.addTenantFilter({}, resolvedTenantId),
+          resolvedTenantId,
+        ) as any,
       }),
       this.classeRepository.count({
-        where: TenantHelper.addTenantFilter({}, resolvedTenantId) as any,
-      }),
-      this.userRepository.count({
-        where: TenantHelper.addTenantFilter(
-          { role: Role.COMPTABLE },
+        where: TenantHelper.addVisibleOnlyFilter(
+          TenantHelper.addTenantFilter({}, resolvedTenantId),
           resolvedTenantId,
         ) as any,
       }),
       this.userRepository.count({
-        where: TenantHelper.addTenantFilter(
-          { role: Role.SURVEILLANT },
+        where: TenantHelper.addVisibleOnlyFilter(
+          TenantHelper.addTenantFilter(
+            { role: Role.COMPTABLE },
+            resolvedTenantId,
+          ),
+          resolvedTenantId,
+        ) as any,
+      }),
+      this.userRepository.count({
+        where: TenantHelper.addVisibleOnlyFilter(
+          TenantHelper.addTenantFilter(
+            { role: Role.SURVEILLANT },
+            resolvedTenantId,
+          ),
           resolvedTenantId,
         ) as any,
       }),
       this.sanctionRepository.count({
-        where: TenantHelper.addTenantFilter({}, resolvedTenantId) as any,
+        where: TenantHelper.addVisibleOnlyFilter(
+          TenantHelper.addTenantFilter({}, resolvedTenantId),
+          resolvedTenantId,
+        ) as any,
       }),
-      resolvedTenantId ? 1 : this.etablissementRepository.count(),
+      resolvedTenantId
+        ? 1
+        : this.etablissementRepository.count({ where: { visible: true } }),
     ]);
 
     return {

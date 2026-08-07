@@ -509,6 +509,7 @@ export class FinanceService {
   ) {
     let where: any = {};
     if (tenantId) where.etablissementId = tenantId;
+    else where.etablissement = { visible: true };
     if (category) where.category = category;
     if (start && end) where.date = Between(new Date(start), new Date(end));
 
@@ -816,9 +817,13 @@ export class FinanceService {
   // --- Tableau de Bord & Rapports (conservés, adaptés minimalement) ---
 
   async getDashboardStats(tenantId?: number, feeType?: FeeType) {
-    let where: any = tenantId
-      ? TenantHelper.addTenantFilter({}, tenantId, 'etudiant.etablissement')
-      : {};
+    let where: any = TenantHelper.addVisibleOnlyFilter(
+      tenantId
+        ? TenantHelper.addTenantFilter({}, tenantId, 'etudiant.etablissement')
+        : {},
+      tenantId,
+      'etudiant.etablissement',
+    );
     let paiementsWhere: any = { ...where };
     if (feeType) {
       paiementsWhere = { ...paiementsWhere, facture: { frais: { type: feeType } } };
@@ -1094,8 +1099,8 @@ export class FinanceService {
     if (feeType) {
       paiementsWhere.facture = { frais: { type: feeType } };
     }
-    paiementsWhere = TenantHelper.addTenantFilter(
-      paiementsWhere,
+    paiementsWhere = TenantHelper.addVisibleOnlyFilter(
+      TenantHelper.addTenantFilter(paiementsWhere, tenantId, 'etudiant.etablissement'),
       tenantId,
       'etudiant.etablissement',
     );
@@ -1123,8 +1128,8 @@ export class FinanceService {
     if (feeType) {
       facturesWhere.frais = { type: feeType };
     }
-    facturesWhere = TenantHelper.addTenantFilter(
-      facturesWhere,
+    facturesWhere = TenantHelper.addVisibleOnlyFilter(
+      TenantHelper.addTenantFilter(facturesWhere, tenantId, 'etudiant.etablissement'),
       tenantId,
       'etudiant.etablissement',
     );

@@ -22,6 +22,7 @@
     "db:seed:admins": "ts-node src/database/seed-admins.ts",
     "db:seed:users": "ts-node src/database/seed-users.ts",
     "db:seed:stage": "ts-node src/database/seed-stage.ts",
+    "db:seed:futura": "ts-node src/database/seed-futura.ts",
     "db:reset": "ts-node src/database/reset.ts",
     "typeorm": "ts-node ./node_modules/typeorm/cli",
     "migration:run": "npm run typeorm migration:run -- -d src/data-source.ts",

@@ -25,7 +25,12 @@ export class EtablissementService {
   }
 
   async findAll(tenantId?: number): Promise<Etablissement[]> {
-    const where = tenantId ? { id: tenantId } : {};
+    // Un ADMIN ne voit toujours que son propre établissement (visible ou
+    // non — ça n'a pas de sens de se cacher son propre établissement à
+    // soi-même). Un SUPER_ADMIN (tenantId absent) ne voit, lui, que les
+    // établissements marqués `visible` : ceux passés à `visible: false`
+    // (seeder/DB uniquement, jamais via l'UI) sont exclus de cette liste.
+    const where = tenantId ? { id: tenantId } : { visible: true };
     return await this.etablissementRepository.find({ where });
   }
 
