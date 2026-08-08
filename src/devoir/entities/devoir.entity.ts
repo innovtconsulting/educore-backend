@@ -39,13 +39,21 @@ export class Devoir {
   @ApiProperty({ type: () => Matiere })
   matiere!: Matiere;
 
-  @ManyToOne(() => Classe, { nullable: true })
-  @ApiProperty({ type: () => Classe })
-  classe?: Classe;
+  // Parcours/niveaux ciblés par ce devoir (ensembles à plat, indépendants
+  // l'un de l'autre — pas de paires classe×niveau) : même modèle que
+  // Document (classes/niveaux M2M), résolu via `allEtablissement` ou
+  // `scopes` côté DTO. Un devoir "Tout l'établissement" contient
+  // explicitement toutes les classes/tous les niveaux du tenant (pas de
+  // liste vide en convention "tout").
+  @ManyToMany(() => Classe)
+  @JoinTable({ name: 'devoir_classes' })
+  @ApiProperty({ type: () => [Classe], isArray: true })
+  classes!: Classe[];
 
-  @ManyToOne(() => Niveau, { nullable: false })
-  @ApiProperty({ type: () => Niveau })
-  niveau!: Niveau;
+  @ManyToMany(() => Niveau)
+  @JoinTable({ name: 'devoir_niveaux' })
+  @ApiProperty({ type: () => [Niveau], isArray: true })
+  niveaux!: Niveau[];
 
   @ManyToOne(() => Enseignant, { nullable: false })
   @ApiProperty({ type: () => Enseignant })

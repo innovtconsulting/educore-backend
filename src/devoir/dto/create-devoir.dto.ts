@@ -1,11 +1,17 @@
-import { ApiProperty } from '@nestjs/swagger';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { Type } from 'class-transformer';
 import {
+  ArrayMinSize,
+  IsArray,
+  IsBoolean,
   IsDateString,
   IsNotEmpty,
   IsNumber,
   IsOptional,
   IsString,
+  ValidateNested,
 } from 'class-validator';
+import { ScheduleScopeDto } from '../../emploi-du-temps/dto/create-evenement.dto';
 
 export class CreateDevoirDto {
   @ApiProperty({ example: 'TP Algorithmique' })
@@ -28,15 +34,21 @@ export class CreateDevoirDto {
   @IsNotEmpty()
   matiereId!: number;
 
-  @ApiProperty({ example: 1, required: false })
+  @ApiPropertyOptional({ description: "Vise tout l'établissement (ignore scopes)" })
+  @IsBoolean()
   @IsOptional()
-  @IsNumber()
-  classeId?: number;
+  allEtablissement?: boolean;
 
-  @ApiProperty({ example: 1 })
-  @IsNumber()
-  @IsNotEmpty()
-  niveauId!: number;
+  @ApiPropertyOptional({
+    type: [ScheduleScopeDto],
+    description: 'Parcours/niveaux ciblés (requis si allEtablissement=false)',
+  })
+  @IsArray()
+  @ArrayMinSize(1)
+  @ValidateNested({ each: true })
+  @Type(() => ScheduleScopeDto)
+  @IsOptional()
+  scopes?: ScheduleScopeDto[];
 
   @ApiProperty({ example: [1], required: false })
   @IsOptional()

@@ -59,7 +59,7 @@ export class ActivityService {
         take: limit,
       }),
       this.devoirRepository.find({
-        where: { classe: { id: etudiant.classe?.id } },
+        where: { classes: { id: etudiant.classe?.id } },
         relations: { matiere: true },
         order: { createdAt: 'DESC' as const },
         take: limit,
