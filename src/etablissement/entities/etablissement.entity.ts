@@ -36,6 +36,15 @@ export enum CertificateTemplate {
   ESPA = 'ESPA',
 }
 
+// Choix indépendant du template de certificat : détermine l'en-tête et le
+// pied de page utilisés pour le bulletin de notes (le corps — infos étudiant
+// et tableau des notes — reste strictement identique quel que soit le choix).
+export enum ReportCardTemplate {
+  DEFAULT = 'DEFAULT',
+  ESPM = 'ESPM',
+  ESPA = 'ESPA',
+}
+
 // Libellé d'affichage utilisé pour désigner le rôle Surveillant, propre à
 // chaque établissement (ex: certains l'appellent "Monitrice"). Purement
 // cosmétique : le rôle métier reste `Role.SURVEILLANT` partout ailleurs.
@@ -69,6 +78,9 @@ export class Etablissement {
 
   @Column({ type: 'varchar', default: CertificateTemplate.DEFAULT })
   certificateTemplate!: CertificateTemplate;
+
+  @Column({ type: 'varchar', default: ReportCardTemplate.DEFAULT })
+  reportCardTemplate!: ReportCardTemplate;
 
   @Column({ type: 'varchar', default: SupervisorLabel.SURVEILLANT })
   supervisorLabel!: SupervisorLabel;

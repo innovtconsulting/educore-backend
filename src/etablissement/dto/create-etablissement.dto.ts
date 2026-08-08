@@ -1,6 +1,6 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { IsBoolean, IsEmail, IsEnum, IsNotEmpty, IsOptional, IsString } from 'class-validator';
-import { CertificateTemplate, SupervisorLabel } from '../entities/etablissement.entity';
+import { CertificateTemplate, ReportCardTemplate, SupervisorLabel } from '../entities/etablissement.entity';
 
 export class CreateEtablissementDto {
   @ApiProperty({ example: 'Lycée Excellence' })
@@ -31,6 +31,16 @@ export class CreateEtablissementDto {
   @IsEnum(CertificateTemplate)
   @IsOptional()
   certificateTemplate?: CertificateTemplate;
+
+  @ApiPropertyOptional({
+    enum: ReportCardTemplate,
+    default: ReportCardTemplate.DEFAULT,
+    description:
+      "Template utilisé pour l'en-tête et le pied de page du bulletin de notes (le corps du bulletin ne change pas)",
+  })
+  @IsEnum(ReportCardTemplate)
+  @IsOptional()
+  reportCardTemplate?: ReportCardTemplate;
 
   @ApiPropertyOptional({
     enum: SupervisorLabel,
