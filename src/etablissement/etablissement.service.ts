@@ -56,7 +56,11 @@ export class EtablissementService {
     tenantId?: number,
   ): Promise<Etablissement> {
     const etablissement = await this.findOne(id, tenantId);
-    Object.assign(etablissement, updateEtablissementDto);
+    // `visible` n'est délibérément pas dans UpdateEtablissementDto (seulement
+    // réglable par seeder/DB directe) : on l'exclut explicitement ici aussi,
+    // au cas où un champ non déclaré survivrait à la validation globale.
+    const { visible, ...safeUpdates } = updateEtablissementDto as any;
+    Object.assign(etablissement, safeUpdates);
     return await this.etablissementRepository.save(etablissement);
   }
 

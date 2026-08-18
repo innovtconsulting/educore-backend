@@ -8,6 +8,11 @@ export class CreateEtablissementDto {
   @IsNotEmpty({ message: 'Le nom est obligatoire' })
   name!: string;
 
+  @ApiPropertyOptional({ example: 'LEX' })
+  @IsString({ message: "L'acronyme doit être une chaîne de caractères" })
+  @IsOptional()
+  acronyme?: string;
+
   @ApiProperty({ example: 'Dakar, Sénégal' })
   @IsString({ message: "L'adresse doit être une chaîne de caractères" })
   @IsNotEmpty({ message: "L'adresse est obligatoire" })

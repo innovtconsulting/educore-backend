@@ -21,6 +21,8 @@ import { Inscription } from './inscription.entity';
 
 export enum SerieBac {
   A = 'A',
+  A1 = 'A1',
+  A2 = 'A2',
   C = 'C',
   D = 'D',
   OSE = 'OSe',
