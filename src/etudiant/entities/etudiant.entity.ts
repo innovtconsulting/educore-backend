@@ -20,7 +20,7 @@ import { User } from '../../user/entities/user.entity';
 import { Inscription } from './inscription.entity';
 
 export enum SerieBac {
-  A = 'A',
+  L = 'L',
   A1 = 'A1',
   A2 = 'A2',
   C = 'C',
