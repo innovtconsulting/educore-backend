@@ -10,6 +10,7 @@ import { Etudiant } from '../etudiant/entities/etudiant.entity';
 import { Parent } from '../parent/entities/parent.entity';
 import { Classe } from '../classe/entities/classe.entity';
 import { Niveau } from '../niveau/entities/niveau.entity';
+import { Etablissement } from '../etablissement/entities/etablissement.entity';
 import { AnneeUniversitaireModule } from '../annee-universitaire/annee-universitaire.module';
 
 @Module({
@@ -23,6 +24,7 @@ import { AnneeUniversitaireModule } from '../annee-universitaire/annee-universit
       Parent,
       Classe,
       Niveau,
+      Etablissement,
     ]),
     AnneeUniversitaireModule,
   ],

@@ -38,8 +38,21 @@ export class ReportingController {
   @Roles(Role.ADMIN, Role.SUPER_ADMIN)
   @Permissions('ACADEMIC_VIEW')
   @ApiOperation({ summary: 'Consulter les statistiques globales du système' })
-  async getGlobalStats(@Request() req: any, @CurrentEtablissement() tenantId?: number) {
-    const data = await this.reportingService.getGlobalStats(tenantId, req.user);
+  @ApiQuery({
+    name: 'etablissementId',
+    required: false,
+    description: 'Filtrer sur un établissement précis (super-admin uniquement, établissements visibles seulement)',
+  })
+  async getGlobalStats(
+    @Request() req: any,
+    @Query('etablissementId') etablissementId?: string,
+    @CurrentEtablissement() tenantId?: number,
+  ) {
+    const data = await this.reportingService.getGlobalStats(
+      tenantId,
+      req.user,
+      etablissementId ? Number(etablissementId) : undefined,
+    );
     return {
       message: 'Statistiques globales récupérées avec succès',
       data,

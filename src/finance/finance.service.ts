@@ -21,6 +21,8 @@ import { CreateDepenseDto } from './dto/create-depense.dto';
 import { UpdateDepenseDto } from './dto/update-depense.dto';
 import { AnneeUniversitaireService } from '../annee-universitaire/annee-universitaire.service';
 import { AnneeUniversitaire } from '../annee-universitaire/entities/annee-universitaire.entity';
+import { Etablissement } from '../etablissement/entities/etablissement.entity';
+import { Role } from '../user/entities/user.entity';
 import { TenantHelper } from '../common/tenant/tenant.helper';
 
 @Injectable()
@@ -42,8 +44,28 @@ export class FinanceService {
     public readonly classeRepository: Repository<Classe>,
     @InjectRepository(Niveau)
     public readonly niveauRepository: Repository<Niveau>,
+    @InjectRepository(Etablissement)
+    public readonly etablissementRepository: Repository<Etablissement>,
     private readonly anneeUniversitaireService: AnneeUniversitaireService,
   ) {}
+
+  // Un SUPER_ADMIN peut filtrer le dashboard sur un établissement précis
+  // (parmi les établissements visibles uniquement — jamais un établissement
+  // masqué, même en forçant l'ID dans la requête).
+  private async resolveDashboardTenantId(
+    tenantId?: number,
+    caller?: any,
+    etablissementIdFilter?: number,
+  ): Promise<number | undefined> {
+    if (caller?.role === Role.SUPER_ADMIN && etablissementIdFilter) {
+      const etab = await this.etablissementRepository.findOneBy({
+        id: etablissementIdFilter,
+        visible: true,
+      });
+      if (etab) return etab.id;
+    }
+    return tenantId;
+  }
 
   private enrichFactureWithPaymentSummary(facture: Facture) {
     const totalPaye = (facture.paiements ?? []).reduce(
@@ -816,7 +838,17 @@ export class FinanceService {
 
   // --- Tableau de Bord & Rapports (conservés, adaptés minimalement) ---
 
-  async getDashboardStats(tenantId?: number, feeType?: FeeType) {
+  async getDashboardStats(
+    tenantId?: number,
+    feeType?: FeeType,
+    caller?: any,
+    etablissementIdFilter?: number,
+  ) {
+    tenantId = await this.resolveDashboardTenantId(
+      tenantId,
+      caller,
+      etablissementIdFilter,
+    );
     let where: any = TenantHelper.addVisibleOnlyFilter(
       tenantId
         ? TenantHelper.addTenantFilter({}, tenantId, 'etudiant.etablissement')

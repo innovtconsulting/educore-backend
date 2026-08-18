@@ -38,7 +38,22 @@ export class ReportingService {
     private readonly etablissementRepository: Repository<Etablissement>,
   ) {}
 
-  private async resolveCallerTenantId(tenantId?: number, caller?: any): Promise<number | undefined> {
+  private async resolveCallerTenantId(
+    tenantId?: number,
+    caller?: any,
+    etablissementIdFilter?: number,
+  ): Promise<number | undefined> {
+    // Un SUPER_ADMIN peut filtrer les statistiques globales sur un
+    // établissement précis (parmi les établissements visibles uniquement —
+    // jamais un établissement masqué, même en forçant l'ID dans la requête).
+    if (caller?.role === Role.SUPER_ADMIN && etablissementIdFilter) {
+      const etab = await this.etablissementRepository.findOneBy({
+        id: etablissementIdFilter,
+        visible: true,
+      });
+      if (etab) return etab.id;
+    }
+
     let resolved = tenantId ?? caller?.etablissementId;
     if (!resolved && caller?.sub && caller?.role !== Role.SUPER_ADMIN) {
       const callerUser = await this.userRepository.findOne({ where: { id: caller.sub } });
@@ -47,8 +62,8 @@ export class ReportingService {
     return resolved ?? undefined;
   }
 
-  async getGlobalStats(tenantId?: number, caller?: any) {
-    const resolvedTenantId = await this.resolveCallerTenantId(tenantId, caller);
+  async getGlobalStats(tenantId?: number, caller?: any, etablissementIdFilter?: number) {
+    const resolvedTenantId = await this.resolveCallerTenantId(tenantId, caller, etablissementIdFilter);
     const [
       totalEtudiants,
       totalEnseignants,

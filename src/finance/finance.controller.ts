@@ -359,11 +359,23 @@ export class FinanceController {
   @Permissions('FINANCE_REPORT')
   @ApiOperation({ summary: 'Statistiques du tableau de bord financier, filtrable par type de frais' })
   @ApiQuery({ name: 'feeType', required: false, enum: FeeType })
+  @ApiQuery({
+    name: 'etablissementId',
+    required: false,
+    description: 'Filtrer sur un établissement précis (super-admin uniquement, établissements visibles seulement)',
+  })
   async getDashboard(
+    @CurrentUser() user: any,
     @Query('feeType') feeType?: FeeType,
+    @Query('etablissementId') etablissementId?: string,
     @CurrentEtablissement() tenantId?: number,
   ) {
-    const data = await this.financeService.getDashboardStats(tenantId, feeType);
+    const data = await this.financeService.getDashboardStats(
+      tenantId,
+      feeType,
+      user,
+      etablissementId ? Number(etablissementId) : undefined,
+    );
     return { message: 'Dashboard récupéré avec succès', data };
   }
 
