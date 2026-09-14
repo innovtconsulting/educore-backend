@@ -12,6 +12,7 @@ import { Enseignant } from '../enseignant/entities/enseignant.entity';
 import { AnneeUniversitaire } from '../annee-universitaire/entities/annee-universitaire.entity';
 import { Classe } from '../classe/entities/classe.entity';
 import { Niveau } from '../niveau/entities/niveau.entity';
+import { Etablissement } from '../etablissement/entities/etablissement.entity';
 
 dotenv.config();
 
@@ -57,6 +58,7 @@ async function seedStage() {
   const anneeRepo = AppDataSource.getRepository(AnneeUniversitaire);
   const classeRepo = AppDataSource.getRepository(Classe);
   const niveauRepo = AppDataSource.getRepository(Niveau);
+  const etablissementRepo = AppDataSource.getRepository(Etablissement);
 
   const annee = await anneeRepo.findOne({ where: { id: ANNEE_UNIVERSITAIRE_ID } });
   if (!annee) {
@@ -74,7 +76,9 @@ async function seedStage() {
     anneeRepo,
     classeRepo,
     niveauRepo,
+    etablissementRepo,
     {} as any,
+    AppDataSource,
   );
 
   const workbook = new ExcelJS.Workbook();

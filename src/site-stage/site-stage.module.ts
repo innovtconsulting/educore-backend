@@ -11,6 +11,7 @@ import { Enseignant } from '../enseignant/entities/enseignant.entity';
 import { AnneeUniversitaire } from '../annee-universitaire/entities/annee-universitaire.entity';
 import { Classe } from '../classe/entities/classe.entity';
 import { Niveau } from '../niveau/entities/niveau.entity';
+import { Etablissement } from '../etablissement/entities/etablissement.entity';
 import { FinanceModule } from '../finance/finance.module';
 
 @Module({
@@ -25,6 +26,7 @@ import { FinanceModule } from '../finance/finance.module';
       AnneeUniversitaire,
       Classe,
       Niveau,
+      Etablissement,
     ]),
     FinanceModule,
   ],

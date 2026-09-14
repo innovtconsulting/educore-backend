@@ -4,7 +4,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, ILike, In, IsNull } from 'typeorm';
+import { DataSource, EntityManager, ILike, In, IsNull, Repository } from 'typeorm';
 import { SiteStage } from './entities/site-stage.entity';
 import { LigneStage } from './entities/ligne-stage.entity';
 import { LigneStageSlot, StageStatus } from './entities/ligne-stage-slot.entity';
@@ -19,7 +19,24 @@ import { Enseignant } from '../enseignant/entities/enseignant.entity';
 import { AnneeUniversitaire } from '../annee-universitaire/entities/annee-universitaire.entity';
 import { Classe } from '../classe/entities/classe.entity';
 import { Niveau } from '../niveau/entities/niveau.entity';
+import { Etablissement } from '../etablissement/entities/etablissement.entity';
 import { FinanceService } from '../finance/finance.service';
+
+export type AutoAssignResult =
+  | { success: true; ligne: LigneStage; reason?: undefined }
+  | { success: false; ligne?: undefined; reason: string };
+
+export interface AutoAssignAllReport {
+  assigned: number;
+  alreadyAssigned: number;
+  skipped: {
+    noCurriculum: number;
+    stageDisabled: number;
+    noActiveYear: number;
+    failed: number;
+  };
+  failedReasons: { etudiantId: number; reason: string }[];
+}
 
 @Injectable()
 export class SiteStageService {
@@ -42,12 +59,15 @@ export class SiteStageService {
     private readonly classeRepository: Repository<Classe>,
     @InjectRepository(Niveau)
     private readonly niveauRepository: Repository<Niveau>,
+    @InjectRepository(Etablissement)
+    private readonly etablissementRepository: Repository<Etablissement>,
     private readonly financeService: FinanceService,
+    private readonly dataSource: DataSource,
   ) {}
 
   // ===================== SITES DE STAGE (Global) =====================
 
-  async createSite(dto: CreateSiteStageDto, natureNames?: string[]): Promise<SiteStage> {
+  async createSite(dto: CreateSiteStageDto & { classeIds?: number[] }, natureNames?: string[]): Promise<SiteStage> {
     const site = this.siteStageRepository.create({
       nom: dto.nom,
       adresse: dto.adresse,
@@ -57,6 +77,10 @@ export class SiteStageService {
       description: dto.description,
       capacite: dto.capacite,
     });
+    if ((dto as any).classeIds?.length) {
+      const classes = await this.classeRepository.find({ where: { id: In((dto as any).classeIds) } as any });
+      (site as any).classes = classes;
+    }
     const savedSite = await this.siteStageRepository.save(site);
 
     if (natureNames && natureNames.length > 0) {
@@ -69,7 +93,7 @@ export class SiteStageService {
       await this.siteStageRepository.save(savedSite);
     }
 
-    return savedSite;
+    return this.siteStageRepository.findOne({ where: { id: savedSite.id }, relations: { natures: true, classes: true } }) as Promise<SiteStage>;
   }
 
   async findOrCreateNature(nom: string, description?: string): Promise<NatureStage> {
@@ -81,7 +105,7 @@ export class SiteStageService {
 
   async findAllSites(search?: string, natureStageId?: number, capaciteMin?: number): Promise<SiteStage[]> {
     const findOptions: any = {
-      relations: { natures: true },
+      relations: { natures: true, classes: true } as any,
       order: { nom: 'ASC' },
     };
     if (search) {
@@ -105,7 +129,7 @@ export class SiteStageService {
   async findOneSite(id: number): Promise<SiteStage> {
     const site = await this.siteStageRepository.findOne({
       where: { id },
-      relations: { natures: true },
+      relations: { natures: true, classes: true } as any,
     });
     if (!site) {
       throw new NotFoundException(`Le site de stage #${id} n'a pas été trouvé`);
@@ -113,9 +137,14 @@ export class SiteStageService {
     return site;
   }
 
-  async updateSite(id: number, dto: UpdateSiteStageDto): Promise<SiteStage> {
+  async updateSite(id: number, dto: UpdateSiteStageDto & { classeIds?: number[] }): Promise<SiteStage> {
     const site = await this.findOneSite(id);
-    Object.assign(site, dto);
+    const { classeIds, ...rest } = dto as any;
+    Object.assign(site, rest);
+    if (classeIds !== undefined) {
+      if (classeIds.length === 0) (site as any).classes = [];
+      else (site as any).classes = await this.classeRepository.find({ where: { id: In(classeIds) } as any });
+    }
     return await this.siteStageRepository.save(site);
   }
 
@@ -126,29 +155,36 @@ export class SiteStageService {
 
   // ===================== NATURES DE STAGE =====================
 
-  async createNatureStage(dto: { nom: string; description?: string }): Promise<NatureStage> {
-    const existing = await this.natureStageRepository.findOne({ where: { nom: dto.nom } });
+  async createNatureStage(dto: { nom: string; description?: string; classeIds?: number[] }): Promise<NatureStage> {
+    const existing = await this.natureStageRepository.findOne({ where: { nom: dto.nom }, relations: { classes: true } as any });
     if (existing) return existing;
-    const nature = this.natureStageRepository.create({ nom: dto.nom, description: dto.description });
+    const nature: any = this.natureStageRepository.create({ nom: dto.nom, description: dto.description } as any);
+    if ((dto as any).classeIds?.length) {
+      nature.classes = await this.classeRepository.find({ where: { id: In((dto as any).classeIds) } as any });
+    }
     return await this.natureStageRepository.save(nature);
   }
 
   async findAllNaturesStage(): Promise<NatureStage[]> {
-    return await this.natureStageRepository.find({ order: { nom: 'ASC' } });
+    return await this.natureStageRepository.find({ relations: { classes: true } as any, order: { nom: 'ASC' } as any });
   }
 
   async findOneNatureStage(id: number): Promise<NatureStage> {
-    const nature = await this.natureStageRepository.findOne({ where: { id } });
+    const nature = await this.natureStageRepository.findOne({ where: { id }, relations: { classes: true } as any });
     if (!nature) {
       throw new NotFoundException(`La nature de stage #${id} n'a pas été trouvée`);
     }
     return nature;
   }
 
-  async updateNatureStage(id: number, dto: { nom?: string; description?: string }): Promise<NatureStage> {
+  async updateNatureStage(id: number, dto: { nom?: string; description?: string; classeIds?: number[] }): Promise<NatureStage> {
     const nature = await this.findOneNatureStage(id);
     if (dto.nom !== undefined) nature.nom = dto.nom;
     if (dto.description !== undefined) nature.description = dto.description;
+    if ((dto as any).classeIds !== undefined) {
+      const ids = (dto as any).classeIds;
+      (nature as any).classes = ids.length === 0 ? [] : await this.classeRepository.find({ where: { id: In(ids) } as any });
+    }
     return await this.natureStageRepository.save(nature);
   }
 
@@ -244,37 +280,61 @@ export class SiteStageService {
     dto: UpdateLigneStageDto,
     tenantId?: number,
   ): Promise<LigneStage> {
-    const ligne = await this.findOneLigne(id, tenantId);
+    // Transaction + verrou pessimiste pour éviter double affectation concurrente
+    // et contourner le piège TypeORM où save() re-dérive la FK depuis la relation.
+    return this.dataSource.transaction(async (manager) => {
+      const ligneRepo = manager.getRepository(LigneStage);
+      const etudiantRepo = manager.getRepository(Etudiant);
 
-    if (dto.etudiantId) {
-      const etudiant = await this.etudiantRepository.findOne({ where: { id: dto.etudiantId } });
-      if (!etudiant) throw new NotFoundException('Étudiant non trouvé');
+      const where: any = { id };
+      if (tenantId) where.etablissementId = tenantId;
 
-      const conflict = await this.ligneStageRepository.findOne({
-        where: {
-          etudiantId: dto.etudiantId,
-          anneeUniversitaireId: ligne.anneeUniversitaireId,
-          classeId: ligne.classeId,
-          niveauId: ligne.niveauId,
-        },
+      // FOR UPDATE ne peut pas verrouiller le côté NULL d'un outer join (slots) -> verrou d'abord sans relations
+      const locked = await ligneRepo.findOne({
+        where,
+        lock: { mode: 'pessimistic_write' },
       });
-      if (conflict && conflict.id !== ligne.id) {
-        throw new BadRequestException(
-          'Cet étudiant est déjà assigné à une autre ligne pour ce parcours/niveau/année',
-        );
+      if (!locked) {
+        throw new NotFoundException(`La ligne de stage #${id} n'a pas été trouvée`);
       }
-      // TypeORM re-dérive la FK depuis la relation chargée au save() : il
-      // faut mettre à jour l'objet ET l'id, sinon l'ancienne relation
-      // (étudiant précédent, ou toujours défini si on désaffecte) l'emporte.
-      ligne.etudiantId = dto.etudiantId;
-      ligne.etudiant = etudiant;
-    } else {
-      ligne.etudiantId = null;
-      ligne.etudiant = null;
-    }
+      const ligne = await ligneRepo.findOne({
+        where,
+        relations: this.ligneRelations,
+      });
+      if (!ligne) {
+        throw new NotFoundException(`La ligne de stage #${id} n'a pas été trouvée`);
+      }
 
-    await this.ligneStageRepository.save(ligne);
-    return this.findOneLigne(id, tenantId);
+      if (dto.etudiantId) {
+        const etudiant = await etudiantRepo.findOne({ where: { id: dto.etudiantId } });
+        if (!etudiant) throw new NotFoundException('Étudiant non trouvé');
+
+        const conflict = await ligneRepo.findOne({
+          where: {
+            etudiantId: dto.etudiantId,
+            anneeUniversitaireId: ligne.anneeUniversitaireId,
+            classeId: ligne.classeId,
+            niveauId: ligne.niveauId,
+          },
+        });
+        if (conflict && conflict.id !== ligne.id) {
+          throw new BadRequestException(
+            'Cet étudiant est déjà assigné à une autre ligne pour ce parcours/niveau/année',
+          );
+        }
+        // update() évite la re-dérivation FK de la relation
+        await ligneRepo.update({ id: ligne.id }, { etudiantId: dto.etudiantId });
+      } else {
+        await ligneRepo.update({ id: ligne.id }, { etudiantId: null as any });
+      }
+
+      const fresh = await ligneRepo.findOne({
+        where,
+        relations: this.ligneRelations,
+      });
+      if (!fresh) throw new NotFoundException(`La ligne de stage #${id} n'a pas été trouvée`);
+      return this.sortSlots(fresh);
+    });
   }
 
   async removeLigne(id: number, tenantId?: number): Promise<void> {
@@ -312,17 +372,74 @@ export class SiteStageService {
       });
     }
 
-    if (dto.libelle !== undefined) slot.libelle = dto.libelle;
-    if (dto.dateDebut !== undefined) slot.dateDebut = dto.dateDebut ? new Date(dto.dateDebut) : null;
-    if (dto.dateFin !== undefined) slot.dateFin = dto.dateFin ? new Date(dto.dateFin) : null;
-    if (dto.siteStageId !== undefined) slot.siteStageId = dto.siteStageId;
-    if (dto.natureStageId !== undefined) slot.natureStageId = dto.natureStageId;
-    if (dto.service !== undefined) slot.service = dto.service;
-    if (dto.enseignantId !== undefined) slot.enseignantId = dto.enseignantId;
-    if (dto.statut !== undefined) slot.statut = dto.statut;
+    if (dto.libelle !== undefined) slot!.libelle = dto.libelle;
+    if (dto.dateDebut !== undefined) slot!.dateDebut = dto.dateDebut ? new Date(dto.dateDebut) : null;
+    if (dto.dateFin !== undefined) slot!.dateFin = dto.dateFin ? new Date(dto.dateFin) : null;
+    if (dto.siteStageId !== undefined) slot!.siteStageId = dto.siteStageId;
+    if (dto.natureStageId !== undefined) slot!.natureStageId = dto.natureStageId;
+    if (dto.service !== undefined) slot!.service = dto.service;
+    if (dto.enseignantId !== undefined) slot!.enseignantId = dto.enseignantId;
+    if (dto.statut !== undefined) slot!.statut = dto.statut;
 
-    await this.slotRepository.save(slot);
+    await this.slotRepository.save(slot!);
     return this.findOneLigne(ligneId, tenantId);
+  }
+
+  async bulkUpdateSlot(
+    ligneId: number,
+    ordre: number,
+    dto: UpdateLigneSlotDto,
+    tenantId?: number,
+  ): Promise<{ updated: number }> {
+    const refLigne = await this.findOneLigne(ligneId, tenantId);
+
+    if (dto.siteStageId) {
+      const site = await this.siteStageRepository.findOne({ where: { id: dto.siteStageId } });
+      if (!site) throw new NotFoundException('Site de stage non trouvé');
+    }
+    if (dto.natureStageId) {
+      const nature = await this.natureStageRepository.findOne({ where: { id: dto.natureStageId } });
+      if (!nature) throw new NotFoundException('Nature de stage non trouvée');
+    }
+    if (dto.enseignantId) {
+      const enseignant = await this.enseignantRepository.findOne({ where: { id: dto.enseignantId } });
+      if (!enseignant) throw new NotFoundException('Enseignant non trouvé');
+    }
+
+    // Période globale : propage à toute l'année, même pour tous parcours/niveaux
+    const scope: any = {
+      anneeUniversitaireId: refLigne.anneeUniversitaireId,
+      etablissementId: refLigne.etablissementId,
+    };
+
+    return this.dataSource.transaction(async (manager) => {
+      const slotRepo = manager.getRepository(LigneStageSlot);
+      const ligneRepo = manager.getRepository(LigneStage);
+      const lignes = await ligneRepo.find({ where: scope, relations: { slots: true } });
+
+      let updated = 0;
+      for (const l of lignes) {
+        let slot = l.slots?.find((s) => s.ordre === ordre);
+        if (!slot) {
+          slot = slotRepo.create({
+            ligneStageId: l.id,
+            ordre,
+            libelle: dto.libelle || `Stage ${ordre}`,
+          });
+        }
+        if (dto.libelle !== undefined) slot.libelle = dto.libelle;
+        if (dto.dateDebut !== undefined) slot.dateDebut = dto.dateDebut ? new Date(dto.dateDebut as any) : null;
+        if (dto.dateFin !== undefined) slot.dateFin = dto.dateFin ? new Date(dto.dateFin as any) : null;
+        if (dto.siteStageId !== undefined) (slot as any).siteStageId = dto.siteStageId;
+        if (dto.natureStageId !== undefined) (slot as any).natureStageId = dto.natureStageId;
+        if (dto.service !== undefined) (slot as any).service = dto.service;
+        if (dto.enseignantId !== undefined) (slot as any).enseignantId = dto.enseignantId;
+        if (dto.statut !== undefined) (slot as any).statut = dto.statut;
+        await slotRepo.save(slot);
+        updated++;
+      }
+      return { updated };
+    });
   }
 
   async getGrille(
@@ -337,50 +454,68 @@ export class SiteStageService {
     natureStageId?: number,
     all = false,
   ): Promise<{ items: LigneStage[]; total: number; page: number; limit: number }> {
-    const where: any = { anneeUniversitaireId };
-    if (tenantId) where.etablissementId = tenantId;
-    if (classeIds && classeIds.length > 0) where.classeId = In(classeIds);
-    if (niveauId) where.niveauId = niveauId;
+    const qb = this.ligneStageRepository
+      .createQueryBuilder('ligne')
+      .leftJoinAndSelect('ligne.etudiant', 'etudiant')
+      .leftJoinAndSelect('ligne.classe', 'classe')
+      .leftJoinAndSelect('ligne.niveau', 'niveau')
+      .leftJoinAndSelect('ligne.slots', 'slot')
+      .leftJoinAndSelect('slot.siteStage', 'siteStage')
+      .leftJoinAndSelect('slot.natureStage', 'natureStage')
+      .leftJoinAndSelect('slot.enseignant', 'enseignant')
+      .where('ligne.anneeUniversitaireId = :anneeUniversitaireId', { anneeUniversitaireId });
 
-    let lignes = await this.ligneStageRepository.find({
-      where,
-      relations: this.ligneRelations,
-      order: { id: 'ASC' },
-    });
-    lignes.forEach((l) => this.sortSlots(l));
+    if (tenantId) qb.andWhere('ligne.etablissementId = :tenantId', { tenantId });
+    if (classeIds && classeIds.length > 0) qb.andWhere('ligne.classeId IN (:...classeIds)', { classeIds });
+    if (niveauId) qb.andWhere('ligne.niveauId = :niveauId', { niveauId });
 
     if (siteStageId) {
-      lignes = lignes.filter((l) => l.slots?.some((s) => s.siteStageId === siteStageId));
+      qb.andWhere(
+        `EXISTS (SELECT 1 FROM ligne_stage_slot s WHERE s."ligneStageId" = ligne.id AND s."siteStageId" = :siteStageId)`,
+        { siteStageId },
+      );
     }
     if (natureStageId) {
-      lignes = lignes.filter((l) => l.slots?.some((s) => s.natureStageId === natureStageId));
+      qb.andWhere(
+        `EXISTS (SELECT 1 FROM ligne_stage_slot s2 WHERE s2."ligneStageId" = ligne.id AND s2."natureStageId" = :natureStageId)`,
+        { natureStageId },
+      );
     }
     if (search) {
-      const q = search.toLowerCase();
-      lignes = lignes.filter((l) => {
-        const etudiantMatch = l.etudiant
-          ? `${l.etudiant.firstName} ${l.etudiant.lastName}`.toLowerCase().includes(q) ||
-            (l.etudiant.matricule && l.etudiant.matricule.toLowerCase().includes(q))
-          : false;
-        const indicatifMatch = l.nomIndicatif?.toLowerCase().includes(q) ?? false;
-        return etudiantMatch || indicatifMatch;
-      });
+      const q = `%${search}%`;
+      qb.andWhere(
+        `(etudiant.firstName ILIKE :q OR etudiant.lastName ILIKE :q OR etudiant.matricule ILIKE :q OR ligne.nomIndicatif ILIKE :q)`,
+        { q },
+      );
     }
 
-    const total = lignes.length;
-    const skip = all ? 0 : (page - 1) * limit;
-    const items = all ? lignes : lignes.slice(skip, skip + limit);
-    return { items, total, page: all ? 1 : page, limit: all ? total : limit };
+    qb.orderBy('ligne.id', 'ASC').addOrderBy('slot.ordre', 'ASC');
+
+    const total = await qb.getCount();
+    if (all) {
+      const items = await qb.getMany();
+      items.forEach((l) => this.sortSlots(l));
+      return { items, total, page: 1, limit: total };
+    }
+    const skip = (page - 1) * limit;
+    qb.skip(skip).take(limit);
+    const items = await qb.getMany();
+    items.forEach((l) => this.sortSlots(l));
+    return { items, total, page, limit };
   }
 
   // ===================== AUTO-ASSIGNATION =====================
 
   /**
-   * Cherche une ligne vacante (classe/niveau/année active) et y assigne
-   * l'étudiant. Contrairement à l'ancien système, le site n'est plus choisi
-   * aléatoirement : il appartient déjà à la ligne. `siteStageId`, s'il est
-   * fourni, ne sert qu'à préférer une ligne dont un des créneaux utilise
-   * déjà ce site.
+   * Assigne l'étudiant à une ligne vacante du même parcours / niveau / année
+   * active / établissement. S'il n'existe pas encore de ligne vacante (cas
+   * typique ESPA, non seedé comme ESPM), une ligne est créée : le circuit
+   * (créneaux) est cloné depuis une ligne existante du même trio, sinon une
+   * ligne avec un créneau par défaut. `siteStageId` ne sert qu'à préférer
+   * une ligne dont un créneau utilise déjà ce site.
+   *
+   * Retourne un objet structuré { success, ligne?, reason? } pour que le
+   * caller puisse afficher un message clair au lieu d'échouer silencieusement.
    */
   async autoAssignStage(
     etudiantId: number,
@@ -389,40 +524,408 @@ export class SiteStageService {
     etablissementId: number,
     siteStageId?: number,
     _overwrite = false,
-  ): Promise<LigneStage | null> {
+  ): Promise<AutoAssignResult> {
+    if (!etudiantId || !classeId || !niveauId || !etablissementId) {
+      return { success: false, reason: 'Données incomplètes pour l\'assignation (étudiant, parcours ou niveau manquant)' };
+    }
+
+    // Vérifications hors transaction (lecture seule, pas de lock nécessaire)
+    const etablissement = await this.etablissementRepository?.findOne?.({
+      where: { id: etablissementId },
+    });
+    if (etablissement && etablissement.stageEnabled === false) {
+      return { success: false, reason: 'Le module de stage est désactivé pour cet établissement' };
+    }
+
     const anneeActive = await this.anneeRepository.findOne({
       where: { etablissementId, isActive: true },
     });
-    if (!anneeActive) return null;
+    if (!anneeActive) {
+      return {
+        success: false,
+        reason: 'Aucune année universitaire active pour cet établissement — activez d\'abord une année dans le module Scolaire',
+      };
+    }
 
-    const where: any = {
+    const etudiantExists = await this.etudiantRepository.findOne({ where: { id: etudiantId } });
+    if (!etudiantExists) {
+      return { success: false, reason: 'Étudiant introuvable dans la base' };
+    }
+
+    // Section critique : verrou pessimiste + transaction pour éviter double affectation
+    try {
+      return await this.dataSource.transaction(async (manager) => {
+        const ligneRepo = manager.getRepository(LigneStage);
+
+        const existing = await ligneRepo.findOne({
+          where: {
+            etudiantId,
+            anneeUniversitaireId: anneeActive.id,
+            etablissementId,
+          },
+          lock: { mode: 'pessimistic_write' },
+        });
+        if (existing) {
+          const ligne = await ligneRepo.findOne({
+            where: { id: existing.id },
+            relations: this.ligneRelations,
+          });
+          if (!ligne) throw new NotFoundException(`La ligne de stage #${existing.id} n'a pas été trouvée`);
+          return { success: true, ligne: this.sortSlots(ligne) } as AutoAssignResult;
+        }
+
+        const ligne = await this.findOrCreateVacantLigneTx(
+          manager,
+          classeId,
+          niveauId,
+          anneeActive.id,
+          etablissementId,
+          siteStageId,
+        );
+
+        // update() pour éviter la re-dérivation FK de la relation (même piège que updateLigneEtudiant)
+        await ligneRepo.update({ id: ligne.id }, { etudiantId });
+
+        const saved = await ligneRepo.findOne({
+          where: { id: ligne.id },
+          relations: this.ligneRelations,
+        });
+        if (!saved) throw new NotFoundException(`La ligne de stage #${ligne.id} n'a pas été trouvée`);
+        return { success: true, ligne: this.sortSlots(saved) } as AutoAssignResult;
+      });
+    } catch (e) {
+      if (e instanceof NotFoundException && e.message.includes('Aucune période')) {
+        return { success: false, reason: e.message };
+      }
+      throw e;
+    }
+  }
+
+  /**
+   * Ligne vacante du tenant, ou nouvelle ligne calquée sur le circuit
+   * existant (même parcours / niveau / année / établissement).
+   * Méthode hors transaction utilisée par le seed ; en requête HTTP on passe par Tx.
+   */
+  private async findOrCreateVacantLigne(
+    classeId: number,
+    niveauId: number,
+    anneeUniversitaireId: number,
+    etablissementId: number,
+    siteStageId?: number,
+  ): Promise<LigneStage> {
+    // Période globale : même pour tous les parcours/niveaux, scope = année + établissement uniquement
+    const scopeCreate = {
       classeId,
       niveauId,
-      anneeUniversitaireId: anneeActive.id,
-      etudiantId: IsNull(),
+      anneeUniversitaireId,
+      etablissementId,
+    };
+    const scopeSearch = {
+      anneeUniversitaireId,
+      etablissementId,
     };
 
     const candidates = await this.ligneStageRepository.find({
-      where,
+      where: { ...scopeSearch, etudiantId: IsNull() } as any,
       relations: { slots: true },
       order: { id: 'ASC' },
     });
-    if (candidates.length === 0) return null;
 
-    const preferred = siteStageId
-      ? candidates.find((l) => l.slots?.some((s) => s.siteStageId === siteStageId))
-      : undefined;
-    const ligne = preferred || candidates[0];
+    if (candidates.length > 0) {
+      const preferred = siteStageId
+        ? candidates.find((l) => l.slots?.some((s) => s.siteStageId === siteStageId))
+        : undefined;
+      const picked = preferred || candidates[0];
+      // réaligner la ligne vacante sur le parcours/niveau de l'étudiant (période globale)
+      let needsSave = false;
+      if (picked.classeId !== classeId || picked.niveauId !== niveauId) {
+        picked.classeId = classeId;
+        picked.niveauId = niveauId;
+        needsSave = true;
+      }
+      // si la ligne modèle n'a que les dates (service/lieu/nature/tuteur vides), la compléter aléatoirement en filtrant par parcours
+      const hasEmpty = picked.slots?.some((s) => !s.siteStageId || !s.natureStageId || !s.service || !(s as any).enseignantId);
+      if (hasEmpty) {
+        const enriched = await this.enrichSlotsWithRandom(this.dataSource.manager, picked.slots, anneeUniversitaireId, siteStageId, classeId);
+        for (let i = 0; i < picked.slots.length; i++) {
+          Object.assign(picked.slots[i], enriched[i]);
+          await this.slotRepository.save(picked.slots[i]);
+        }
+      }
+      if (needsSave) await this.ligneStageRepository.save(picked);
+      return picked;
+    }
 
-    ligne.etudiantId = etudiantId;
-    return await this.ligneStageRepository.save(ligne);
+    const template = await this.ligneStageRepository.findOne({
+      where: scopeSearch as any,
+      relations: { slots: true },
+      order: { id: 'ASC' },
+    });
+
+    const hasRealTemplate =
+      !!template?.slots?.length &&
+      template.slots.some((s) => s.siteStageId != null || s.natureStageId != null || s.dateDebut != null);
+
+    if (!hasRealTemplate) {
+      throw new NotFoundException(
+        `Aucune période de stage créée par l'admin pour cette année — créez d'abord une période modèle via "Nouvelle ligne" (Service/Date/Lieu/Nature, même pour tous)`,
+      );
+    }
+
+    const sorted = [...template!.slots].sort((a, b) => a.ordre - b.ordre);
+    let slotSources: Partial<LigneStageSlot>[] = sorted.length >= 5 ? sorted.slice(0, 5) : sorted;
+    // Si le modèle n'a que les dates (service/lieu/nature/tuteur vides), compléter aléatoirement en filtrant par parcours
+    if (slotSources.some((s) => !s.siteStageId || !s.natureStageId || !s.service || !(s as any).enseignantId)) {
+      slotSources = await this.enrichSlotsWithRandom(this.dataSource.manager, slotSources as LigneStageSlot[], anneeUniversitaireId, siteStageId, classeId);
+    }
+
+    const ligne = this.ligneStageRepository.create({
+      ...scopeCreate,
+      etudiantId: null,
+      slots: slotSources.map((s) =>
+        this.slotRepository.create({
+          ordre: s.ordre!,
+          libelle: s.libelle || `Stage ${s.ordre}`,
+          dateDebut: s.dateDebut ?? null,
+          dateFin: s.dateFin ?? null,
+          siteStageId: s.siteStageId ?? null,
+          natureStageId: s.natureStageId ?? null,
+          service: s.service,
+          enseignantId: (s as any).enseignantId ?? null,
+          statut: StageStatus.EN_ATTENTE,
+        }),
+      ),
+    });
+
+    return this.ligneStageRepository.save(ligne);
   }
 
-  async autoAssignAll(tenantId?: number): Promise<number> {
-    const anneeActive = await this.anneeRepository.findOne({
-      where: { etablissementId: tenantId, isActive: true },
+  // buildRandomSlots : génère 5 créneaux aléatoires complets (utilisé pour enrichir un modèle dates-seules) + tuteurs aléatoires
+  private shuffle<T>(arr: T[]): T[] {
+    const a = [...arr];
+    for (let i = a.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [a[i], a[j]] = [a[j], a[i]];
+    }
+    return a;
+  }
+
+  private async buildRandomSlots(
+    manager: EntityManager,
+    anneeUniversitaireId: number,
+    preferredSiteStageId?: number,
+    classeId?: number,
+  ): Promise<Partial<LigneStageSlot>[]> {
+    const siteRepo = manager.getRepository(SiteStage);
+    const natureRepo = manager.getRepository(NatureStage);
+    const anneeRepo = manager.getRepository(AnneeUniversitaire);
+    const enseignantRepo = manager.getRepository(Enseignant);
+
+    const [allSites, allNatures, annee, enseignants] = await Promise.all([
+      siteRepo.find({ relations: { classes: true } } as any),
+      natureRepo.find({ relations: { classes: true } } as any),
+      anneeRepo.findOne({ where: { id: anneeUniversitaireId } }),
+      enseignantRepo.find({ select: { id: true } as any, take: 100 } as any),
+    ]);
+    // Filtrer sites/natures par parcours si définis (sinon ouvert à tous) — la nature varie selon parcours
+    let sites = allSites as any[];
+    let natures = allNatures as any[];
+    if (classeId) {
+      const filteredSites = (allSites as any[]).filter((s) => !s.classes || s.classes.length === 0 || s.classes.some((c: any) => c.id === classeId));
+      if (filteredSites.length >= 3) sites = filteredSites;
+      const filteredNatures = (allNatures as any[]).filter((n) => !n.classes || n.classes.length === 0 || n.classes.some((c: any) => c.id === classeId));
+      if (filteredNatures.length >= 2) natures = filteredNatures;
+    }
+
+    // Période de stage = découpage de l'année universitaire en 5 stages séquentiels
+    let start: Date | null = null;
+    let end: Date | null = null;
+    if (annee?.startDate && annee?.endDate) {
+      start = new Date(annee.startDate);
+      end = new Date(annee.endDate);
+    }
+
+    const pickedSites = sites.length >= 5 ? this.shuffle(sites).slice(0, 5) : this.shuffle([...sites, ...sites, ...sites]).slice(0, 5);
+    const pickedNatures = natures.length >= 5 ? this.shuffle(natures).slice(0, 5) : this.shuffle([...natures, ...natures]).slice(0, 5);
+    const pickedEnseignants = enseignants.length > 0 ? this.shuffle(enseignants).slice(0, 5) : [];
+
+    // garantir que le site préféré (passé par l'inscription) apparaisse dans un des 5 stages
+    if (preferredSiteStageId && !pickedSites.some((s) => s.id === preferredSiteStageId) && sites.some((s) => s.id === preferredSiteStageId)) {
+      pickedSites[0] = { id: preferredSiteStageId } as any;
+    }
+
+    const slots: Partial<LigneStageSlot>[] = [];
+    for (let i = 0; i < 5; i++) {
+      let dateDebut: Date | null = null;
+      let dateFin: Date | null = null;
+      if (start && end && end.getTime() > start.getTime()) {
+        const total = end.getTime() - start.getTime();
+        const slotMs = total / 5;
+        dateDebut = new Date(start.getTime() + i * slotMs);
+        dateFin = new Date(start.getTime() + (i + 1) * slotMs - 2 * 24 * 60 * 60 * 1000);
+        if (dateFin.getTime() > end.getTime()) dateFin = new Date(end);
+      } else {
+        // fallback : stages mensuels à partir de maintenant
+        const base = new Date();
+        dateDebut = new Date(base.getFullYear(), base.getMonth() + i, 1);
+        dateFin = new Date(base.getFullYear(), base.getMonth() + i + 1, 0);
+      }
+      slots.push({
+        ordre: i + 1,
+        libelle: `Stage ${i + 1}`,
+        dateDebut,
+        dateFin,
+        siteStageId: pickedSites[i]?.id ?? null,
+        natureStageId: pickedNatures[i % Math.max(pickedNatures.length, 1)]?.id ?? null,
+        service: `Service ${i + 1}`,
+        enseignantId: pickedEnseignants[i % Math.max(pickedEnseignants.length, 1)]?.id ?? null,
+        statut: StageStatus.EN_ATTENTE,
+      });
+    }
+    // mélanger l'ordre pour que l'aléatoire ne soit pas toujours Stage 1 = même site
+    return this.shuffle(slots).map((s, idx) => ({ ...s, ordre: idx + 1, libelle: `Stage ${idx + 1}` }));
+  }
+
+  private async enrichSlotsWithRandom(
+    manager: EntityManager,
+    slots: LigneStageSlot[],
+    anneeUniversitaireId: number,
+    preferredSiteStageId?: number,
+    classeId?: number,
+  ): Promise<Partial<LigneStageSlot>[]> {
+    const randomSlots = await this.buildRandomSlots(manager, anneeUniversitaireId, preferredSiteStageId, classeId);
+    const siteMap = new Map(randomSlots.map((s, i) => [i, s]));
+    return slots.map((s, i) => {
+      const rnd = siteMap.get(i % randomSlots.length)!;
+      return {
+        ordre: s.ordre,
+        libelle: s.libelle,
+        dateDebut: s.dateDebut ?? rnd.dateDebut,
+        dateFin: s.dateFin ?? rnd.dateFin,
+        siteStageId: s.siteStageId ?? rnd.siteStageId,
+        natureStageId: s.natureStageId ?? rnd.natureStageId,
+        service: s.service ?? rnd.service,
+        enseignantId: (s as any).enseignantId ?? (rnd as any).enseignantId ?? null,
+        statut: s.statut ?? StageStatus.EN_ATTENTE,
+      };
     });
-    if (!anneeActive) return 0;
+  }
+
+  private async findOrCreateVacantLigneTx(
+    manager: EntityManager,
+    classeId: number,
+    niveauId: number,
+    anneeUniversitaireId: number,
+    etablissementId: number,
+    siteStageId?: number,
+  ): Promise<LigneStage> {
+    const ligneRepo = manager.getRepository(LigneStage);
+    const slotRepo = manager.getRepository(LigneStageSlot);
+    const scopeCreate = {
+      classeId,
+      niveauId,
+      anneeUniversitaireId,
+      etablissementId,
+    };
+    const scopeSearch = {
+      anneeUniversitaireId,
+      etablissementId,
+    };
+
+    // FOR UPDATE incompatible avec outer join (slots) -> verrou sans relations puis reload
+    const lockedIds = await ligneRepo.find({
+      where: { ...scopeSearch, etudiantId: IsNull() } as any,
+      order: { id: 'ASC' },
+      lock: { mode: 'pessimistic_write' },
+    });
+    let candidates: LigneStage[] = [];
+    if (lockedIds.length > 0) {
+      const ids = lockedIds.map((l) => l.id);
+      candidates = await ligneRepo.find({
+        where: { id: In(ids) } as any,
+        relations: { slots: true },
+        order: { id: 'ASC' },
+      });
+    }
+
+    if (candidates.length > 0) {
+      const preferred = siteStageId
+        ? candidates.find((l) => l.slots?.some((s) => s.siteStageId === siteStageId))
+        : undefined;
+      const picked = preferred || candidates[0];
+      let needsSave = false;
+      if (picked.classeId !== classeId || picked.niveauId !== niveauId) {
+        picked.classeId = classeId;
+        picked.niveauId = niveauId;
+        needsSave = true;
+      }
+      const hasEmpty = picked.slots?.some((s) => !s.siteStageId || !s.natureStageId || !s.service || !(s as any).enseignantId);
+      if (hasEmpty) {
+        const enriched = await this.enrichSlotsWithRandom(manager, picked.slots, anneeUniversitaireId, siteStageId, classeId);
+        for (let i = 0; i < picked.slots.length; i++) {
+          Object.assign(picked.slots[i], enriched[i]);
+          await slotRepo.save(picked.slots[i]);
+        }
+      }
+      if (needsSave) await ligneRepo.save(picked);
+      return picked;
+    }
+
+    const template = await ligneRepo.findOne({
+      where: scopeSearch as any,
+      relations: { slots: true },
+      order: { id: 'ASC' },
+    });
+
+    const hasRealTemplate =
+      !!template?.slots?.length &&
+      template.slots.some((s) => s.siteStageId != null || s.natureStageId != null || s.dateDebut != null);
+
+    if (!hasRealTemplate) {
+      throw new NotFoundException(
+        `Aucune période de stage créée par l'admin pour cette année — créez d'abord une période modèle via "Nouvelle ligne" (même pour tous les étudiants)`,
+      );
+    }
+
+    const sorted = [...template!.slots].sort((a, b) => a.ordre - b.ordre);
+    let slotSources: Partial<LigneStageSlot>[] = sorted.length >= 5 ? sorted.slice(0, 5) : sorted;
+    if (slotSources.some((s) => !s.siteStageId || !s.natureStageId || !s.service || !(s as any).enseignantId)) {
+      slotSources = await this.enrichSlotsWithRandom(manager, slotSources as LigneStageSlot[], anneeUniversitaireId, siteStageId, classeId);
+    }
+
+    const ligne = ligneRepo.create({
+      ...scopeCreate,
+      etudiantId: null,
+      slots: slotSources.map((s) =>
+        slotRepo.create({
+          ordre: s.ordre!,
+          libelle: s.libelle || `Stage ${s.ordre}`,
+          dateDebut: s.dateDebut ?? null,
+          dateFin: s.dateFin ?? null,
+          siteStageId: s.siteStageId ?? null,
+          natureStageId: s.natureStageId ?? null,
+          service: s.service,
+          enseignantId: (s as any).enseignantId ?? null,
+          statut: StageStatus.EN_ATTENTE,
+        }),
+      ),
+    });
+
+    return ligneRepo.save(ligne);
+  }
+
+  async autoAssignAll(tenantId?: number): Promise<AutoAssignAllReport> {
+    const report: AutoAssignAllReport = {
+      assigned: 0,
+      alreadyAssigned: 0,
+      skipped: {
+        noCurriculum: 0,
+        stageDisabled: 0,
+        noActiveYear: 0,
+        failed: 0,
+      },
+      failedReasons: [],
+    };
 
     const whereEtudiant: any = {};
     if (tenantId) whereEtudiant.etablissement = { id: tenantId };
@@ -431,29 +934,56 @@ export class SiteStageService {
       relations: { classe: true, niveau: true, etablissement: true },
     });
 
-    let total = 0;
     for (const etudiant of etudiants) {
-      if (!etudiant.classe?.id || !etudiant.niveau?.id) continue;
+      if (!etudiant.classe?.id || !etudiant.niveau?.id) {
+        report.skipped.noCurriculum++;
+        continue;
+      }
+      if (etudiant.etablissement?.stageEnabled === false) {
+        report.skipped.stageDisabled++;
+        continue;
+      }
+
+      const eId = tenantId ?? etudiant.etablissement?.id;
+      if (!eId) {
+        report.skipped.noCurriculum++;
+        continue;
+      }
+
+      const anneeActive = await this.anneeRepository.findOne({
+        where: { etablissementId: eId, isActive: true },
+      });
+      if (!anneeActive) {
+        report.skipped.noActiveYear++;
+        continue;
+      }
 
       const dejaAffecte = await this.ligneStageRepository.findOne({
         where: {
           etudiantId: etudiant.id,
           anneeUniversitaireId: anneeActive.id,
+          etablissementId: eId,
         },
       });
-      if (dejaAffecte) continue;
+      if (dejaAffecte) {
+        report.alreadyAssigned++;
+        continue;
+      }
 
-      const eId = tenantId ?? etudiant.etablissement?.id;
-      if (!eId) continue;
       const result = await this.autoAssignStage(
         etudiant.id,
         etudiant.classe.id,
         etudiant.niveau.id,
         eId,
       );
-      if (result) total++;
+      if (result.success) {
+        report.assigned++;
+      } else {
+        report.skipped.failed++;
+        report.failedReasons.push({ etudiantId: etudiant.id, reason: result.reason });
+      }
     }
-    return total;
+    return report;
   }
 
   // ===================== IMPORT RÉPARTITION XLSX =====================
@@ -633,24 +1163,24 @@ export class SiteStageService {
 
     const findOrCreateSite = async (nom: string): Promise<SiteStage> => {
       const key = nom.toLowerCase().trim();
-      let s = siteMap.get(key);
+      let s: SiteStage | undefined = siteMap.get(key);
       if (!s) {
-        s = this.siteStageRepository.create({ nom: nom.trim() });
-        s = await this.siteStageRepository.save(s);
+        const created = this.siteStageRepository.create({ nom: nom.trim() });
+        s = await this.siteStageRepository.save(created);
         siteMap.set(key, s);
       }
-      return s;
+      return s!;
     };
 
     const findOrCreateNatureLocal = async (nom: string): Promise<NatureStage> => {
       const key = nom.toLowerCase().trim();
-      let n = natureMap.get(key);
+      let n: NatureStage | undefined = natureMap.get(key);
       if (!n) {
-        n = this.natureStageRepository.create({ nom: nom.trim() });
-        n = await this.natureStageRepository.save(n);
+        const created = this.natureStageRepository.create({ nom: nom.trim() });
+        n = await this.natureStageRepository.save(created);
         natureMap.set(key, n);
       }
-      return n;
+      return n!;
     };
 
     let lignesCreated = 0;

@@ -214,8 +214,13 @@ export class SiteStageController {
     @Param('id') id: string,
     @Param('ordre') ordre: string,
     @Body() dto: UpdateLigneSlotDto,
+    @Query('propagate') propagate: string,
     @CurrentEtablissement() tenantId?: number,
   ) {
+    if (propagate === 'true') {
+      const result = await this.siteStageService.bulkUpdateSlot(+id, +ordre, dto, tenantId);
+      return { message: `Créneau ${ordre} mis à jour pour ${result.updated} ligne(s) de la promo (année courante)`, data: result };
+    }
     const data = await this.siteStageService.updateSlot(+id, +ordre, dto, tenantId);
     return { message: 'Créneau mis à jour avec succès', data };
   }
@@ -254,16 +259,36 @@ export class SiteStageController {
       relations: { classe: true, niveau: true, etablissement: true },
     });
     if (!etudiant) throw new NotFoundException('Étudiant non trouvé');
+    if (!etudiant.classe?.id || !etudiant.niveau?.id) {
+      return {
+        message: 'Parcours ou niveau manquant : impossible d’assigner un stage',
+        data: null,
+      };
+    }
 
-    const ligne = await this.siteStageService.autoAssignStage(
+    const etablissementId = etudiant.etablissement?.id ?? tenantId;
+    if (!etablissementId) {
+      return {
+        message: 'Établissement introuvable pour cet étudiant',
+        data: null,
+      };
+    }
+
+    const result = await this.siteStageService.autoAssignStage(
       etudiant.id,
       etudiant.classe.id,
       etudiant.niveau.id,
-      etudiant.etablissement?.id ?? tenantId,
+      etablissementId,
     );
+    if (!result.success) {
+      return {
+        message: result.reason,
+        data: null,
+      };
+    }
     return {
-      message: ligne ? 'Étudiant assigné à une ligne de stage avec succès' : 'Aucune ligne vacante disponible',
-      data: ligne,
+      message: 'Étudiant assigné à une ligne de stage avec succès',
+      data: result.ligne,
     };
   }
 
@@ -271,8 +296,18 @@ export class SiteStageController {
   @Permissions('STAGE_MANAGE')
   @ApiOperation({ summary: 'Assigner automatiquement tous les étudiants non affectés à des lignes vacantes' })
   async autoAssignAllStudents(@CurrentEtablissement() tenantId?: number) {
-    const total = await this.siteStageService.autoAssignAll(tenantId);
-    return { message: `${total} étudiant(s) assigné(s) avec succès` };
+    const report = await this.siteStageService.autoAssignAll(tenantId);
+    const details: string[] = [];
+    details.push(`${report.assigned} nouveau(x) assigné(s)`);
+    if (report.alreadyAssigned) details.push(`${report.alreadyAssigned} déjà affecté(s)`);
+    if (report.skipped.noCurriculum) details.push(`${report.skipped.noCurriculum} sans parcours/niveau`);
+    if (report.skipped.noActiveYear) details.push(`${report.skipped.noActiveYear} sans année active`);
+    if (report.skipped.stageDisabled) details.push(`${report.skipped.stageDisabled} module stage désactivé`);
+    if (report.skipped.failed) details.push(`${report.skipped.failed} échec(s)`);
+    return {
+      message: `Assignation automatique terminée — ${details.join(' · ')}`,
+      data: report,
+    };
   }
 
   @Get('stage/etudiant/me')

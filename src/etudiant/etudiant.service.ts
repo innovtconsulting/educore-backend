@@ -569,9 +569,10 @@ export class EtudiantService {
 		id: number,
 		validateDto: ValidateEtudiantDto,
 		tenantId?: number,
-	): Promise<Etudiant> {
+	): Promise<{ etudiant: Etudiant; warnings: string[] }> {
 		const { siteStageId, ...validateData } = validateDto;
 		const etudiant = await this.findOne(id, tenantId);
+		const warnings: string[] = [];
 
 		// Vérifier si le matricule est déjà pris
 		const existing = await this.etudiantRepository.findOne({
@@ -609,22 +610,22 @@ export class EtudiantService {
 		await this.generateMissingInvoices(savedEtudiant, tenantId);
 
 		// Assignation automatique à tous les stages de l'année
-		if (savedEtudiant.classe && savedEtudiant.niveau) {
-			try {
-				await this.siteStageService?.autoAssignStage(
-					savedEtudiant.id,
-					savedEtudiant.classe.id,
-					savedEtudiant.niveau.id,
-					savedEtudiant.etablissement?.id ?? tenantId,
-					siteStageId,
-					true,
-				);
-			} catch {
-				// Échec silencieux — l'assignation du stage est optionnelle
+		// Plus de catch silencieux : on collecte la raison en warning
+		if (savedEtudiant.classe && savedEtudiant.niveau && this.siteStageService) {
+			const result = await this.siteStageService.autoAssignStage(
+				savedEtudiant.id,
+				savedEtudiant.classe.id,
+				savedEtudiant.niveau.id,
+				savedEtudiant.etablissement?.id ?? tenantId,
+				siteStageId,
+				true,
+			);
+			if (!result.success) {
+				warnings.push(`Stage non assigné : ${result.reason}`);
 			}
 		}
 
-		return savedEtudiant;
+		return { etudiant: savedEtudiant, warnings };
 	}
 
 	// Le compte utilisateur (login) n'est PAS en CASCADE côté base (SET NULL

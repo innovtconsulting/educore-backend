@@ -45,4 +45,9 @@ export class CreateSiteStageDto {
   @IsNumber({}, { message: 'La capacité doit être un nombre' })
   @IsPositive()
   capacite?: number;
+
+  @ApiPropertyOptional({ example: [1, 2], description: 'Parcours (classes) compatibles — vide = ouvert à tous les parcours' })
+  @IsOptional()
+  @IsNumber({}, { each: true })
+  classeIds?: number[];
 }

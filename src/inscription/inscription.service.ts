@@ -246,17 +246,18 @@ export class InscriptionService {
       await queryRunner.manager.save(etudiant);
 
       // 5. Auto-assignation (ou assignation manuelle) du stage
-      try {
-        await this.siteStageService.autoAssignStage(
-          etudiant.id,
-          classe.id,
-          niveau.id,
-          etudiant.etablissement.id,
-          siteStageId,
-          true,
-        );
-      } catch {
-        // Échec silencieux — l'assignation du stage est optionnelle
+      // Plus de catch silencieux : on collecte un warning.
+      let stageWarning: string | undefined;
+      const stageResult = await this.siteStageService.autoAssignStage(
+        etudiant.id,
+        classe.id,
+        niveau.id,
+        etudiant.etablissement.id,
+        siteStageId,
+        true,
+      );
+      if (!stageResult.success) {
+        stageWarning = `Stage non assigné : ${stageResult.reason}`;
       }
 
       // 6. Automatisation financière : Générer les factures des frais de la
@@ -298,6 +299,7 @@ export class InscriptionService {
         message: 'Réinscription effectuée avec succès et facturation générée.',
         inscription: newInscription,
         moyenneAnnuelle: eligibility.moyenneAnnuelle,
+        warnings: stageWarning ? [stageWarning] : [],
       };
     } catch (err) {
       await queryRunner.rollbackTransaction();
