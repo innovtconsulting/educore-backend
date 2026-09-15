@@ -9,6 +9,7 @@ import {
   UpdateDateColumn,
 } from 'typeorm';
 import { Classe } from '../../classe/entities/classe.entity';
+import { Niveau } from '../../niveau/entities/niveau.entity';
 
 @Entity()
 @Unique(['nom'])
@@ -25,6 +26,10 @@ export class NatureStage {
   @ManyToMany(() => Classe, { eager: true })
   @JoinTable()
   classes?: Classe[];
+
+  @ManyToMany(() => Niveau, { eager: true })
+  @JoinTable()
+  niveaux?: Niveau[];
 
   @CreateDateColumn()
   createdAt!: Date;

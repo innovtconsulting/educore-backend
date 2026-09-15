@@ -155,35 +155,42 @@ export class SiteStageService {
 
   // ===================== NATURES DE STAGE =====================
 
-  async createNatureStage(dto: { nom: string; description?: string; classeIds?: number[] }): Promise<NatureStage> {
-    const existing = await this.natureStageRepository.findOne({ where: { nom: dto.nom }, relations: { classes: true } as any });
+  async createNatureStage(dto: { nom: string; description?: string; classeIds?: number[]; niveauIds?: number[] }): Promise<NatureStage> {
+    const existing = await this.natureStageRepository.findOne({ where: { nom: dto.nom }, relations: { classes: true, niveaux: true } as any });
     if (existing) return existing;
     const nature: any = this.natureStageRepository.create({ nom: dto.nom, description: dto.description } as any);
     if ((dto as any).classeIds?.length) {
       nature.classes = await this.classeRepository.find({ where: { id: In((dto as any).classeIds) } as any });
     }
+    if ((dto as any).niveauIds?.length) {
+      nature.niveaux = await this.niveauRepository.find({ where: { id: In((dto as any).niveauIds) } as any });
+    }
     return await this.natureStageRepository.save(nature);
   }
 
   async findAllNaturesStage(): Promise<NatureStage[]> {
-    return await this.natureStageRepository.find({ relations: { classes: true } as any, order: { nom: 'ASC' } as any });
+    return await this.natureStageRepository.find({ relations: { classes: true, niveaux: true } as any, order: { nom: 'ASC' } as any });
   }
 
   async findOneNatureStage(id: number): Promise<NatureStage> {
-    const nature = await this.natureStageRepository.findOne({ where: { id }, relations: { classes: true } as any });
+    const nature = await this.natureStageRepository.findOne({ where: { id }, relations: { classes: true, niveaux: true } as any });
     if (!nature) {
       throw new NotFoundException(`La nature de stage #${id} n'a pas été trouvée`);
     }
     return nature;
   }
 
-  async updateNatureStage(id: number, dto: { nom?: string; description?: string; classeIds?: number[] }): Promise<NatureStage> {
+  async updateNatureStage(id: number, dto: { nom?: string; description?: string; classeIds?: number[]; niveauIds?: number[] }): Promise<NatureStage> {
     const nature = await this.findOneNatureStage(id);
     if (dto.nom !== undefined) nature.nom = dto.nom;
     if (dto.description !== undefined) nature.description = dto.description;
     if ((dto as any).classeIds !== undefined) {
       const ids = (dto as any).classeIds;
       (nature as any).classes = ids.length === 0 ? [] : await this.classeRepository.find({ where: { id: In(ids) } as any });
+    }
+    if ((dto as any).niveauIds !== undefined) {
+      const ids = (dto as any).niveauIds;
+      (nature as any).niveaux = ids.length === 0 ? [] : await this.niveauRepository.find({ where: { id: In(ids) } as any });
     }
     return await this.natureStageRepository.save(nature);
   }
@@ -342,6 +349,131 @@ export class SiteStageService {
     await this.ligneStageRepository.remove(ligne);
   }
 
+  async createModeleVide(
+    anneeUniversitaireId: number,
+    tenantId?: number,
+    inputSlots?: { ordre: number; dateDebut?: string | null; dateFin?: string | null }[],
+  ): Promise<LigneStage> {
+    const annee = await this.anneeRepository.findOne({ where: { id: anneeUniversitaireId } });
+    if (!annee) throw new NotFoundException('Année universitaire non trouvée');
+    const etablissementId = tenantId || annee.etablissementId;
+    if (!etablissementId) throw new NotFoundException('Établissement non trouvé');
+
+    const existing = await this.ligneStageRepository.findOne({
+      where: { anneeUniversitaireId, etablissementId } as any,
+    });
+    if (existing) {
+      throw new BadRequestException(
+        'Un modèle existe déjà pour cette année — videz d’abord les affectations ou créez une nouvelle ligne manuellement',
+      );
+    }
+
+    let classeId: number | null = null;
+    let niveauId: number | null = null;
+    const firstClasse = await this.classeRepository.findOne({ where: {}, order: { id: 'ASC' } as any });
+    if (firstClasse) {
+      classeId = firstClasse.id;
+      const firstNiveau = await this.niveauRepository.findOne({
+        where: { classe: { id: firstClasse.id } } as any,
+        order: { id: 'ASC' } as any,
+      });
+      if (firstNiveau) niveauId = firstNiveau.id;
+      else {
+        const anyNiveau = await this.niveauRepository.findOne({ where: {}, order: { id: 'ASC' } as any });
+        if (anyNiveau) niveauId = anyNiveau.id;
+      }
+    }
+    if (!classeId || !niveauId) {
+      throw new BadRequestException('Aucun parcours/niveau trouvé — créez d’abord un parcours et un niveau');
+    }
+
+    let slots: Partial<LigneStageSlot>[] = [];
+    if (inputSlots && inputSlots.length > 0) {
+      // Saisie manuelle : on garde uniquement les dates, les 5 périodes sont vides (site/nature/service/tuteur null)
+      slots = inputSlots
+        .slice(0, 5)
+        .sort((a, b) => a.ordre - b.ordre)
+        .map((s) => ({
+          ordre: s.ordre,
+          libelle: `Stage ${s.ordre}`,
+          dateDebut: s.dateDebut ? new Date(s.dateDebut) : null,
+          dateFin: s.dateFin ? new Date(s.dateFin) : null,
+          siteStageId: null as any,
+          natureStageId: null as any,
+          service: null as any,
+          enseignantId: null as any,
+          statut: StageStatus.EN_ATTENTE,
+        } as any));
+      // compléter à 5 si moins de 5 fournis
+      while (slots.length < 5) {
+        const ordre = slots.length + 1;
+        slots.push({
+          ordre,
+          libelle: `Stage ${ordre}`,
+          dateDebut: null,
+          dateFin: null,
+          siteStageId: null as any,
+          natureStageId: null as any,
+          service: null as any,
+          enseignantId: null as any,
+          statut: StageStatus.EN_ATTENTE,
+        } as any);
+      }
+    } else {
+      let start: Date | null = annee.startDate ? new Date(annee.startDate) : null;
+      let end: Date | null = annee.endDate ? new Date(annee.endDate) : null;
+
+      for (let i = 0; i < 5; i++) {
+        let dateDebut: Date | null = null;
+        let dateFin: Date | null = null;
+        if (start && end && end.getTime() > start.getTime()) {
+          const total = end.getTime() - start.getTime();
+          const slotMs = total / 5;
+          dateDebut = new Date(start.getTime() + i * slotMs);
+          dateFin = new Date(start.getTime() + (i + 1) * slotMs - 2 * 24 * 60 * 60 * 1000);
+          if (dateFin.getTime() > end.getTime()) dateFin = new Date(end);
+        }
+        slots.push({
+          ordre: i + 1,
+          libelle: `Stage ${i + 1}`,
+          dateDebut,
+          dateFin,
+          siteStageId: null as any,
+          natureStageId: null as any,
+          service: null as any,
+          enseignantId: null as any,
+          statut: StageStatus.EN_ATTENTE,
+        } as any);
+      }
+    }
+
+    const ligne = this.ligneStageRepository.create({
+      classeId,
+      niveauId,
+      anneeUniversitaireId,
+      etablissementId,
+      etudiantId: null as any,
+      nomIndicatif: 'Modèle vide — 5 périodes',
+      slots: slots.map((s) => this.slotRepository.create(s as any)),
+    } as any);
+
+    const saved = await this.ligneStageRepository.save(ligne as any);
+    return this.findOneLigne(saved.id, tenantId);
+  }
+
+  async purgeAffectations(tenantId?: number, anneeUniversitaireId?: number): Promise<{ deleted: number }> {
+    const where: any = {};
+    if (tenantId) where.etablissementId = tenantId;
+    if (anneeUniversitaireId) where.anneeUniversitaireId = anneeUniversitaireId;
+    const lignes = await this.ligneStageRepository.find({ where, select: { id: true } as any });
+    if (lignes.length === 0) return { deleted: 0 };
+    const ids = lignes.map((l) => l.id);
+    // slots d'abord (FK)
+    await this.slotRepository.delete({ ligneStageId: In(ids) } as any);
+    const result = await this.ligneStageRepository.delete({ id: In(ids) } as any);
+    return { deleted: (result as any).affected ?? ids.length };
+  }
+
   async updateSlot(
     ligneId: number,
     ordre: number,
@@ -442,11 +574,38 @@ export class SiteStageService {
     });
   }
 
+  async bulkUpdateGlobalStatut(
+    anneeUniversitaireId: number,
+    statut: StageStatus,
+    tenantId?: number,
+    ordre?: number,
+  ): Promise<{ updated: number }> {
+    if (!Object.values(StageStatus).includes(statut as any)) {
+      throw new BadRequestException(`Statut invalide: ${statut}`);
+    }
+    // UPDATE via sous-requête pour éviter le JOIN invalide en Postgres (QueryFailedError: missing FROM clause for table « ligne »)
+    const subQb = this.ligneStageRepository
+      .createQueryBuilder('ligne')
+      .select('ligne.id')
+      .where('ligne.anneeUniversitaireId = :anneeUniversitaireId', { anneeUniversitaireId });
+    if (tenantId) subQb.andWhere('ligne.etablissementId = :tenantId', { tenantId });
+
+    const qb = this.dataSource
+      .createQueryBuilder()
+      .update(LigneStageSlot)
+      .set({ statut } as any)
+      .where(`"ligneStageId" IN (${subQb.getQuery()})`)
+      .setParameters(subQb.getParameters());
+    if (ordre) qb.andWhere(`"ordre" = :ordre`, { ordre });
+    const result = await qb.execute();
+    return { updated: (result as any).affected ?? 0 };
+  }
+
   async getGrille(
     anneeUniversitaireId: number,
     search?: string,
     page = 1,
-    limit = 5,
+    limit = 2,
     tenantId?: number,
     classeIds?: number[],
     niveauId?: number,
@@ -491,15 +650,61 @@ export class SiteStageService {
 
     qb.orderBy('ligne.id', 'ASC').addOrderBy('slot.ordre', 'ASC');
 
-    const total = await qb.getCount();
+    // Count sans jointure slots pour éviter le gonflement du COUNT (1 ligne = 5 slots)
+    const countQb = this.ligneStageRepository
+      .createQueryBuilder('ligne')
+      .leftJoin('ligne.etudiant', 'etudiant')
+      .where('ligne.anneeUniversitaireId = :anneeUniversitaireId', { anneeUniversitaireId });
+    if (tenantId) countQb.andWhere('ligne.etablissementId = :tenantId', { tenantId });
+    if (classeIds && classeIds.length > 0) countQb.andWhere('ligne.classeId IN (:...classeIds)', { classeIds });
+    if (niveauId) countQb.andWhere('ligne.niveauId = :niveauId', { niveauId });
+    if (siteStageId) countQb.andWhere(`EXISTS (SELECT 1 FROM ligne_stage_slot s WHERE s."ligneStageId" = ligne.id AND s."siteStageId" = :siteStageId)`, { siteStageId });
+    if (natureStageId) countQb.andWhere(`EXISTS (SELECT 1 FROM ligne_stage_slot s2 WHERE s2."ligneStageId" = ligne.id AND s2."natureStageId" = :natureStageId)`, { natureStageId });
+    if (search) {
+      const q = `%${search}%`;
+      countQb.andWhere(`(etudiant.firstName ILIKE :q OR etudiant.lastName ILIKE :q OR etudiant.matricule ILIKE :q OR ligne.nomIndicatif ILIKE :q)`, { q });
+    }
+    const total = await countQb.getCount();
+
     if (all) {
       const items = await qb.getMany();
       items.forEach((l) => this.sortSlots(l));
       return { items, total, page: 1, limit: total };
     }
+    // Pagination correcte : on pagine sur les IDs distincts, pas sur les lignes jointées (sinon LIMIT 5 sur 5 slots = 1 ligne)
     const skip = (page - 1) * limit;
-    qb.skip(skip).take(limit);
-    const items = await qb.getMany();
+    const idsQb = this.ligneStageRepository
+      .createQueryBuilder('ligne')
+      .select('ligne.id')
+      .leftJoin('ligne.etudiant', 'etudiant')
+      .where('ligne.anneeUniversitaireId = :anneeUniversitaireId', { anneeUniversitaireId });
+    if (tenantId) idsQb.andWhere('ligne.etablissementId = :tenantId', { tenantId });
+    if (classeIds && classeIds.length > 0) idsQb.andWhere('ligne.classeId IN (:...classeIds)', { classeIds });
+    if (niveauId) idsQb.andWhere('ligne.niveauId = :niveauId', { niveauId });
+    if (siteStageId) idsQb.andWhere(`EXISTS (SELECT 1 FROM ligne_stage_slot s WHERE s."ligneStageId" = ligne.id AND s."siteStageId" = :siteStageId)`, { siteStageId });
+    if (natureStageId) idsQb.andWhere(`EXISTS (SELECT 1 FROM ligne_stage_slot s2 WHERE s2."ligneStageId" = ligne.id AND s2."natureStageId" = :natureStageId)`, { natureStageId });
+    if (search) {
+      const q = `%${search}%`;
+      idsQb.andWhere(`(etudiant.firstName ILIKE :q OR etudiant.lastName ILIKE :q OR etudiant.matricule ILIKE :q OR ligne.nomIndicatif ILIKE :q)`, { q });
+    }
+    idsQb.orderBy('ligne.id', 'ASC').skip(skip).take(limit);
+    const idRows = await idsQb.getMany();
+    const ids = idRows.map(r => r.id);
+    if (ids.length === 0) return { items: [], total, page, limit };
+    // Requête complète uniquement sur les IDs paginés
+    const itemsQb = this.ligneStageRepository
+      .createQueryBuilder('ligne')
+      .leftJoinAndSelect('ligne.etudiant', 'etudiant')
+      .leftJoinAndSelect('ligne.classe', 'classe')
+      .leftJoinAndSelect('ligne.niveau', 'niveau')
+      .leftJoinAndSelect('ligne.slots', 'slot')
+      .leftJoinAndSelect('slot.siteStage', 'siteStage')
+      .leftJoinAndSelect('slot.natureStage', 'natureStage')
+      .leftJoinAndSelect('slot.enseignant', 'enseignant')
+      .where('ligne.id IN (:...ids)', { ids })
+      .orderBy('ligne.id', 'ASC')
+      .addOrderBy('slot.ordre', 'ASC');
+    const items = await itemsQb.getMany();
     items.forEach((l) => this.sortSlots(l));
     return { items, total, page, limit };
   }
@@ -643,10 +848,10 @@ export class SiteStageService {
         picked.niveauId = niveauId;
         needsSave = true;
       }
-      // si la ligne modèle n'a que les dates (service/lieu/nature/tuteur vides), la compléter aléatoirement en filtrant par parcours
+      // si la ligne modèle n'a que les dates (service/lieu/nature/tuteur vides), la compléter aléatoirement en filtrant par parcours et niveau
       const hasEmpty = picked.slots?.some((s) => !s.siteStageId || !s.natureStageId || !s.service || !(s as any).enseignantId);
       if (hasEmpty) {
-        const enriched = await this.enrichSlotsWithRandom(this.dataSource.manager, picked.slots, anneeUniversitaireId, siteStageId, classeId);
+        const enriched = await this.enrichSlotsWithRandom(this.dataSource.manager, picked.slots, anneeUniversitaireId, siteStageId, classeId, niveauId);
         for (let i = 0; i < picked.slots.length; i++) {
           Object.assign(picked.slots[i], enriched[i]);
           await this.slotRepository.save(picked.slots[i]);
@@ -674,9 +879,9 @@ export class SiteStageService {
 
     const sorted = [...template!.slots].sort((a, b) => a.ordre - b.ordre);
     let slotSources: Partial<LigneStageSlot>[] = sorted.length >= 5 ? sorted.slice(0, 5) : sorted;
-    // Si le modèle n'a que les dates (service/lieu/nature/tuteur vides), compléter aléatoirement en filtrant par parcours
+    // Si le modèle n'a que les dates (service/lieu/nature/tuteur vides), compléter aléatoirement en filtrant par parcours et niveau
     if (slotSources.some((s) => !s.siteStageId || !s.natureStageId || !s.service || !(s as any).enseignantId)) {
-      slotSources = await this.enrichSlotsWithRandom(this.dataSource.manager, slotSources as LigneStageSlot[], anneeUniversitaireId, siteStageId, classeId);
+      slotSources = await this.enrichSlotsWithRandom(this.dataSource.manager, slotSources as LigneStageSlot[], anneeUniversitaireId, siteStageId, classeId, niveauId);
     }
 
     const ligne = this.ligneStageRepository.create({
@@ -715,6 +920,7 @@ export class SiteStageService {
     anneeUniversitaireId: number,
     preferredSiteStageId?: number,
     classeId?: number,
+    niveauId?: number,
   ): Promise<Partial<LigneStageSlot>[]> {
     const siteRepo = manager.getRepository(SiteStage);
     const natureRepo = manager.getRepository(NatureStage);
@@ -723,18 +929,24 @@ export class SiteStageService {
 
     const [allSites, allNatures, annee, enseignants] = await Promise.all([
       siteRepo.find({ relations: { classes: true } } as any),
-      natureRepo.find({ relations: { classes: true } } as any),
+      natureRepo.find({ relations: { classes: true, niveaux: true } } as any),
       anneeRepo.findOne({ where: { id: anneeUniversitaireId } }),
       enseignantRepo.find({ select: { id: true } as any, take: 100 } as any),
     ]);
-    // Filtrer sites/natures par parcours si définis (sinon ouvert à tous) — la nature varie selon parcours
+    // Filtrer sites/natures par parcours et niveau si définis (sinon ouvert à tous) — la nature varie selon parcours et niveau
     let sites = allSites as any[];
     let natures = allNatures as any[];
-    if (classeId) {
-      const filteredSites = (allSites as any[]).filter((s) => !s.classes || s.classes.length === 0 || s.classes.some((c: any) => c.id === classeId));
+    if (classeId || niveauId) {
+      const filteredSites = (allSites as any[]).filter((s) => !s.classes || s.classes.length === 0 || (classeId && s.classes.some((c: any) => c.id === classeId)));
       if (filteredSites.length >= 3) sites = filteredSites;
-      const filteredNatures = (allNatures as any[]).filter((n) => !n.classes || n.classes.length === 0 || n.classes.some((c: any) => c.id === classeId));
+      const isNatureCompatible = (n: any) => {
+        const classeOk = !n.classes || n.classes.length === 0 || !classeId || n.classes.some((c: any) => c.id === classeId);
+        const niveauOk = !n.niveaux || n.niveaux.length === 0 || !niveauId || n.niveaux.some((nv: any) => nv.id === niveauId);
+        return classeOk && niveauOk;
+      };
+      const filteredNatures = (allNatures as any[]).filter(isNatureCompatible);
       if (filteredNatures.length >= 2) natures = filteredNatures;
+      else if (filteredNatures.length > 0) natures = filteredNatures;
     }
 
     // Période de stage = découpage de l'année universitaire en 5 stages séquentiels
@@ -770,14 +982,15 @@ export class SiteStageService {
         dateDebut = new Date(base.getFullYear(), base.getMonth() + i, 1);
         dateFin = new Date(base.getFullYear(), base.getMonth() + i + 1, 0);
       }
+      const pickedNature = pickedNatures[i % Math.max(pickedNatures.length, 1)];
       slots.push({
         ordre: i + 1,
         libelle: `Stage ${i + 1}`,
         dateDebut,
         dateFin,
         siteStageId: pickedSites[i]?.id ?? null,
-        natureStageId: pickedNatures[i % Math.max(pickedNatures.length, 1)]?.id ?? null,
-        service: `Service ${i + 1}`,
+        natureStageId: pickedNature?.id ?? null,
+        service: (pickedNature as any)?.nom ?? null,
         enseignantId: pickedEnseignants[i % Math.max(pickedEnseignants.length, 1)]?.id ?? null,
         statut: StageStatus.EN_ATTENTE,
       });
@@ -792,8 +1005,9 @@ export class SiteStageService {
     anneeUniversitaireId: number,
     preferredSiteStageId?: number,
     classeId?: number,
+    niveauId?: number,
   ): Promise<Partial<LigneStageSlot>[]> {
-    const randomSlots = await this.buildRandomSlots(manager, anneeUniversitaireId, preferredSiteStageId, classeId);
+    const randomSlots = await this.buildRandomSlots(manager, anneeUniversitaireId, preferredSiteStageId, classeId, niveauId);
     const siteMap = new Map(randomSlots.map((s, i) => [i, s]));
     return slots.map((s, i) => {
       const rnd = siteMap.get(i % randomSlots.length)!;
@@ -861,7 +1075,7 @@ export class SiteStageService {
       }
       const hasEmpty = picked.slots?.some((s) => !s.siteStageId || !s.natureStageId || !s.service || !(s as any).enseignantId);
       if (hasEmpty) {
-        const enriched = await this.enrichSlotsWithRandom(manager, picked.slots, anneeUniversitaireId, siteStageId, classeId);
+        const enriched = await this.enrichSlotsWithRandom(manager, picked.slots, anneeUniversitaireId, siteStageId, classeId, niveauId);
         for (let i = 0; i < picked.slots.length; i++) {
           Object.assign(picked.slots[i], enriched[i]);
           await slotRepo.save(picked.slots[i]);
@@ -890,7 +1104,7 @@ export class SiteStageService {
     const sorted = [...template!.slots].sort((a, b) => a.ordre - b.ordre);
     let slotSources: Partial<LigneStageSlot>[] = sorted.length >= 5 ? sorted.slice(0, 5) : sorted;
     if (slotSources.some((s) => !s.siteStageId || !s.natureStageId || !s.service || !(s as any).enseignantId)) {
-      slotSources = await this.enrichSlotsWithRandom(manager, slotSources as LigneStageSlot[], anneeUniversitaireId, siteStageId, classeId);
+      slotSources = await this.enrichSlotsWithRandom(manager, slotSources as LigneStageSlot[], anneeUniversitaireId, siteStageId, classeId, niveauId);
     }
 
     const ligne = ligneRepo.create({

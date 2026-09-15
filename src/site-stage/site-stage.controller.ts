@@ -139,6 +139,22 @@ export class SiteStageController {
 
   // ===================== LIGNES DE STAGE =====================
 
+  @Post('lignes-stage/modele-vide')
+  @Permissions('STAGE_MANAGE')
+  @ApiOperation({ summary: 'Créer le modèle vide (5 périodes de stages) pour une année — dates saisies manuellement' })
+  async createModeleVide(
+    @Body() dto: { anneeUniversitaireId: number; slots?: { ordre: number; dateDebut?: string; dateFin?: string }[] },
+    @CurrentEtablissement() tenantId?: number,
+  ) {
+    if (!dto?.anneeUniversitaireId) throw new BadRequestException('anneeUniversitaireId requis');
+    const data = await this.siteStageService.createModeleVide(
+      +dto.anneeUniversitaireId,
+      tenantId,
+      dto.slots,
+    );
+    return { message: 'Modèle vide (5 périodes) créé avec succès', data };
+  }
+
   @Post('lignes-stage')
   @Permissions('STAGE_MANAGE')
   @ApiOperation({ summary: 'Créer une ligne de stage (circuit de rotation)' })
@@ -173,7 +189,7 @@ export class SiteStageController {
       +anneeUniversitaireId,
       search,
       page ? +page : 1,
-      limit ? +limit : 5,
+      limit ? +limit : 2,
       tenantId,
       classeIdsArray,
       niveauId ? +niveauId : undefined,
@@ -193,6 +209,23 @@ export class SiteStageController {
   ) {
     const data = await this.siteStageService.findOneLigne(+id, tenantId);
     return { message: `Ligne de stage #${id} récupérée avec succès`, data };
+  }
+
+  @Patch('lignes-stage/statut-global')
+  @Permissions('STAGE_MANAGE')
+  @ApiOperation({ summary: 'Modifier le statut de tous les créneaux d’une année (global)' })
+  async bulkUpdateGlobalStatut(
+    @Body() dto: { anneeUniversitaireId: number; statut: string; ordre?: number },
+    @CurrentEtablissement() tenantId?: number,
+  ) {
+    if (!dto.anneeUniversitaireId || !dto.statut) throw new BadRequestException('anneeUniversitaireId et statut requis');
+    const result = await this.siteStageService.bulkUpdateGlobalStatut(
+      +dto.anneeUniversitaireId,
+      dto.statut as any,
+      tenantId,
+      dto.ordre ? +dto.ordre : undefined,
+    );
+    return { message: `Statut mis à jour pour ${result.updated} créneau(x)`, data: result };
   }
 
   @Patch('lignes-stage/:id')
@@ -219,10 +252,24 @@ export class SiteStageController {
   ) {
     if (propagate === 'true') {
       const result = await this.siteStageService.bulkUpdateSlot(+id, +ordre, dto, tenantId);
-      return { message: `Créneau ${ordre} mis à jour pour ${result.updated} ligne(s) de la promo (année courante)`, data: result };
+      return { message: `Stage ${ordre} mis à jour pour ${result.updated} ligne(s) de la promo (année courante)`, data: result };
     }
     const data = await this.siteStageService.updateSlot(+id, +ordre, dto, tenantId);
-    return { message: 'Créneau mis à jour avec succès', data };
+    return { message: 'Stage mis à jour avec succès', data };
+  }
+
+  @Delete('lignes-stage')
+  @Permissions('STAGE_MANAGE')
+  @ApiOperation({ summary: 'Vider toutes les affectations (lignes de stage) — optionnellement filtré par année' })
+  async purgeAffectations(
+    @CurrentEtablissement() tenantId?: number,
+    @Query('anneeUniversitaireId') anneeUniversitaireId?: string,
+  ) {
+    const result = await this.siteStageService.purgeAffectations(
+      tenantId,
+      anneeUniversitaireId ? +anneeUniversitaireId : undefined,
+    );
+    return { message: `${result.deleted} affectation(s) supprimée(s)`, data: result };
   }
 
   @Delete('lignes-stage/:id')
