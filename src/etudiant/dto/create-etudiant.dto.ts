@@ -80,10 +80,10 @@ export class CreateEtudiantDto {
   @IsOptional()
   cinDeliveryPlace?: string;
 
-  @ApiProperty({ enum: SerieBac, example: SerieBac.D })
+  @ApiProperty({ enum: SerieBac, example: SerieBac.D, required: false, description: 'Série du Bac — masqué pour Cherubin (primaire)' })
   @IsEnum(SerieBac)
-  @IsNotEmpty()
-  serieBac!: SerieBac;
+  @IsOptional()
+  serieBac?: SerieBac;
 
   // Documents fournis
   @ApiProperty({ default: false, required: false })

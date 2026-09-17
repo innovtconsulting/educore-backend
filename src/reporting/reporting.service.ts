@@ -186,24 +186,24 @@ export class ReportingService {
       isSubmitted: savedReport?.isSubmitted || false,
       savedObservations: savedReport?.observations || null,
       supervisorName: savedReport?.supervisorName || null,
-      absences: absences.map((a) => ({
+      absences: absences.map((a: any) => ({
         id: a.id,
         etudiant: `${a.etudiant.lastName} ${a.etudiant.firstName}`,
         matricule: a.etudiant.matricule,
         classe: a.etudiant.classe.name,
         niveau: a.etudiant.niveau.name,
-        matiere: a.emploiDuTemp.matiere?.name ?? a.emploiDuTemp.title ?? '',
-        heure: a.emploiDuTemp.startTime,
+        matiere: a.emploiDuTemp?.matiere?.name ?? a.emploiDuTemp?.title ?? (a.demiJournee ? (a.demiJournee === 'MATIN' ? 'Matin' : 'Après-midi') + ' (' + a.date + ')' : ''),
+        heure: a.emploiDuTemp?.startTime ?? a.date,
         remarque: a.remark,
       })),
-      retards: retards.map((r) => ({
+      retards: retards.map((r: any) => ({
         id: r.id,
         etudiant: `${r.etudiant.lastName} ${r.etudiant.firstName}`,
         matricule: r.etudiant.matricule,
         classe: r.etudiant.classe.name,
         niveau: r.etudiant.niveau.name,
-        matiere: r.emploiDuTemp.matiere?.name ?? r.emploiDuTemp.title ?? '',
-        heure: r.emploiDuTemp.startTime,
+        matiere: r.emploiDuTemp?.matiere?.name ?? r.emploiDuTemp?.title ?? (r.demiJournee ? (r.demiJournee === 'MATIN' ? 'Matin' : 'Après-midi') + ' (' + r.date + ')' : ''),
+        heure: r.emploiDuTemp?.startTime ?? r.date,
         remarque: r.remark,
       })),
       sanctions: sanctions.map((s) => ({

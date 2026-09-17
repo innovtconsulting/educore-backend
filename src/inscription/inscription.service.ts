@@ -22,6 +22,7 @@ import { Frais } from '../finance/entities/frais.entity';
 import { BulletinService } from '../bulletin/bulletin.service';
 import { GlobalSettingService } from '../global-setting/global-setting.service';
 import { SiteStageService } from '../site-stage/site-stage.service';
+import { getAnneeLabelLower } from '../common/utils/annee-label.util';
 
 @Injectable()
 export class InscriptionService {
@@ -58,7 +59,7 @@ export class InscriptionService {
     });
     if (!etudiant) throw new NotFoundException('Étudiant non trouvé');
 
-    // 1. Trouver l'année universitaire actuelle/passée de l'étudiant
+    // 1. Trouver l'année universitaire/scolaire actuelle/passée de l'étudiant — label dynamique via getAnneeLabelLower(etudiant.etablissement)
     const currentInscription = etudiant.inscriptions.find(
       (i) => i.status === InscriptionStatus.ACTIF,
     );
@@ -103,7 +104,7 @@ export class InscriptionService {
       return {
         eligible: true,
         reason:
-          "Aucune donnée académique pour l'année actuelle, passage autorisé par défaut",
+          `Aucune donnée académique pour l'${getAnneeLabelLower(etudiant.etablissement)} actuelle, passage autorisé par défaut`,
       };
     }
 
@@ -261,7 +262,7 @@ export class InscriptionService {
       }
 
       // 6. Automatisation financière : Générer les factures des frais de la
-      // nouvelle année universitaire pour ce parcours/niveau (les frais sont
+      // nouvelle année universitaire/scolaire pour ce parcours/niveau (les frais sont
       // eux-mêmes scopés par année, donc filtrés sur "annee" pour ne pas
       // reprendre des frais d'années précédentes).
       const frais = await queryRunner.manager.find(Frais, {

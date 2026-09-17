@@ -33,6 +33,8 @@ import { CurrentEtablissement } from '../auth/decorators/current-etablissement.d
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Etudiant } from '../etudiant/entities/etudiant.entity';
+import { Etablissement } from '../etablissement/entities/etablissement.entity';
+import { getAnneeLabelLower } from '../common/utils/annee-label.util';
 
 @ApiTags('sites-stage')
 @ApiBearerAuth()
@@ -43,6 +45,8 @@ export class SiteStageController {
     private readonly siteStageService: SiteStageService,
     @InjectRepository(Etudiant)
     private readonly etudiantRepository: Repository<Etudiant>,
+    @InjectRepository(Etablissement)
+    private readonly etablissementRepository: Repository<Etablissement>,
   ) {}
 
   // ===================== SITES DE STAGE =====================
@@ -519,7 +523,11 @@ export class SiteStageController {
     @CurrentEtablissement() tenantId?: number,
   ) {
     if (!file) throw new BadRequestException('Fichier requis');
-    if (!anneeUniversitaireId) throw new BadRequestException("L'année universitaire est requise");
+    if (!anneeUniversitaireId) {
+      let etablissement: any = null;
+      if (tenantId) etablissement = await this.etablissementRepository.findOne({ where: { id: tenantId } });
+      throw new BadRequestException(`L'${getAnneeLabelLower(etablissement)} est requise`);
+    }
 
     const { Readable } = require('stream');
     const stream = Readable.from(file.buffer);
