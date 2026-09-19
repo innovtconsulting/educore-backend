@@ -91,9 +91,9 @@ export class ParentDashboardService {
           presence: {
             absentsTotal: presenceStats.absents,
             retardsTotal: presenceStats.retards,
-            absencesToday: absencesToday.map((p) => ({
-              matiere: p.emploiDuTemp.matiere?.name ?? p.emploiDuTemp.title ?? '',
-              startTime: p.emploiDuTemp.startTime,
+            absencesToday: absencesToday.map((p: any) => ({
+              matiere: p.emploiDuTemp?.matiere?.name ?? p.emploiDuTemp?.title ?? (p.demiJournee ? (p.demiJournee === 'MATIN' ? 'Matin' : 'Après-midi') : ''),
+              startTime: p.emploiDuTemp?.startTime ?? p.date,
               remark: p.remark,
             })),
           },

@@ -9,6 +9,7 @@ import { CreateAnneeUniversitaireDto } from './dto/create-annee-universitaire.dt
 import { UpdateAnneeUniversitaireDto } from './dto/update-annee-universitaire.dto';
 import { AnneeUniversitaire } from './entities/annee-universitaire.entity';
 import { Etablissement } from '../etablissement/entities/etablissement.entity';
+import { getAnneeLabel, getAnneeLabelLower } from '../common/utils/annee-label.util';
 
 @Injectable()
 export class AnneeUniversitaireService {
@@ -66,8 +67,11 @@ export class AnneeUniversitaireService {
       where,
       relations: { semestres: true },
     });
-    if (!annee)
-      throw new NotFoundException(`Année universitaire #${id} non trouvée`);
+    if (!annee) {
+      let etablissement: any = null;
+      if (tenantId) etablissement = await this.etablissementRepo.findOneBy({ id: tenantId } as any);
+      throw new NotFoundException(`${getAnneeLabel(etablissement)} #${id} non trouvée`);
+    }
     return annee;
   }
 
@@ -101,8 +105,11 @@ export class AnneeUniversitaireService {
       where.etablissementId = tenantId;
     }
     const active = await this.repo.findOne({ where });
-    if (!active)
-      throw new NotFoundException('Aucune année universitaire active');
+    if (!active) {
+      let etablissement: any = null;
+      if (tenantId) etablissement = await this.etablissementRepo.findOneBy({ id: tenantId } as any);
+      throw new NotFoundException(`Aucune ${getAnneeLabelLower(etablissement)} active`);
+    }
     return active;
   }
 }

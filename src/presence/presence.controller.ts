@@ -11,6 +11,8 @@ import {
 } from '@nestjs/common';
 import { PresenceService } from './presence.service';
 import { BulkRecordPresenceDto } from './dto/record-presence.dto';
+import { BulkRecordHalfDayPresenceDto, HalfDayPresenceFilterDto } from './dto/bulk-record-halfday.dto';
+import { DemiJournee } from './entities/presence.entity';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { PresenceFilterDto } from './dto/presence-filter.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
@@ -38,6 +40,48 @@ export class PresenceController {
     @CurrentEtablissement() tenantId?: number,
   ) {
     return this.presenceService.bulkRecord(bulkRecordPresenceDto, tenantId);
+  }
+
+  // ── Mode primaire Chérubin : demi-journée ───────────────────────────
+  @Post('bulk-halfday')
+  @Roles(Role.ENSEIGNANT, Role.ADMIN, Role.SURVEILLANT)
+  @Permissions('ATTENDANCE_MANAGE')
+  @ApiOperation({ summary: 'Enregistrer les présences demi-journée (Chérubin – primaire)' })
+  bulkRecordHalfDay(
+    @Body() dto: BulkRecordHalfDayPresenceDto,
+    @CurrentEtablissement() tenantId?: number,
+  ) {
+    return this.presenceService.bulkRecordHalfDay(dto, tenantId);
+  }
+
+  @Get('halfday-sessions')
+  @Roles(Role.ENSEIGNANT, Role.ADMIN, Role.SURVEILLANT)
+  @Permissions('ATTENDANCE_MANAGE')
+  @ApiOperation({ summary: 'Résumé présences demi-journée (Chérubin)' })
+  getHalfDaySessions(
+    @Query() filter: HalfDayPresenceFilterDto,
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
+    @CurrentEtablissement() tenantId?: number,
+  ) {
+    return this.presenceService.getHalfDaySessionsSummary(
+      { ...filter, page: page ? Number(page) : 1, limit: limit ? Number(limit) : 15 } as any,
+      tenantId,
+    );
+  }
+
+  @Get('halfday')
+  @Roles(Role.ENSEIGNANT, Role.ADMIN, Role.SURVEILLANT)
+  @Permissions('ATTENDANCE_MANAGE')
+  @ApiOperation({ summary: "Récupérer les présences d'une demi-journée" })
+  findByHalfDay(
+    @Query('classeId', ParseIntPipe) classeId: number,
+    @Query('niveauId', ParseIntPipe) niveauId: number,
+    @Query('date') date: string,
+    @Query('demiJournee') demiJournee: DemiJournee,
+    @CurrentEtablissement() tenantId?: number,
+  ) {
+    return this.presenceService.findByHalfDay(classeId, niveauId, date, demiJournee, tenantId);
   }
 
   @Get()

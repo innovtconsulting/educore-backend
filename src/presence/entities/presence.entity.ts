@@ -2,15 +2,17 @@ import {
   Column,
   CreateDateColumn,
   Entity,
+  Index,
   ManyToOne,
   PrimaryGeneratedColumn,
   UpdateDateColumn,
-  Unique,
   JoinColumn,
 } from 'typeorm';
 import { Etudiant } from '../../etudiant/entities/etudiant.entity';
 import { EmploiDuTemp } from '../../emploi-du-temps/entities/emploi-du-temp.entity';
 import { Etablissement } from '../../etablissement/entities/etablissement.entity';
+import { Classe } from '../../classe/entities/classe.entity';
+import { Niveau } from '../../niveau/entities/niveau.entity';
 
 export enum PresenceStatus {
   PRESENT = 'Présent',
@@ -18,8 +20,14 @@ export enum PresenceStatus {
   RETARD = 'Retard',
 }
 
+export enum DemiJournee {
+  MATIN = 'MATIN',
+  APRES_MIDI = 'APRES_MIDI',
+}
+
 @Entity()
-@Unique(['etudiant', 'emploiDuTemp'])
+@Index(['etudiant', 'emploiDuTemp'], { unique: true, where: '"emploiDuTempId" IS NOT NULL' })
+@Index(['etudiant', 'date', 'demiJournee'], { unique: true, where: '"date" IS NOT NULL AND "demiJournee" IS NOT NULL' })
 export class Presence {
   @PrimaryGeneratedColumn()
   id!: number;
@@ -36,8 +44,29 @@ export class Presence {
   @ManyToOne(() => Etudiant, { onDelete: 'CASCADE', nullable: false })
   etudiant!: Etudiant;
 
-  @ManyToOne(() => EmploiDuTemp, { onDelete: 'CASCADE', nullable: false })
-  emploiDuTemp!: EmploiDuTemp;
+  @ManyToOne(() => EmploiDuTemp, { onDelete: 'CASCADE', nullable: true })
+  emploiDuTemp?: EmploiDuTemp | null;
+
+  // ── Mode primaire (Chérubin) : demi-journée ──────────────────────────────
+  @Column({ type: 'date', nullable: true })
+  date?: string | null; // YYYY-MM-DD
+
+  @Column({ type: 'enum', enum: DemiJournee, nullable: true })
+  demiJournee?: DemiJournee | null;
+
+  @ManyToOne(() => Classe, { onDelete: 'CASCADE', nullable: true })
+  @JoinColumn({ name: 'classeId' })
+  classe?: Classe | null;
+
+  @Column({ nullable: true })
+  classeId?: number | null;
+
+  @ManyToOne(() => Niveau, { onDelete: 'CASCADE', nullable: true })
+  @JoinColumn({ name: 'niveauId' })
+  niveau?: Niveau | null;
+
+  @Column({ nullable: true })
+  niveauId?: number | null;
 
   @ManyToOne(() => Etablissement, { nullable: false })
   @JoinColumn({ name: 'etablissementId' })

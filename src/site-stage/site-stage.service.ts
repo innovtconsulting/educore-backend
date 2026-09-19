@@ -21,6 +21,7 @@ import { Classe } from '../classe/entities/classe.entity';
 import { Niveau } from '../niveau/entities/niveau.entity';
 import { Etablissement } from '../etablissement/entities/etablissement.entity';
 import { FinanceService } from '../finance/finance.service';
+import { getAnneeLabel, getAnneeLabelLower } from '../common/utils/annee-label.util';
 
 export type AutoAssignResult =
   | { success: true; ligne: LigneStage; reason?: undefined }
@@ -221,8 +222,12 @@ export class SiteStageService {
     const niveau = await this.niveauRepository.findOne({ where: { id: dto.niveauId } });
     if (!niveau) throw new NotFoundException('Niveau non trouvé');
 
-    const annee = await this.anneeRepository.findOne({ where: { id: dto.anneeUniversitaireId } });
-    if (!annee) throw new NotFoundException('Année universitaire non trouvée');
+    const annee = await this.anneeRepository.findOne({ where: { id: dto.anneeUniversitaireId }, relations: { etablissement: true } as any });
+    if (!annee) {
+      let etablissement: any = null;
+      if (tenantId) etablissement = await this.etablissementRepository.findOne({ where: { id: tenantId } });
+      throw new NotFoundException(`${getAnneeLabel(etablissement)} non trouvée`);
+    }
 
     const etablissementId = tenantId || annee.etablissementId;
     if (!etablissementId) throw new NotFoundException('Établissement non trouvé');
@@ -354,8 +359,12 @@ export class SiteStageService {
     tenantId?: number,
     inputSlots?: { ordre: number; dateDebut?: string | null; dateFin?: string | null }[],
   ): Promise<LigneStage> {
-    const annee = await this.anneeRepository.findOne({ where: { id: anneeUniversitaireId } });
-    if (!annee) throw new NotFoundException('Année universitaire non trouvée');
+    const annee = await this.anneeRepository.findOne({ where: { id: anneeUniversitaireId }, relations: { etablissement: true } as any });
+    if (!annee) {
+      let etablissement: any = null;
+      if (tenantId) etablissement = await this.etablissementRepository.findOne({ where: { id: tenantId } });
+      throw new NotFoundException(`${getAnneeLabel(etablissement)} non trouvée`);
+    }
     const etablissementId = tenantId || annee.etablissementId;
     if (!etablissementId) throw new NotFoundException('Établissement non trouvé');
 
@@ -748,7 +757,7 @@ export class SiteStageService {
     if (!anneeActive) {
       return {
         success: false,
-        reason: 'Aucune année universitaire active pour cet établissement — activez d\'abord une année dans le module Scolaire',
+        reason: `Aucune ${getAnneeLabelLower(etablissement)} active pour cet établissement — activez d'abord une ${getAnneeLabelLower(etablissement)} dans le module Scolaire`,
       };
     }
 
@@ -1338,9 +1347,11 @@ export class SiteStageService {
       return { sheetName, lignesCreated: 0, erreurs: ['Aucune donnée trouvée dans cette feuille'] };
     }
 
-    const annee = await this.anneeRepository.findOne({ where: { id: anneeUniversitaireId } });
+    const annee = await this.anneeRepository.findOne({ where: { id: anneeUniversitaireId }, relations: { etablissement: true } as any });
     if (!annee) {
-      return { sheetName, lignesCreated: 0, erreurs: ["Année universitaire introuvable"] };
+      let etablissement: any = null;
+      if (tenantId) etablissement = await this.etablissementRepository.findOne({ where: { id: tenantId } });
+      return { sheetName, lignesCreated: 0, erreurs: [`${getAnneeLabel(etablissement)} introuvable`] };
     }
     const etablissementId = tenantId || annee.etablissementId;
 
