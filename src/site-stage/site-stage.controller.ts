@@ -139,6 +139,22 @@ export class SiteStageController {
 
   // ===================== LIGNES DE STAGE =====================
 
+  @Post('lignes-stage/modele-vide')
+  @Permissions('STAGE_MANAGE')
+  @ApiOperation({ summary: 'Créer le modèle vide (5 périodes de stages) pour une année — dates saisies manuellement' })
+  async createModeleVide(
+    @Body() dto: { anneeUniversitaireId: number; slots?: { ordre: number; dateDebut?: string; dateFin?: string }[] },
+    @CurrentEtablissement() tenantId?: number,
+  ) {
+    if (!dto?.anneeUniversitaireId) throw new BadRequestException('anneeUniversitaireId requis');
+    const data = await this.siteStageService.createModeleVide(
+      +dto.anneeUniversitaireId,
+      tenantId,
+      dto.slots,
+    );
+    return { message: 'Modèle vide (5 périodes) créé avec succès', data };
+  }
+
   @Post('lignes-stage')
   @Permissions('STAGE_MANAGE')
   @ApiOperation({ summary: 'Créer une ligne de stage (circuit de rotation)' })
@@ -173,7 +189,7 @@ export class SiteStageController {
       +anneeUniversitaireId,
       search,
       page ? +page : 1,
-      limit ? +limit : 5,
+      limit ? +limit : 2,
       tenantId,
       classeIdsArray,
       niveauId ? +niveauId : undefined,
@@ -195,6 +211,23 @@ export class SiteStageController {
     return { message: `Ligne de stage #${id} récupérée avec succès`, data };
   }
 
+  @Patch('lignes-stage/statut-global')
+  @Permissions('STAGE_MANAGE')
+  @ApiOperation({ summary: 'Modifier le statut de tous les créneaux d’une année (global)' })
+  async bulkUpdateGlobalStatut(
+    @Body() dto: { anneeUniversitaireId: number; statut: string; ordre?: number },
+    @CurrentEtablissement() tenantId?: number,
+  ) {
+    if (!dto.anneeUniversitaireId || !dto.statut) throw new BadRequestException('anneeUniversitaireId et statut requis');
+    const result = await this.siteStageService.bulkUpdateGlobalStatut(
+      +dto.anneeUniversitaireId,
+      dto.statut as any,
+      tenantId,
+      dto.ordre ? +dto.ordre : undefined,
+    );
+    return { message: `Statut mis à jour pour ${result.updated} créneau(x)`, data: result };
+  }
+
   @Patch('lignes-stage/:id')
   @Permissions('STAGE_MANAGE')
   @ApiOperation({ summary: "Changer l'étudiant assigné à une ligne de stage" })
@@ -214,10 +247,29 @@ export class SiteStageController {
     @Param('id') id: string,
     @Param('ordre') ordre: string,
     @Body() dto: UpdateLigneSlotDto,
+    @Query('propagate') propagate: string,
     @CurrentEtablissement() tenantId?: number,
   ) {
+    if (propagate === 'true') {
+      const result = await this.siteStageService.bulkUpdateSlot(+id, +ordre, dto, tenantId);
+      return { message: `Stage ${ordre} mis à jour pour ${result.updated} ligne(s) de la promo (année courante)`, data: result };
+    }
     const data = await this.siteStageService.updateSlot(+id, +ordre, dto, tenantId);
-    return { message: 'Créneau mis à jour avec succès', data };
+    return { message: 'Stage mis à jour avec succès', data };
+  }
+
+  @Delete('lignes-stage')
+  @Permissions('STAGE_MANAGE')
+  @ApiOperation({ summary: 'Vider toutes les affectations (lignes de stage) — optionnellement filtré par année' })
+  async purgeAffectations(
+    @CurrentEtablissement() tenantId?: number,
+    @Query('anneeUniversitaireId') anneeUniversitaireId?: string,
+  ) {
+    const result = await this.siteStageService.purgeAffectations(
+      tenantId,
+      anneeUniversitaireId ? +anneeUniversitaireId : undefined,
+    );
+    return { message: `${result.deleted} affectation(s) supprimée(s)`, data: result };
   }
 
   @Delete('lignes-stage/:id')
@@ -254,16 +306,36 @@ export class SiteStageController {
       relations: { classe: true, niveau: true, etablissement: true },
     });
     if (!etudiant) throw new NotFoundException('Étudiant non trouvé');
+    if (!etudiant.classe?.id || !etudiant.niveau?.id) {
+      return {
+        message: 'Parcours ou niveau manquant : impossible d’assigner un stage',
+        data: null,
+      };
+    }
 
-    const ligne = await this.siteStageService.autoAssignStage(
+    const etablissementId = etudiant.etablissement?.id ?? tenantId;
+    if (!etablissementId) {
+      return {
+        message: 'Établissement introuvable pour cet étudiant',
+        data: null,
+      };
+    }
+
+    const result = await this.siteStageService.autoAssignStage(
       etudiant.id,
       etudiant.classe.id,
       etudiant.niveau.id,
-      etudiant.etablissement?.id ?? tenantId,
+      etablissementId,
     );
+    if (!result.success) {
+      return {
+        message: result.reason,
+        data: null,
+      };
+    }
     return {
-      message: ligne ? 'Étudiant assigné à une ligne de stage avec succès' : 'Aucune ligne vacante disponible',
-      data: ligne,
+      message: 'Étudiant assigné à une ligne de stage avec succès',
+      data: result.ligne,
     };
   }
 
@@ -271,8 +343,18 @@ export class SiteStageController {
   @Permissions('STAGE_MANAGE')
   @ApiOperation({ summary: 'Assigner automatiquement tous les étudiants non affectés à des lignes vacantes' })
   async autoAssignAllStudents(@CurrentEtablissement() tenantId?: number) {
-    const total = await this.siteStageService.autoAssignAll(tenantId);
-    return { message: `${total} étudiant(s) assigné(s) avec succès` };
+    const report = await this.siteStageService.autoAssignAll(tenantId);
+    const details: string[] = [];
+    details.push(`${report.assigned} nouveau(x) assigné(s)`);
+    if (report.alreadyAssigned) details.push(`${report.alreadyAssigned} déjà affecté(s)`);
+    if (report.skipped.noCurriculum) details.push(`${report.skipped.noCurriculum} sans parcours/niveau`);
+    if (report.skipped.noActiveYear) details.push(`${report.skipped.noActiveYear} sans année active`);
+    if (report.skipped.stageDisabled) details.push(`${report.skipped.stageDisabled} module stage désactivé`);
+    if (report.skipped.failed) details.push(`${report.skipped.failed} échec(s)`);
+    return {
+      message: `Assignation automatique terminée — ${details.join(' · ')}`,
+      data: report,
+    };
   }
 
   @Get('stage/etudiant/me')

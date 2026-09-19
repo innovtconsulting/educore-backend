@@ -8,6 +8,7 @@ import {
   UpdateDateColumn,
 } from 'typeorm';
 import { NatureStage } from './nature-stage.entity';
+import { Classe } from '../../classe/entities/classe.entity';
 
 @Entity()
 export class SiteStage {
@@ -38,6 +39,10 @@ export class SiteStage {
   @ManyToMany(() => NatureStage, { eager: true })
   @JoinTable()
   natures!: NatureStage[];
+
+  @ManyToMany(() => Classe, { eager: true })
+  @JoinTable()
+  classes?: Classe[];
 
   @CreateDateColumn()
   createdAt!: Date;

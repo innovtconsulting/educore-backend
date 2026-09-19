@@ -2,6 +2,7 @@ import {
   Column,
   CreateDateColumn,
   Entity,
+  Index,
   JoinColumn,
   ManyToOne,
   OneToMany,
@@ -22,6 +23,10 @@ import { LigneStageSlot } from './ligne-stage-slot.entity';
  * (dates/site/service/nature), qui appartiennent à la ligne elle-même.
  */
 @Entity()
+@Index(['etudiantId', 'anneeUniversitaireId', 'classeId', 'niveauId'], {
+  unique: true,
+  where: '"etudiantId" IS NOT NULL',
+})
 export class LigneStage {
   @PrimaryGeneratedColumn()
   id!: number;
