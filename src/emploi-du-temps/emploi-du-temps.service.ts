@@ -570,6 +570,10 @@ export class EmploiDuTempsService {
     }
 
     Object.assign(emploi, updateEmploiDuTempDto);
+    // Force des objets Date (l'API reçoit désormais des ISO UTC explicites).
+    // Sans ça, une chaîne naïve serait réinterprétée selon le TZ du serveur.
+    if (startTime) emploi.startTime = start;
+    if (endTime) emploi.endTime = end;
     return await this.emploiDuTempRepository.save(emploi);
   }
 
